@@ -26,6 +26,11 @@ export default function CarryScreen() {
     router.push('/post-carry');
   };
 
+  const handleFilters = () => {
+    console.log('[CarryScreen] Navigate to filters');
+    router.push('/carry-filters');
+  };
+
   const emptyTitle = selectedType === 'request' ? 'No requests yet' : 'No travelers yet';
   const emptyMessage = selectedType === 'request' 
     ? `Be the first to request an item in ${selectedCity}!`
@@ -35,14 +40,24 @@ export default function CarryScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Carry & Send</Text>
-        <TouchableOpacity onPress={handlePostCarry} style={styles.postButton}>
-          <IconSymbol 
-            ios_icon_name="plus" 
-            android_material_icon_name="add" 
-            size={24} 
-            color="#FFFFFF" 
-          />
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity onPress={handleFilters} style={styles.filterButton}>
+            <IconSymbol 
+              ios_icon_name="line.3.horizontal.decrease.circle" 
+              android_material_icon_name="filter-list" 
+              size={24} 
+              color={colors.primary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handlePostCarry} style={styles.postButton}>
+            <IconSymbol 
+              ios_icon_name="plus" 
+              android_material_icon_name="add" 
+              size={24} 
+              color="#FFFFFF" 
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.toggleContainer}>
@@ -117,6 +132,19 @@ const styles = StyleSheet.create({
   title: {
     ...typography.h2,
     color: colors.text,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  filterButton: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.card,
   },
   postButton: {
     backgroundColor: colors.primary,

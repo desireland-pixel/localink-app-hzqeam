@@ -138,6 +138,30 @@ export default function RootLayout() {
                   }} 
                 />
                 <Stack.Screen 
+                  name="sublet-filters" 
+                  options={{ 
+                    headerShown: true,
+                    title: 'Sublet Filters',
+                    headerBackTitle: 'Back'
+                  }} 
+                />
+                <Stack.Screen 
+                  name="travel-filters" 
+                  options={{ 
+                    headerShown: true,
+                    title: 'Travel Filters',
+                    headerBackTitle: 'Back'
+                  }} 
+                />
+                <Stack.Screen 
+                  name="carry-filters" 
+                  options={{ 
+                    headerShown: true,
+                    title: 'Carry Filters',
+                    headerBackTitle: 'Back'
+                  }} 
+                />
+                <Stack.Screen 
                   name="my-posts" 
                   options={{ 
                     headerShown: true,

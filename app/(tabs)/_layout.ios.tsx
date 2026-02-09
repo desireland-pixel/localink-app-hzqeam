@@ -1,17 +1,43 @@
+
 import React from 'react';
-import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
+import FloatingTabBar from '@/components/FloatingTabBar';
+import { colors } from '@/styles/commonStyles';
 
 export default function TabLayout() {
-  return (
-    <NativeTabs>
-      <NativeTabs.Trigger key="home" name="(home)">
-        <Icon sf="house.fill" />
-        <Label>Home</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger key="profile" name="profile">
-        <Icon sf="person.fill" />
-        <Label>Profile</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
+  console.log('TabLayout (iOS): Rendering tabs');
+
+  const tabs = [
+    {
+      name: 'Sublet',
+      route: '/(tabs)/sublet',
+      ios_icon_name: 'house.fill',
+      android_material_icon_name: 'home',
+    },
+    {
+      name: 'Travel',
+      route: '/(tabs)/travel',
+      ios_icon_name: 'airplane',
+      android_material_icon_name: 'flight',
+    },
+    {
+      name: 'Carry',
+      route: '/(tabs)/carry',
+      ios_icon_name: 'shippingbox.fill',
+      android_material_icon_name: 'local-shipping',
+    },
+    {
+      name: 'Inbox',
+      route: '/(tabs)/inbox',
+      ios_icon_name: 'message.fill',
+      android_material_icon_name: 'chat',
+    },
+    {
+      name: 'Profile',
+      route: '/(tabs)/profile',
+      ios_icon_name: 'person.fill',
+      android_material_icon_name: 'person',
+    },
+  ];
+
+  return <FloatingTabBar tabs={tabs} />;
 }

@@ -1,21 +1,21 @@
 
 import { StyleSheet } from 'react-native';
 
-// Localink color theme - warm, welcoming colors for community connection
+// Localink color theme - green for growth, connection, and community
 export const colors = {
-  // Primary brand colors
-  primary: '#FF6B35', // Vibrant orange - energy and connection
-  primaryDark: '#E85A2A',
-  primaryLight: '#FF8A5C',
+  // Primary brand colors - Green theme
+  primary: '#10B981', // Emerald green - growth and connection
+  primaryDark: '#059669',
+  primaryLight: '#34D399',
   
   // Secondary colors
-  secondary: '#4ECDC4', // Teal - trust and reliability
-  secondaryDark: '#3DB5AD',
-  secondaryLight: '#6FD9D1',
+  secondary: '#3B82F6', // Blue - trust and reliability
+  secondaryDark: '#2563EB',
+  secondaryLight: '#60A5FA',
   
   // Accent colors
-  accent: '#FFE66D', // Warm yellow - friendliness
-  accentDark: '#F5D84F',
+  accent: '#F59E0B', // Amber - warmth and friendliness
+  accentDark: '#D97706',
   
   // Neutral colors
   background: '#FFFFFF',
@@ -31,10 +31,10 @@ export const colors = {
   textSecondaryDark: '#DFE6E9',
   
   // Status colors
-  success: '#00B894',
-  error: '#D63031',
-  warning: '#FDCB6E',
-  info: '#74B9FF',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+  info: '#3B82F6',
   
   // Border and divider
   border: '#DFE6E9',
@@ -42,7 +42,7 @@ export const colors = {
   divider: '#ECEFF1',
   
   // Highlight
-  highlight: '#FFF3E0',
+  highlight: '#ECFDF5',
   highlightDark: '#3A3A3A',
 };
 
