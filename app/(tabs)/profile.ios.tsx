@@ -1,66 +1,32 @@
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, spacing, borderRadius } from '@/styles/commonStyles';
 import Modal from '@/components/ui/Modal';
 
 export default function ProfileScreen() {
+  const { user, profile, signOut } = useAuth();
   const router = useRouter();
-  const { user, profile, profileLoading, signOut } = useAuth();
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
-  console.log('[ProfileScreen iOS] Current user:', user?.id, 'Profile:', profile?.name);
+  console.log('[ProfileScreen iOS] Rendering');
 
-  const handleMyPosts = () => {
-    console.log('[ProfileScreen iOS] Navigate to my posts');
-    router.push('/my-posts');
-  };
-
-  const handleSettings = () => {
-    console.log('[ProfileScreen iOS] Navigate to settings');
-    router.push('/settings');
-  };
-
-  const handleSignOutPress = () => {
-    console.log('[ProfileScreen iOS] Show logout confirmation');
-    setShowLogoutModal(true);
-  };
-
-  const handleConfirmSignOut = async () => {
-    console.log('[ProfileScreen iOS] Confirming sign out');
-    setLoggingOut(true);
+  const handleSignOut = async () => {
+    console.log('[ProfileScreen] Signing out');
     try {
       await signOut();
-      console.log('[ProfileScreen iOS] Sign out successful, navigating to auth');
-      router.replace('/auth');
+      router.replace('/welcome');
     } catch (error) {
-      console.error('[ProfileScreen iOS] Error signing out:', error);
-    } finally {
-      setLoggingOut(false);
-      setShowLogoutModal(false);
+      console.error('[ProfileScreen] Sign out error:', error);
     }
   };
 
-  if (profileLoading) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading profile...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const userNameDisplay = profile?.name || user?.name || 'User';
-  const userCityDisplay = profile?.city || 'Not set';
-  const userEmailDisplay = user?.email || 'Not set';
-  const avatarLetter = userNameDisplay.charAt(0).toUpperCase();
+  const userName = profile?.name || user?.name || 'User';
+  const userCity = profile?.city || 'Not set';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -70,97 +36,99 @@ export default function ProfileScreen() {
 
       <ScrollView style={styles.content}>
         <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{avatarLetter}</Text>
+          <View style={styles.avatarContainer}>
+            <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
           </View>
-          <Text style={styles.name}>{userNameDisplay}</Text>
-          <View style={styles.infoRow}>
+          <Text style={styles.profileName}>{userName}</Text>
+          <View style={styles.locationContainer}>
             <IconSymbol 
               ios_icon_name="location.fill" 
               android_material_icon_name="location-on" 
               size={16} 
               color={colors.textSecondary} 
             />
-            <Text style={styles.infoText}>{userCityDisplay}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <IconSymbol 
-              ios_icon_name="envelope.fill" 
-              android_material_icon_name="email" 
-              size={16} 
-              color={colors.textSecondary} 
-            />
-            <Text style={styles.infoText}>{userEmailDisplay}</Text>
+            <Text style={styles.profileCity}>{userCity}</Text>
           </View>
         </View>
 
         <View style={styles.menuSection}>
-          <TouchableOpacity style={styles.menuItem} onPress={handleMyPosts}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push('/my-posts')}
+          >
             <View style={styles.menuItemLeft}>
               <IconSymbol 
                 ios_icon_name="doc.text.fill" 
                 android_material_icon_name="description" 
-                size={24} 
-                color={colors.primary} 
+                size={22} 
+                color={colors.text} 
               />
               <Text style={styles.menuItemText}>My Posts</Text>
             </View>
             <IconSymbol 
               ios_icon_name="chevron.right" 
               android_material_icon_name="chevron-right" 
-              size={24} 
-              color={colors.textLight} 
+              size={20} 
+              color={colors.textSecondary} 
             />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push('/settings')}
+          >
             <View style={styles.menuItemLeft}>
               <IconSymbol 
-                ios_icon_name="gearshape.fill" 
+                ios_icon_name="gear" 
                 android_material_icon_name="settings" 
-                size={24} 
-                color={colors.primary} 
+                size={22} 
+                color={colors.text} 
               />
               <Text style={styles.menuItemText}>Settings</Text>
             </View>
             <IconSymbol 
               ios_icon_name="chevron.right" 
               android_material_icon_name="chevron-right" 
-              size={24} 
-              color={colors.textLight} 
+              size={20} 
+              color={colors.textSecondary} 
             />
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.menuItem} 
-            onPress={handleSignOutPress}
-            disabled={loggingOut}
+            style={[styles.menuItem, styles.signOutItem]}
+            onPress={() => setShowSignOutModal(true)}
           >
             <View style={styles.menuItemLeft}>
               <IconSymbol 
                 ios_icon_name="arrow.right.square.fill" 
                 android_material_icon_name="logout" 
-                size={24} 
+                size={22} 
                 color={colors.error} 
               />
-              <Text style={[styles.menuItemText, { color: colors.error }]}>
-                {loggingOut ? 'Signing out...' : 'Sign Out'}
-              </Text>
+              <Text style={[styles.menuItemText, styles.signOutText]}>Sign Out</Text>
             </View>
-            {loggingOut && <ActivityIndicator size="small" color={colors.error} />}
           </TouchableOpacity>
         </View>
       </ScrollView>
 
       <Modal
-        visible={showLogoutModal}
-        onClose={() => setShowLogoutModal(false)}
+        visible={showSignOutModal}
+        onClose={() => setShowSignOutModal(false)}
         title="Sign Out"
         message="Are you sure you want to sign out?"
-        type="confirm"
-        confirmText="Sign Out"
-        cancelText="Cancel"
-        onConfirm={handleConfirmSignOut}
+        type="warning"
+        actions={[
+          {
+            text: 'Cancel',
+            onPress: () => setShowSignOutModal(false),
+            style: 'cancel',
+          },
+          {
+            text: 'Sign Out',
+            onPress: handleSignOut,
+            style: 'destructive',
+          },
+        ]}
       />
     </SafeAreaView>
   );
@@ -174,33 +142,23 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   title: {
-    ...typography.h2,
+    fontSize: 28,
+    fontWeight: '700',
     color: colors.text,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: spacing.md,
   },
   content: {
     flex: 1,
     paddingHorizontal: spacing.lg,
   },
   profileCard: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    paddingVertical: spacing.xl,
   },
-  avatar: {
+  avatarContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
@@ -210,45 +168,51 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   avatarText: {
-    ...typography.h1,
+    fontSize: 32,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
-  name: {
-    ...typography.h2,
+  profileName: {
+    fontSize: 24,
+    fontWeight: '600',
     color: colors.text,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
-  infoRow: {
+  locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.xs,
+    gap: spacing.xs,
   },
-  infoText: {
-    ...typography.bodySmall,
+  profileCity: {
+    fontSize: 15,
     color: colors.textSecondary,
-    marginLeft: spacing.xs,
   },
   menuSection: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
+    marginTop: spacing.lg,
   },
   menuItem: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
   },
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.md,
   },
   menuItemText: {
-    ...typography.body,
+    fontSize: 16,
+    fontWeight: '500',
     color: colors.text,
-    marginLeft: spacing.md,
+  },
+  signOutItem: {
+    marginTop: spacing.lg,
+  },
+  signOutText: {
+    color: colors.error,
   },
 });

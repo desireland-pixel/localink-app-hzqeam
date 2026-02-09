@@ -1,35 +1,17 @@
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
+import { colors, spacing, borderRadius } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
 export default function CarryScreen() {
   const router = useRouter();
-  const [refreshing, setRefreshing] = useState(false);
   const [selectedCity, setSelectedCity] = useState('Berlin');
   const [selectedType, setSelectedType] = useState<'request' | 'traveler'>('request');
 
-  console.log('[CarryScreen] Rendering', { selectedType });
-
-  const onRefresh = async () => {
-    console.log('[CarryScreen] Refreshing feed', { selectedType });
-    setRefreshing(true);
-    // TODO: Backend Integration - GET /api/carry-posts?city=Berlin&type=request&status=active → [{ id, type, title, description, fromCity, toCity, travelDate, itemDescription, user: { name } }]
-    setTimeout(() => setRefreshing(false), 1000);
-  };
-
-  const handlePostCarry = () => {
-    console.log('[CarryScreen] Navigate to post carry');
-    router.push('/post-carry');
-  };
-
-  const handleFilters = () => {
-    console.log('[CarryScreen] Navigate to filters');
-    router.push('/carry-filters');
-  };
+  console.log('[CarryScreen] Rendering');
 
   const emptyTitle = selectedType === 'request' ? 'No requests yet' : 'No travelers yet';
   const emptyMessage = selectedType === 'request' 
@@ -41,19 +23,25 @@ export default function CarryScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Carry & Send</Text>
         <View style={styles.headerButtons}>
-          <TouchableOpacity onPress={handleFilters} style={styles.filterButton}>
+          <TouchableOpacity 
+            onPress={() => router.push('/carry-filters')} 
+            style={styles.iconButton}
+          >
             <IconSymbol 
               ios_icon_name="line.3.horizontal.decrease.circle" 
               android_material_icon_name="filter-list" 
-              size={24} 
-              color={colors.primary} 
+              size={22} 
+              color={colors.text} 
             />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handlePostCarry} style={styles.postButton}>
+          <TouchableOpacity 
+            onPress={() => router.push('/post-carry')} 
+            style={styles.addButton}
+          >
             <IconSymbol 
               ios_icon_name="plus" 
               android_material_icon_name="add" 
-              size={24} 
+              size={22} 
               color="#FFFFFF" 
             />
           </TouchableOpacity>
@@ -79,36 +67,37 @@ export default function CarryScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.citySelector}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne'].map((city) => {
-            const isSelected = selectedCity === city;
-            return (
-              <TouchableOpacity
-                key={city}
-                style={[styles.cityChip, isSelected && styles.cityChipSelected]}
-                onPress={() => setSelectedCity(city)}
-              >
-                <Text style={[styles.cityChipText, isSelected && styles.cityChipTextSelected]}>
-                  {city}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.citySelector}
+        contentContainerStyle={styles.citySelectorContent}
       >
+        {['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne'].map((city) => {
+          const isSelected = selectedCity === city;
+          return (
+            <TouchableOpacity
+              key={city}
+              style={[styles.cityChip, isSelected && styles.cityChipSelected]}
+              onPress={() => setSelectedCity(city)}
+            >
+              <Text style={[styles.cityChipText, isSelected && styles.cityChipTextSelected]}>
+                {city}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>📦</Text>
           <Text style={styles.emptyTitle}>{emptyTitle}</Text>
           <Text style={styles.emptyText}>{emptyMessage}</Text>
-          <TouchableOpacity style={styles.emptyButton} onPress={handlePostCarry}>
+          <TouchableOpacity 
+            style={styles.emptyButton} 
+            onPress={() => router.push('/post-carry')}
+          >
             <Text style={styles.emptyButtonText}>Create your first post</Text>
           </TouchableOpacity>
         </View>
@@ -121,6 +110,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    paddingTop: Platform.OS === 'android' ? 16 : 0,
   },
   header: {
     flexDirection: 'row',
@@ -128,9 +118,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   title: {
-    ...typography.h2,
+    fontSize: 28,
+    fontWeight: '700',
     color: colors.text,
   },
   headerButtons: {
@@ -138,26 +131,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  filterButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
+  iconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.card,
   },
-  postButton: {
+  addButton: {
     backgroundColor: colors.primary,
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
   toggleContainer: {
     flexDirection: 'row',
     marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
+    marginVertical: spacing.md,
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
     padding: 4,
@@ -172,7 +165,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   toggleText: {
-    ...typography.bodySmall,
+    fontSize: 14,
     color: colors.textSecondary,
     fontWeight: '600',
   },
@@ -180,14 +173,17 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   citySelector: {
+    maxHeight: 60,
+    paddingVertical: spacing.sm,
+  },
+  citySelectorContent: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
   },
   cityChip: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.full,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     marginRight: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
@@ -197,8 +193,9 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   cityChipText: {
-    ...typography.bodySmall,
+    fontSize: 14,
     color: colors.text,
+    fontWeight: '500',
   },
   cityChipTextSelected: {
     color: '#FFFFFF',
@@ -206,27 +203,33 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
+    flexGrow: 1,
     paddingHorizontal: spacing.lg,
   },
   emptyState: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.xxl * 2,
   },
   emptyEmoji: {
-    fontSize: 60,
-    marginBottom: spacing.md,
+    fontSize: 64,
+    marginBottom: spacing.lg,
   },
   emptyTitle: {
-    ...typography.h3,
+    fontSize: 22,
+    fontWeight: '600',
     color: colors.text,
     marginBottom: spacing.sm,
   },
   emptyText: {
-    ...typography.body,
+    fontSize: 15,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
+    lineHeight: 22,
   },
   emptyButton: {
     backgroundColor: colors.primary,
@@ -235,7 +238,8 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
   },
   emptyButtonText: {
-    ...typography.button,
+    fontSize: 16,
+    fontWeight: '600',
     color: '#FFFFFF',
   },
 });
