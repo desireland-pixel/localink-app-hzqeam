@@ -1,41 +1,66 @@
 
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import Modal from '@/components/ui/Modal';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, profile, profileLoading, signOut } = useAuth();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  console.log('ProfileScreen: Current user', user);
+  console.log('[ProfileScreen] Current user:', user?.id, 'Profile:', profile?.name);
 
   const handleMyPosts = () => {
-    console.log('ProfileScreen: Navigate to my posts');
+    console.log('[ProfileScreen] Navigate to my posts');
     router.push('/my-posts');
   };
 
   const handleSettings = () => {
-    console.log('ProfileScreen: Navigate to settings');
+    console.log('[ProfileScreen] Navigate to settings');
     router.push('/settings');
   };
 
-  const handleSignOut = async () => {
-    console.log('ProfileScreen: Sign out');
+  const handleSignOutPress = () => {
+    console.log('[ProfileScreen] Show logout confirmation');
+    setShowLogoutModal(true);
+  };
+
+  const handleConfirmSignOut = async () => {
+    console.log('[ProfileScreen] Confirming sign out');
+    setLoggingOut(true);
     try {
       await signOut();
+      console.log('[ProfileScreen] Sign out successful, navigating to auth');
       router.replace('/auth');
     } catch (error) {
-      console.error('ProfileScreen: Error signing out', error);
+      console.error('[ProfileScreen] Error signing out:', error);
+    } finally {
+      setLoggingOut(false);
+      setShowLogoutModal(false);
     }
   };
 
-  const userNameDisplay = user?.name || 'User';
-  const userCityDisplay = user?.city || 'Not set';
+  if (profileLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const userNameDisplay = profile?.name || user?.name || 'User';
+  const userCityDisplay = profile?.city || 'Not set';
   const userEmailDisplay = user?.email || 'Not set';
+  const avatarLetter = userNameDisplay.charAt(0).toUpperCase();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -46,9 +71,7 @@ export default function ProfileScreen() {
       <ScrollView style={styles.content}>
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {userNameDisplay.charAt(0).toUpperCase()}
-            </Text>
+            <Text style={styles.avatarText}>{avatarLetter}</Text>
           </View>
           <Text style={styles.name}>{userNameDisplay}</Text>
           <View style={styles.infoRow}>
@@ -108,7 +131,11 @@ export default function ProfileScreen() {
             />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={handleSignOut}>
+          <TouchableOpacity 
+            style={styles.menuItem} 
+            onPress={handleSignOutPress}
+            disabled={loggingOut}
+          >
             <View style={styles.menuItemLeft}>
               <IconSymbol 
                 ios_icon_name="arrow.right.square.fill" 
@@ -116,11 +143,25 @@ export default function ProfileScreen() {
                 size={24} 
                 color={colors.error} 
               />
-              <Text style={[styles.menuItemText, { color: colors.error }]}>Sign Out</Text>
+              <Text style={[styles.menuItemText, { color: colors.error }]}>
+                {loggingOut ? 'Signing out...' : 'Sign Out'}
+              </Text>
             </View>
+            {loggingOut && <ActivityIndicator size="small" color={colors.error} />}
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        title="Sign Out"
+        message="Are you sure you want to sign out?"
+        type="confirm"
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        onConfirm={handleConfirmSignOut}
+      />
     </SafeAreaView>
   );
 }
@@ -137,6 +178,16 @@ const styles = StyleSheet.create({
   title: {
     ...typography.h2,
     color: colors.text,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: spacing.md,
   },
   content: {
     flex: 1,

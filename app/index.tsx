@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors, typography, spacing } from '@/styles/commonStyles';
@@ -8,42 +8,44 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, profile, loading, profileLoading } = useAuth();
 
   useEffect(() => {
-    console.log('WelcomeScreen: Checking auth state', { user, loading });
+    console.log('[WelcomeScreen] Auth state:', { 
+      user: user?.id, 
+      profile: profile?.name, 
+      loading, 
+      profileLoading 
+    });
     
-    if (!loading) {
-      if (user) {
-        console.log('WelcomeScreen: User authenticated, checking profile');
-        // Check if user has completed profile
-        // Note: user.city is stored in the profile table, not in the auth user object
-        // We'll check for it via the profile API in the tabs layout
-        if (user.name) {
-          console.log('WelcomeScreen: User has name, redirecting to tabs');
-          router.replace('/(tabs)');
-        } else {
-          console.log('WelcomeScreen: Profile incomplete, redirecting to create-profile');
-          router.replace('/create-profile');
-        }
-      } else {
-        console.log('WelcomeScreen: No user, redirecting to auth');
-        // Delay to show welcome screen briefly
-        const timer = setTimeout(() => {
-          router.replace('/auth');
-        }, 1500);
-        return () => clearTimeout(timer);
-      }
+    // Wait for both user and profile to load
+    if (loading || profileLoading) {
+      console.log('[WelcomeScreen] Still loading...');
+      return;
     }
-  }, [user, loading, router]);
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </SafeAreaView>
-    );
-  }
+    // Not authenticated -> go to auth
+    if (!user) {
+      console.log('[WelcomeScreen] No user, redirecting to auth');
+      setTimeout(() => {
+        router.replace('/auth');
+      }, 1000);
+      return;
+    }
+
+    // Authenticated but no profile -> go to create profile
+    if (!profile || !profile.name || !profile.city) {
+      console.log('[WelcomeScreen] User authenticated but profile incomplete, redirecting to create-profile');
+      router.replace('/create-profile');
+      return;
+    }
+
+    // Authenticated with complete profile -> go to main app
+    console.log('[WelcomeScreen] User authenticated with complete profile, redirecting to tabs');
+    router.replace('/(tabs)/sublet');
+  }, [user, profile, loading, profileLoading, router]);
+
+  const isLoading = loading || profileLoading;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -53,6 +55,12 @@ export default function WelcomeScreen() {
           <Text style={styles.title}>Localink</Text>
         </View>
         <Text style={styles.subtitle}>Connecting Indian expats in Germany</Text>
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -86,5 +94,14 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    marginTop: spacing.xl,
+    alignItems: 'center',
+  },
+  loadingText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
   },
 });

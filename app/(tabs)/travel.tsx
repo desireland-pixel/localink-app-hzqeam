@@ -11,17 +11,17 @@ export default function TravelScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCity, setSelectedCity] = useState('Berlin');
 
-  console.log('TravelScreen: Rendering');
+  console.log('[TravelScreen] Rendering');
 
   const onRefresh = async () => {
-    console.log('TravelScreen: Refreshing feed');
+    console.log('[TravelScreen] Refreshing feed');
     setRefreshing(true);
-    // TODO: Backend Integration - GET /api/travels?city=Berlin&status=active → [{ id, title, description, fromCity, toCity, travelDate, companionType, user: { name } }]
+    // TODO: Backend Integration - GET /api/travel-posts?city=Berlin&status=active → [{ id, title, description, fromCity, toCity, travelDate, type, user: { name } }]
     setTimeout(() => setRefreshing(false), 1000);
   };
 
   const handlePostTravel = () => {
-    console.log('TravelScreen: Navigate to post travel');
+    console.log('[TravelScreen] Navigate to post travel');
     router.push('/post-travel');
   };
 
@@ -68,6 +68,9 @@ export default function TravelScreen() {
           <Text style={styles.emptyEmoji}>✈️</Text>
           <Text style={styles.emptyTitle}>No travel buddies yet</Text>
           <Text style={styles.emptyText}>Be the first to find a travel companion in {selectedCity}!</Text>
+          <TouchableOpacity style={styles.emptyButton} onPress={handlePostTravel}>
+            <Text style={styles.emptyButtonText}>Create your first post</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -145,5 +148,16 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  emptyButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.md,
+  },
+  emptyButtonText: {
+    ...typography.button,
+    color: '#FFFFFF',
   },
 });

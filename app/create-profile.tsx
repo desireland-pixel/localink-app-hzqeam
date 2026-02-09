@@ -17,16 +17,16 @@ const GERMAN_CITIES = [
 
 export default function CreateProfileScreen() {
   const router = useRouter();
-  const { user, fetchUser } = useAuth();
+  const { refreshProfile } = useAuth();
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  console.log('CreateProfileScreen: Current user', user);
+  console.log('[CreateProfile] Rendering');
 
   const handleSubmit = async () => {
-    console.log('CreateProfileScreen: Submit profile', { name, city });
+    console.log('[CreateProfile] Submit profile', { name, city });
     
     if (!name.trim()) {
       setError('Please enter your name');
@@ -45,11 +45,12 @@ export default function CreateProfileScreen() {
       await authenticatedPut('/api/profile', { name, city });
       console.log('[CreateProfile] Profile updated successfully');
       
-      // Refresh user data
-      await fetchUser();
+      // Refresh profile data in context
+      await refreshProfile();
       
-      // Navigate to tabs
-      router.replace('/(tabs)');
+      // Navigate to main app
+      console.log('[CreateProfile] Navigating to main app');
+      router.replace('/(tabs)/sublet');
     } catch (err) {
       console.error('[CreateProfile] Error updating profile:', err);
       setError(err instanceof Error ? err.message : 'Failed to update profile. Please try again.');

@@ -11,17 +11,17 @@ export default function SubletScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCity, setSelectedCity] = useState('Berlin');
 
-  console.log('SubletScreen: Rendering');
+  console.log('[SubletScreen] Rendering');
 
   const onRefresh = async () => {
-    console.log('SubletScreen: Refreshing feed');
+    console.log('[SubletScreen] Refreshing feed');
     setRefreshing(true);
     // TODO: Backend Integration - GET /api/sublets?city=Berlin&status=active → [{ id, title, description, city, rent, availableFrom, availableTo, user: { name } }]
     setTimeout(() => setRefreshing(false), 1000);
   };
 
   const handlePostSublet = () => {
-    console.log('SubletScreen: Navigate to post sublet');
+    console.log('[SubletScreen] Navigate to post sublet');
     router.push('/post-sublet');
   };
 
@@ -68,6 +68,9 @@ export default function SubletScreen() {
           <Text style={styles.emptyEmoji}>🏠</Text>
           <Text style={styles.emptyTitle}>No sublets yet</Text>
           <Text style={styles.emptyText}>Be the first to post a sublet in {selectedCity}!</Text>
+          <TouchableOpacity style={styles.emptyButton} onPress={handlePostSublet}>
+            <Text style={styles.emptyButtonText}>Create your first post</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -145,5 +148,16 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  emptyButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.md,
+  },
+  emptyButtonText: {
+    ...typography.button,
+    color: '#FFFFFF',
   },
 });

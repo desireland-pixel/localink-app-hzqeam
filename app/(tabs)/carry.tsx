@@ -12,19 +12,24 @@ export default function CarryScreen() {
   const [selectedCity, setSelectedCity] = useState('Berlin');
   const [selectedType, setSelectedType] = useState<'request' | 'traveler'>('request');
 
-  console.log('CarryScreen: Rendering', { selectedType });
+  console.log('[CarryScreen] Rendering', { selectedType });
 
   const onRefresh = async () => {
-    console.log('CarryScreen: Refreshing feed', { selectedType });
+    console.log('[CarryScreen] Refreshing feed', { selectedType });
     setRefreshing(true);
-    // TODO: Backend Integration - GET /api/carry?city=Berlin&type=request&status=active → [{ id, type, title, description, fromCity, toCity, travelDate, itemType, user: { name } }]
+    // TODO: Backend Integration - GET /api/carry-posts?city=Berlin&type=request&status=active → [{ id, type, title, description, fromCity, toCity, travelDate, itemDescription, user: { name } }]
     setTimeout(() => setRefreshing(false), 1000);
   };
 
   const handlePostCarry = () => {
-    console.log('CarryScreen: Navigate to post carry');
+    console.log('[CarryScreen] Navigate to post carry');
     router.push('/post-carry');
   };
+
+  const emptyTitle = selectedType === 'request' ? 'No requests yet' : 'No travelers yet';
+  const emptyMessage = selectedType === 'request' 
+    ? `Be the first to request an item in ${selectedCity}!`
+    : `Be the first to offer carrying items in ${selectedCity}!`;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -86,14 +91,11 @@ export default function CarryScreen() {
       >
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>📦</Text>
-          <Text style={styles.emptyTitle}>
-            {selectedType === 'request' ? 'No requests yet' : 'No travelers yet'}
-          </Text>
-          <Text style={styles.emptyText}>
-            {selectedType === 'request' 
-              ? 'Be the first to request an item in ' + selectedCity + '!'
-              : 'Be the first to offer carrying items in ' + selectedCity + '!'}
-          </Text>
+          <Text style={styles.emptyTitle}>{emptyTitle}</Text>
+          <Text style={styles.emptyText}>{emptyMessage}</Text>
+          <TouchableOpacity style={styles.emptyButton} onPress={handlePostCarry}>
+            <Text style={styles.emptyButtonText}>Create your first post</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -196,5 +198,16 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  emptyButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.md,
+  },
+  emptyButtonText: {
+    ...typography.button,
+    color: '#FFFFFF',
   },
 });
