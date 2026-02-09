@@ -89,21 +89,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     console.log('[AuthContext] Initializing auth state');
-    fetchUser();
+    initializeAuth();
 
-    // Listen for deep links (e.g. from social auth redirects)
     const subscription = Linking.addEventListener("url", (event) => {
       console.log("[AuthContext] Deep link received, refreshing user session");
-      // Allow time for the client to process the token if needed
-      setTimeout(() => fetchUser(), 500);
+      setTimeout(() => initializeAuth(), 500);
     });
 
-    // POLLING: Refresh session every 5 minutes to keep SecureStore token in sync
-    // This prevents 401 errors when the session token rotates
     const intervalId = setInterval(() => {
       console.log("[AuthContext] Auto-refreshing user session to sync token...");
       fetchUser();
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 5 * 60 * 1000);
 
     return () => {
       subscription.remove();
@@ -111,19 +107,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const initializeAuth = async () => {
+    try {
+      console.log('[AuthContext] Starting auth initialization');
+      setLoading(true);
+      await fetchUser();
+    } catch (error) {
+      console.error('[AuthContext] Auth initialization failed:', error);
+      setUser(null);
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchUser = async () => {
     try {
       console.log('[AuthContext] Fetching user session');
-      setLoading(true);
       const session = await authClient.getSession();
+      
       if (session?.data?.user) {
         console.log('[AuthContext] User session found:', session.data.user.id);
         setUser(session.data.user as User);
-        // Sync token to SecureStore for utils/api.ts
+        
         if (session.data.session?.token) {
+          console.log('[AuthContext] Syncing bearer token to storage');
           await setBearerToken(session.data.session.token);
         }
-        // Fetch profile after user is set
+        
         await fetchProfileInternal();
       } else {
         console.log('[AuthContext] No user session found');
@@ -135,8 +146,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("[AuthContext] Failed to fetch user:", error);
       setUser(null);
       setProfile(null);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -145,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('[AuthContext] Fetching user profile');
       setProfileLoading(true);
       const response = await authenticatedGet<Profile>('/api/profile');
-      console.log('[AuthContext] Profile fetched:', response);
+      console.log('[AuthContext] Profile fetched successfully:', response);
       setProfile(response);
     } catch (error: any) {
       console.log('[AuthContext] Profile fetch failed (may not exist yet):', error?.message);
@@ -167,7 +176,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithEmail = async (email: string, password: string) => {
     try {
       console.log('[AuthContext] Signing in with email');
-      await authClient.signIn.email({ email, password });
+      const result = await authClient.signIn.email({ email, password });
+      console.log('[AuthContext] Sign in result:', result);
+      
+      if (result.data?.session?.token) {
+        console.log('[AuthContext] Storing bearer token after email sign in');
+        await setBearerToken(result.data.session.token);
+      }
+      
       await fetchUser();
     } catch (error) {
       console.error("[AuthContext] Email sign in failed:", error);
@@ -178,11 +194,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUpWithEmail = async (email: string, password: string, name?: string) => {
     try {
       console.log('[AuthContext] Signing up with email');
-      await authClient.signUp.email({
+      const result = await authClient.signUp.email({
         email,
         password,
         name,
       });
+      console.log('[AuthContext] Sign up result:', result);
+      
+      if (result.data?.session?.token) {
+        console.log('[AuthContext] Storing bearer token after email sign up');
+        await setBearerToken(result.data.session.token);
+      }
+      
       await fetchUser();
     } catch (error) {
       console.error("[AuthContext] Email sign up failed:", error);
@@ -198,13 +221,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await setBearerToken(token);
         await fetchUser();
       } else {
-        // Native: Use expo-linking to generate a proper deep link
         const callbackURL = Linking.createURL("/");
+        console.log(`[AuthContext] Using callback URL: ${callbackURL}`);
         await authClient.signIn.social({
           provider,
           callbackURL,
         });
-        // The redirect will reload the app or be handled by deep linking
         await fetchUser();
       }
     } catch (error) {
@@ -224,7 +246,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("[AuthContext] Sign out failed (API):", error);
     } finally {
-      // Always clear local state
       setUser(null);
       setProfile(null);
       await clearAuthTokens();

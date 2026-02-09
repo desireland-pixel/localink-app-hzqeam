@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   View,
@@ -6,263 +7,338 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Platform,
   KeyboardAvoidingView,
   ScrollView,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "expo-router";
+import { colors, typography, spacing, borderRadius } from "@/styles/commonStyles";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Modal from "@/components/ui/Modal";
 
 type Mode = "signin" | "signup";
 
 export default function AuthScreen() {
-  const router = useRouter();
-  const { signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signInWithGitHub, loading: authLoading } =
-    useAuth();
+  const { signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, loading: authLoading } = useAuth();
 
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  console.log('[AuthScreen] Rendering, mode:', mode);
 
   if (authLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </SafeAreaView>
     );
   }
 
   const handleEmailAuth = async () => {
+    console.log('[AuthScreen] Email auth attempt, mode:', mode);
+    
     if (!email || !password) {
-      Alert.alert("Error", "Please enter email and password");
+      setError("Please enter email and password");
       return;
     }
 
     setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
     try {
       if (mode === "signin") {
+        console.log('[AuthScreen] Signing in with email');
         await signInWithEmail(email, password);
-        router.replace("/create-profile");
+        console.log('[AuthScreen] Sign in successful');
       } else {
+        console.log('[AuthScreen] Signing up with email');
         await signUpWithEmail(email, password, name);
-        Alert.alert(
-          "Success",
-          "Account created! Please check your email to verify your account."
-        );
-        router.replace("/create-profile");
+        console.log('[AuthScreen] Sign up successful');
+        setSuccess("Account created! Please check your email to verify your account.");
       }
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Authentication failed");
+    } catch (err: any) {
+      console.error('[AuthScreen] Auth error:', err);
+      setError(err.message || "Authentication failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSocialAuth = async (provider: "google" | "apple" | "github") => {
+  const handleSocialAuth = async (provider: "google" | "apple") => {
+    console.log('[AuthScreen] Social auth attempt, provider:', provider);
     setLoading(true);
+    setError(null);
+    
     try {
       if (provider === "google") {
         await signInWithGoogle();
       } else if (provider === "apple") {
         await signInWithApple();
-      } else if (provider === "github") {
-        await signInWithGitHub();
       }
-      router.replace("/create-profile");
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Authentication failed");
+      console.log('[AuthScreen] Social auth successful');
+    } catch (err: any) {
+      console.error('[AuthScreen] Social auth error:', err);
+      setError(err.message || "Authentication failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.content}>
-          <Text style={styles.title}>
-            {mode === "signin" ? "Sign In" : "Sign Up"}
-          </Text>
-
-          {mode === "signup" && (
-            <TextInput
-              style={styles.input}
-              placeholder="Name (optional)"
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-            />
-          )}
-
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-          />
-
-          <TouchableOpacity
-            style={[styles.primaryButton, loading && styles.buttonDisabled]}
-            onPress={handleEmailAuth}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.primaryButtonText}>
-                {mode === "signin" ? "Sign In" : "Sign Up"}
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Text style={styles.logo}>🔗</Text>
+              <Text style={styles.title}>Localink</Text>
+              <Text style={styles.subtitle}>
+                {mode === "signin" ? "Welcome back!" : "Create your account"}
               </Text>
+            </View>
+
+            {mode === "signup" && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Name (optional)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your name"
+                  placeholderTextColor={colors.textLight}
+                  value={name}
+                  onChangeText={setName}
+                  autoCapitalize="words"
+                  editable={!loading}
+                />
+              </View>
             )}
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.switchModeButton}
-            onPress={() => setMode(mode === "signin" ? "signup" : "signin")}
-          >
-            <Text style={styles.switchModeText}>
-              {mode === "signin"
-                ? "Don't have an account? Sign Up"
-                : "Already have an account? Sign In"}
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your email"
+                placeholderTextColor={colors.textLight}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+            </View>
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or continue with</Text>
-            <View style={styles.dividerLine} />
-          </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Password</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your password"
+                placeholderTextColor={colors.textLight}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!loading}
+              />
+            </View>
 
-          <TouchableOpacity
-            style={styles.socialButton}
-            onPress={() => handleSocialAuth("google")}
-            disabled={loading}
-          >
-            <Text style={styles.socialButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
-
-          {Platform.OS === "ios" && (
             <TouchableOpacity
-              style={[styles.socialButton, styles.appleButton]}
-              onPress={() => handleSocialAuth("apple")}
+              style={[styles.primaryButton, loading && styles.buttonDisabled]}
+              onPress={handleEmailAuth}
               disabled={loading}
             >
-              <Text style={[styles.socialButtonText, styles.appleButtonText]}>
-                Continue with Apple
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.primaryButtonText}>
+                  {mode === "signin" ? "Sign In" : "Sign Up"}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.switchModeButton}
+              onPress={() => setMode(mode === "signin" ? "signup" : "signin")}
+              disabled={loading}
+            >
+              <Text style={styles.switchModeText}>
+                {mode === "signin"
+                  ? "Don't have an account? Sign Up"
+                  : "Already have an account? Sign In"}
               </Text>
             </TouchableOpacity>
-          )}
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or continue with</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={() => handleSocialAuth("google")}
+              disabled={loading}
+            >
+              <Text style={styles.socialButtonText}>Continue with Google</Text>
+            </TouchableOpacity>
+
+            {Platform.OS === "ios" && (
+              <TouchableOpacity
+                style={[styles.socialButton, styles.appleButton]}
+                onPress={() => handleSocialAuth("apple")}
+                disabled={loading}
+              >
+                <Text style={[styles.socialButtonText, styles.appleButtonText]}>
+                  Continue with Apple
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      <Modal
+        visible={!!error}
+        onClose={() => setError(null)}
+        title="Error"
+        message={error || ''}
+        type="error"
+      />
+
+      <Modal
+        visible={!!success}
+        onClose={() => setSuccess(null)}
+        title="Success"
+        message={success || ''}
+        type="success"
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: spacing.md,
+  },
+  keyboardView: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
   },
   content: {
     flex: 1,
-    padding: 24,
+    padding: spacing.lg,
     justifyContent: "center",
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: spacing.xl,
+  },
+  logo: {
+    fontSize: 60,
+    marginBottom: spacing.sm,
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 32,
+    ...typography.h1,
+    color: colors.primary,
+    fontWeight: "700",
+    marginBottom: spacing.xs,
+  },
+  subtitle: {
+    ...typography.body,
+    color: colors.textSecondary,
     textAlign: "center",
-    color: "#000",
+  },
+  inputGroup: {
+    marginBottom: spacing.md,
+  },
+  label: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontWeight: "600",
+    marginBottom: spacing.xs,
   },
   input: {
-    height: 50,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    fontSize: 16,
-    backgroundColor: "#fff",
+    borderColor: colors.border,
+    ...typography.body,
+    color: colors.text,
   },
   primaryButton: {
-    height: 50,
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    justifyContent: "center",
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
     alignItems: "center",
-    marginTop: 8,
+    marginTop: spacing.md,
   },
   primaryButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    ...typography.button,
+    color: "#FFFFFF",
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   switchModeButton: {
-    marginTop: 16,
+    marginTop: spacing.md,
     alignItems: "center",
   },
   switchModeText: {
-    color: "#007AFF",
-    fontSize: 14,
+    ...typography.bodySmall,
+    color: colors.primary,
   },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 24,
+    marginVertical: spacing.lg,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#ddd",
+    backgroundColor: colors.border,
   },
   dividerText: {
-    marginHorizontal: 12,
-    color: "#666",
-    fontSize: 14,
+    marginHorizontal: spacing.md,
+    ...typography.bodySmall,
+    color: colors.textSecondary,
   },
   socialButton: {
-    height: 50,
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    justifyContent: "center",
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
     alignItems: "center",
-    marginBottom: 12,
-    backgroundColor: "#fff",
+    marginBottom: spacing.sm,
+    backgroundColor: colors.card,
   },
   socialButtonText: {
-    fontSize: 16,
-    color: "#000",
+    ...typography.body,
+    color: colors.text,
     fontWeight: "500",
   },
   appleButton: {

@@ -1,49 +1,45 @@
 
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useSegments } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors, typography, spacing } from '@/styles/commonStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function WelcomeScreen() {
+export default function IndexScreen() {
   const router = useRouter();
+  const segments = useSegments();
   const { user, profile, loading, profileLoading } = useAuth();
 
   useEffect(() => {
-    console.log('[WelcomeScreen] Auth state:', { 
+    console.log('[IndexScreen] Auth state:', { 
       user: user?.id, 
       profile: profile?.name, 
       loading, 
-      profileLoading 
+      profileLoading,
+      segments: segments.join('/')
     });
     
-    // Wait for both user and profile to load
     if (loading || profileLoading) {
-      console.log('[WelcomeScreen] Still loading...');
+      console.log('[IndexScreen] Still loading...');
       return;
     }
 
-    // Not authenticated -> go to auth
     if (!user) {
-      console.log('[WelcomeScreen] No user, redirecting to auth');
-      setTimeout(() => {
-        router.replace('/auth');
-      }, 1000);
+      console.log('[IndexScreen] No user, showing welcome');
+      router.replace('/welcome');
       return;
     }
 
-    // Authenticated but no profile -> go to create profile
     if (!profile || !profile.name || !profile.city) {
-      console.log('[WelcomeScreen] User authenticated but profile incomplete, redirecting to create-profile');
+      console.log('[IndexScreen] User authenticated but profile incomplete, redirecting to create-profile');
       router.replace('/create-profile');
       return;
     }
 
-    // Authenticated with complete profile -> go to main app
-    console.log('[WelcomeScreen] User authenticated with complete profile, redirecting to tabs');
+    console.log('[IndexScreen] User authenticated with complete profile, redirecting to tabs');
     router.replace('/(tabs)/sublet');
-  }, [user, profile, loading, profileLoading, router]);
+  }, [user, profile, loading, profileLoading]);
 
   const isLoading = loading || profileLoading;
 
@@ -54,7 +50,6 @@ export default function WelcomeScreen() {
           <Text style={styles.logo}>🔗</Text>
           <Text style={styles.title}>Localink</Text>
         </View>
-        <Text style={styles.subtitle}>Connecting Indian expats in Germany</Text>
         {isLoading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -89,11 +84,6 @@ const styles = StyleSheet.create({
     ...typography.h1,
     color: colors.primary,
     fontWeight: '700',
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
   },
   loadingContainer: {
     marginTop: spacing.xl,

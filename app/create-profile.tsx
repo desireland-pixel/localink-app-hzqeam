@@ -17,13 +17,13 @@ const GERMAN_CITIES = [
 
 export default function CreateProfileScreen() {
   const router = useRouter();
-  const { refreshProfile } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  console.log('[CreateProfile] Rendering');
+  console.log('[CreateProfile] Rendering, user:', user?.id);
 
   const handleSubmit = async () => {
     console.log('[CreateProfile] Submit profile', { name, city });
@@ -38,22 +38,28 @@ export default function CreateProfileScreen() {
       return;
     }
 
+    if (!user) {
+      setError('Authentication error. Please sign in again.');
+      return;
+    }
+
     setLoading(true);
+    setError(null);
     
     try {
       console.log('[CreateProfile] Updating profile with:', { name, city });
-      await authenticatedPut('/api/profile', { name, city });
-      console.log('[CreateProfile] Profile updated successfully');
+      const result = await authenticatedPut('/api/profile', { name, city });
+      console.log('[CreateProfile] Profile updated successfully:', result);
       
-      // Refresh profile data in context
+      console.log('[CreateProfile] Refreshing profile in context');
       await refreshProfile();
       
-      // Navigate to main app
       console.log('[CreateProfile] Navigating to main app');
       router.replace('/(tabs)/sublet');
-    } catch (err) {
+    } catch (err: any) {
       console.error('[CreateProfile] Error updating profile:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update profile. Please try again.');
+      const errorMessage = err?.message || 'Failed to update profile. Please try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -86,6 +92,7 @@ export default function CreateProfileScreen() {
                 onChangeText={setName}
                 autoCapitalize="words"
                 autoCorrect={false}
+                editable={!loading}
               />
             </View>
 
@@ -103,6 +110,7 @@ export default function CreateProfileScreen() {
                       key={cityOption}
                       style={[styles.cityChip, isSelected && styles.cityChipSelected]}
                       onPress={() => setCity(cityOption)}
+                      disabled={loading}
                     >
                       <Text style={[styles.cityChipText, isSelected && styles.cityChipTextSelected]}>
                         {cityOption}
