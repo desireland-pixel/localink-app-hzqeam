@@ -1,6 +1,6 @@
 import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 
 interface CarryPostFilters {
@@ -69,15 +69,40 @@ export function registerCarryPostRoutes(app: App) {
       const offset = parseInt(filters.offset || '0');
 
       const posts = await app.db
-        .select()
+        .select({
+          id: schema.carryPosts.id,
+          userId: schema.carryPosts.userId,
+          title: schema.carryPosts.title,
+          description: schema.carryPosts.description,
+          fromCity: schema.carryPosts.fromCity,
+          toCity: schema.carryPosts.toCity,
+          travelDate: schema.carryPosts.travelDate,
+          type: schema.carryPosts.type,
+          itemDescription: schema.carryPosts.itemDescription,
+          status: schema.carryPosts.status,
+          createdAt: schema.carryPosts.createdAt,
+          updatedAt: schema.carryPosts.updatedAt,
+          userName: schema.profiles.name,
+        })
         .from(schema.carryPosts)
+        .leftJoin(schema.profiles, eq(schema.carryPosts.userId, schema.profiles.userId))
         .where(and(...conditions))
         .limit(limit)
         .offset(offset)
-        .orderBy(schema.carryPosts.createdAt);
+        .orderBy(desc(schema.carryPosts.createdAt));
 
-      app.logger.info({ count: posts.length }, 'Carry posts listed successfully');
-      return posts;
+      // Transform to include user object
+      const result = posts.map(post => ({
+        ...post,
+        user: {
+          id: post.userId,
+          name: post.userName || 'Unknown User',
+        },
+        userName: undefined,
+      }));
+
+      app.logger.info({ count: result.length }, 'Carry posts listed successfully');
+      return result;
     } catch (error) {
       app.logger.error({ err: error }, 'Failed to list carry posts');
       return reply.status(500).send({ error: 'Failed to list carry posts' });
@@ -102,17 +127,44 @@ export function registerCarryPostRoutes(app: App) {
     app.logger.info({ carryPostId: id }, 'Fetching carry post details');
 
     try {
-      const post = await app.db.query.carryPosts.findFirst({
-        where: eq(schema.carryPosts.id, id),
-      });
+      const result = await app.db
+        .select({
+          id: schema.carryPosts.id,
+          userId: schema.carryPosts.userId,
+          title: schema.carryPosts.title,
+          description: schema.carryPosts.description,
+          fromCity: schema.carryPosts.fromCity,
+          toCity: schema.carryPosts.toCity,
+          travelDate: schema.carryPosts.travelDate,
+          type: schema.carryPosts.type,
+          itemDescription: schema.carryPosts.itemDescription,
+          status: schema.carryPosts.status,
+          createdAt: schema.carryPosts.createdAt,
+          updatedAt: schema.carryPosts.updatedAt,
+          userName: schema.profiles.name,
+        })
+        .from(schema.carryPosts)
+        .leftJoin(schema.profiles, eq(schema.carryPosts.userId, schema.profiles.userId))
+        .where(eq(schema.carryPosts.id, id))
+        .limit(1);
 
-      if (!post) {
+      if (!result || result.length === 0) {
         app.logger.warn({ carryPostId: id }, 'Carry post not found');
         return reply.status(404).send({ error: 'Carry post not found' });
       }
 
+      const post = result[0];
+      const response = {
+        ...post,
+        user: {
+          id: post.userId,
+          name: post.userName || 'Unknown User',
+        },
+        userName: undefined,
+      };
+
       app.logger.info({ carryPostId: id }, 'Carry post details fetched successfully');
-      return post;
+      return response;
     } catch (error) {
       app.logger.error({ err: error, carryPostId: id }, 'Failed to fetch carry post');
       return reply.status(500).send({ error: 'Failed to fetch carry post' });

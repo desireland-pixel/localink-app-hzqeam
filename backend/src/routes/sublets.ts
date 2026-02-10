@@ -1,6 +1,6 @@
 import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, gte, lte, isNull, isNotNull } from 'drizzle-orm';
+import { eq, and, gte, lte, isNull, isNotNull, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 
 interface SubletFilters {
@@ -95,15 +95,45 @@ export function registerSubletRoutes(app: App) {
       const offset = parseInt(filters.offset || '0');
 
       const sublets = await app.db
-        .select()
+        .select({
+          id: schema.sublets.id,
+          userId: schema.sublets.userId,
+          type: schema.sublets.type,
+          title: schema.sublets.title,
+          description: schema.sublets.description,
+          city: schema.sublets.city,
+          availableFrom: schema.sublets.availableFrom,
+          availableTo: schema.sublets.availableTo,
+          rent: schema.sublets.rent,
+          imageUrls: schema.sublets.imageUrls,
+          address: schema.sublets.address,
+          pincode: schema.sublets.pincode,
+          cityRegistrationRequired: schema.sublets.cityRegistrationRequired,
+          deposit: schema.sublets.deposit,
+          status: schema.sublets.status,
+          createdAt: schema.sublets.createdAt,
+          updatedAt: schema.sublets.updatedAt,
+          userName: schema.profiles.name,
+        })
         .from(schema.sublets)
+        .leftJoin(schema.profiles, eq(schema.sublets.userId, schema.profiles.userId))
         .where(and(...conditions))
         .limit(limit)
         .offset(offset)
-        .orderBy(schema.sublets.createdAt);
+        .orderBy(desc(schema.sublets.createdAt));
 
-      app.logger.info({ count: sublets.length }, 'Sublets listed successfully');
-      return sublets;
+      // Transform to include user object
+      const result = sublets.map(sublet => ({
+        ...sublet,
+        user: {
+          id: sublet.userId,
+          name: sublet.userName || 'Unknown User',
+        },
+        userName: undefined, // Remove flat userName field
+      }));
+
+      app.logger.info({ count: result.length }, 'Sublets listed successfully');
+      return result;
     } catch (error) {
       app.logger.error({ err: error }, 'Failed to list sublets');
       return reply.status(500).send({ error: 'Failed to list sublets' });
@@ -128,17 +158,49 @@ export function registerSubletRoutes(app: App) {
     app.logger.info({ subletId: id }, 'Fetching sublet details');
 
     try {
-      const sublet = await app.db.query.sublets.findFirst({
-        where: eq(schema.sublets.id, id),
-      });
+      const result = await app.db
+        .select({
+          id: schema.sublets.id,
+          userId: schema.sublets.userId,
+          type: schema.sublets.type,
+          title: schema.sublets.title,
+          description: schema.sublets.description,
+          city: schema.sublets.city,
+          availableFrom: schema.sublets.availableFrom,
+          availableTo: schema.sublets.availableTo,
+          rent: schema.sublets.rent,
+          imageUrls: schema.sublets.imageUrls,
+          address: schema.sublets.address,
+          pincode: schema.sublets.pincode,
+          cityRegistrationRequired: schema.sublets.cityRegistrationRequired,
+          deposit: schema.sublets.deposit,
+          status: schema.sublets.status,
+          createdAt: schema.sublets.createdAt,
+          updatedAt: schema.sublets.updatedAt,
+          userName: schema.profiles.name,
+        })
+        .from(schema.sublets)
+        .leftJoin(schema.profiles, eq(schema.sublets.userId, schema.profiles.userId))
+        .where(eq(schema.sublets.id, id))
+        .limit(1);
 
-      if (!sublet) {
+      if (!result || result.length === 0) {
         app.logger.warn({ subletId: id }, 'Sublet not found');
         return reply.status(404).send({ error: 'Sublet not found' });
       }
 
+      const sublet = result[0];
+      const response = {
+        ...sublet,
+        user: {
+          id: sublet.userId,
+          name: sublet.userName || 'Unknown User',
+        },
+        userName: undefined,
+      };
+
       app.logger.info({ subletId: id }, 'Sublet details fetched successfully');
-      return sublet;
+      return response;
     } catch (error) {
       app.logger.error({ err: error, subletId: id }, 'Failed to fetch sublet');
       return reply.status(500).send({ error: 'Failed to fetch sublet' });

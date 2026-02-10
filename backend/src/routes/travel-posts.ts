@@ -1,6 +1,6 @@
 import type { App} from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, gte, lte, between } from 'drizzle-orm';
+import { eq, and, gte, lte, between, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 
 interface TravelPostFilters {
@@ -88,15 +88,40 @@ export function registerTravelPostRoutes(app: App) {
       const offset = parseInt(filters.offset || '0');
 
       const posts = await app.db
-        .select()
+        .select({
+          id: schema.travelPosts.id,
+          userId: schema.travelPosts.userId,
+          type: schema.travelPosts.type,
+          description: schema.travelPosts.description,
+          fromCity: schema.travelPosts.fromCity,
+          toCity: schema.travelPosts.toCity,
+          travelDate: schema.travelPosts.travelDate,
+          companionshipFor: schema.travelPosts.companionshipFor,
+          travelDateTo: schema.travelPosts.travelDateTo,
+          status: schema.travelPosts.status,
+          createdAt: schema.travelPosts.createdAt,
+          updatedAt: schema.travelPosts.updatedAt,
+          userName: schema.profiles.name,
+        })
         .from(schema.travelPosts)
+        .leftJoin(schema.profiles, eq(schema.travelPosts.userId, schema.profiles.userId))
         .where(and(...conditions))
         .limit(limit)
         .offset(offset)
-        .orderBy(schema.travelPosts.createdAt);
+        .orderBy(desc(schema.travelPosts.createdAt));
 
-      app.logger.info({ count: posts.length }, 'Travel posts listed successfully');
-      return posts;
+      // Transform to include user object
+      const result = posts.map(post => ({
+        ...post,
+        user: {
+          id: post.userId,
+          name: post.userName || 'Unknown User',
+        },
+        userName: undefined,
+      }));
+
+      app.logger.info({ count: result.length }, 'Travel posts listed successfully');
+      return result;
     } catch (error) {
       app.logger.error({ err: error }, 'Failed to list travel posts');
       return reply.status(500).send({ error: 'Failed to list travel posts' });
@@ -121,17 +146,44 @@ export function registerTravelPostRoutes(app: App) {
     app.logger.info({ travelPostId: id }, 'Fetching travel post details');
 
     try {
-      const post = await app.db.query.travelPosts.findFirst({
-        where: eq(schema.travelPosts.id, id),
-      });
+      const result = await app.db
+        .select({
+          id: schema.travelPosts.id,
+          userId: schema.travelPosts.userId,
+          type: schema.travelPosts.type,
+          description: schema.travelPosts.description,
+          fromCity: schema.travelPosts.fromCity,
+          toCity: schema.travelPosts.toCity,
+          travelDate: schema.travelPosts.travelDate,
+          companionshipFor: schema.travelPosts.companionshipFor,
+          travelDateTo: schema.travelPosts.travelDateTo,
+          status: schema.travelPosts.status,
+          createdAt: schema.travelPosts.createdAt,
+          updatedAt: schema.travelPosts.updatedAt,
+          userName: schema.profiles.name,
+        })
+        .from(schema.travelPosts)
+        .leftJoin(schema.profiles, eq(schema.travelPosts.userId, schema.profiles.userId))
+        .where(eq(schema.travelPosts.id, id))
+        .limit(1);
 
-      if (!post) {
+      if (!result || result.length === 0) {
         app.logger.warn({ travelPostId: id }, 'Travel post not found');
         return reply.status(404).send({ error: 'Travel post not found' });
       }
 
+      const post = result[0];
+      const response = {
+        ...post,
+        user: {
+          id: post.userId,
+          name: post.userName || 'Unknown User',
+        },
+        userName: undefined,
+      };
+
       app.logger.info({ travelPostId: id }, 'Travel post details fetched successfully');
-      return post;
+      return response;
     } catch (error) {
       app.logger.error({ err: error, travelPostId: id }, 'Failed to fetch travel post');
       return reply.status(500).send({ error: 'Failed to fetch travel post' });
@@ -165,12 +217,6 @@ export function registerTravelPostRoutes(app: App) {
     app.logger.info({ userId: session.user.id, body }, 'Creating travel post');
 
     try {
-      // Validation: seeking type requires companionshipFor
-      if (body.type === 'seeking' && !body.companionshipFor) {
-        app.logger.warn({ userId: session.user.id }, 'companionshipFor required for seeking type');
-        return reply.status(400).send({ error: 'companionshipFor is required for seeking type' });
-      }
-
       const [post] = await app.db
         .insert(schema.travelPosts)
         .values({
