@@ -132,12 +132,12 @@ export default function SubletScreen() {
           {filteredPosts.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>🏠</Text>
-              <Text style={styles.emptyTitle}>No sublets found</Text>
+              <Text style={styles.emptyTitle}>No sublet matches found</Text>
               <Text style={styles.emptyText}>
-                {searchQuery ? 'Try a different search term' : 'Be the first to post a sublet!'}
+                Post a request to reach hosts directly!
               </Text>
               <TouchableOpacity style={styles.emptyButton} onPress={handlePostSublet}>
-                <Text style={styles.emptyButtonText}>Create your first post</Text>
+                <Text style={styles.emptyButtonText}>Request</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -336,6 +336,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
     marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   emptyText: {
     fontSize: 15,

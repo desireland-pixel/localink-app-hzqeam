@@ -133,15 +133,15 @@ export default function TravelScreen() {
           {filteredPosts.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>✈️</Text>
-              <Text style={styles.emptyTitle}>No travel posts found</Text>
+              <Text style={styles.emptyTitle}>No travel buddy matches found</Text>
               <Text style={styles.emptyText}>
-                {searchQuery ? 'Try a different search term' : 'Be the first to find a travel buddy!'}
+                Post a request to connect with others!
               </Text>
               <TouchableOpacity 
                 style={styles.emptyButton} 
                 onPress={() => router.push('/post-travel')}
               >
-                <Text style={styles.emptyButtonText}>Create your first post</Text>
+                <Text style={styles.emptyButtonText}>Request</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -363,6 +363,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
     marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   emptyText: {
     fontSize: 15,

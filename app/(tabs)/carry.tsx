@@ -28,23 +28,21 @@ interface CarryPost {
 export default function CarryScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedType, setSelectedType] = useState<'request' | 'traveler'>('request');
   const [posts, setPosts] = useState<CarryPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<any>(null);
 
-  console.log('[CarryScreen] Rendering', { searchQuery, selectedType, postsCount: posts.length });
+  console.log('[CarryScreen] Rendering', { searchQuery, postsCount: posts.length });
 
   useEffect(() => {
     fetchPosts();
-  }, [selectedType, filters]);
+  }, [filters]);
 
   const fetchPosts = async () => {
-    console.log('[CarryScreen] Fetching posts with type:', selectedType, 'filters:', filters);
+    console.log('[CarryScreen] Fetching posts with filters:', filters);
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.append('type', selectedType);
       if (filters?.fromCity) params.append('fromCity', filters.fromCity);
       if (filters?.toCity) params.append('toCity', filters.toCity);
       
@@ -128,25 +126,6 @@ export default function CarryScreen() {
         </View>
       </View>
 
-      <View style={styles.toggleContainer}>
-        <TouchableOpacity
-          style={[styles.toggleButton, selectedType === 'request' && styles.toggleButtonActive]}
-          onPress={() => setSelectedType('request')}
-        >
-          <Text style={[styles.toggleText, selectedType === 'request' && styles.toggleTextActive]}>
-            Requests
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.toggleButton, selectedType === 'traveler' && styles.toggleButtonActive]}
-          onPress={() => setSelectedType('traveler')}
-        >
-          <Text style={[styles.toggleText, selectedType === 'traveler' && styles.toggleTextActive]}>
-            Travelers
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -156,17 +135,15 @@ export default function CarryScreen() {
           {filteredPosts.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>📦</Text>
-              <Text style={styles.emptyTitle}>
-                {selectedType === 'request' ? 'No requests found' : 'No travelers found'}
-              </Text>
+              <Text style={styles.emptyTitle}>No ally matches found</Text>
               <Text style={styles.emptyText}>
-                {searchQuery ? 'Try a different search term' : `Be the first to post a ${selectedType}!`}
+                Post a request to find the right fit!
               </Text>
               <TouchableOpacity 
                 style={styles.emptyButton} 
                 onPress={() => router.push('/post-carry')}
               >
-                <Text style={styles.emptyButtonText}>Create your first post</Text>
+                <Text style={styles.emptyButtonText}>Request</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -290,31 +267,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  toggleContainer: {
-    flexDirection: 'row',
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.md,
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    padding: 4,
-  },
-  toggleButton: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-    borderRadius: borderRadius.md,
-  },
-  toggleButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  toggleText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  toggleTextActive: {
-    color: '#FFFFFF',
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -326,6 +278,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     flexGrow: 1,
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
   postCard: {
     backgroundColor: colors.card,
@@ -433,6 +386,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
     marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   emptyText: {
     fontSize: 15,
