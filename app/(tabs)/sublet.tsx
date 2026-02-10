@@ -1,16 +1,64 @@
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
+import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import { authenticatedGet } from '@/utils/api';
+
+interface Sublet {
+  id: string;
+  userId: string;
+  title: string;
+  description?: string;
+  city: string;
+  availableFrom: string;
+  availableTo: string;
+  rent?: string;
+  status: string;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+  };
+}
 
 export default function SubletScreen() {
   const router = useRouter();
-  const [selectedCity, setSelectedCity] = useState('Berlin');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [posts, setPosts] = useState<Sublet[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<any>(null);
 
-  console.log('[SubletScreen] Rendering');
+  console.log('[SubletScreen] Rendering', { searchQuery, postsCount: posts.length });
+
+  useEffect(() => {
+    fetchPosts();
+  }, [filters]);
+
+  const fetchPosts = async () => {
+    console.log('[SubletScreen] Fetching posts with filters:', filters);
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filters?.city) params.append('city', filters.city);
+      if (filters?.minRent) params.append('minRent', filters.minRent);
+      if (filters?.maxRent) params.append('maxRent', filters.maxRent);
+      
+      const queryString = params.toString();
+      const endpoint = `/api/sublets${queryString ? `?${queryString}` : ''}`;
+      
+      const data = await authenticatedGet<Sublet[]>(endpoint);
+      console.log('[SubletScreen] Fetched posts:', data);
+      setPosts(data || []);
+    } catch (error) {
+      console.error('[SubletScreen] Error fetching posts:', error);
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePostSublet = () => {
     console.log('[SubletScreen] Navigate to post sublet');
@@ -22,10 +70,39 @@ export default function SubletScreen() {
     router.push('/sublet-filters');
   };
 
+  const filteredPosts = posts.filter(post => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      post.title.toLowerCase().includes(query) ||
+      post.city.toLowerCase().includes(query) ||
+      post.description?.toLowerCase().includes(query)
+    );
+  });
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Sublet</Text>
+        <View style={styles.searchContainer}>
+          <IconSymbol 
+            ios_icon_name="magnifyingglass" 
+            android_material_icon_name="search" 
+            size={20} 
+            color={colors.textSecondary} 
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by city..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
         <View style={styles.headerButtons}>
           <TouchableOpacity onPress={handleFilters} style={styles.iconButton}>
             <IconSymbol 
@@ -46,43 +123,70 @@ export default function SubletScreen() {
         </View>
       </View>
 
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.citySelector}
-        contentContainerStyle={styles.citySelectorContent}
-      >
-        {['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne'].map((city) => {
-          const isSelected = selectedCity === city;
-          return (
-            <TouchableOpacity
-              key={city}
-              style={[styles.cityChip, isSelected && styles.cityChipSelected]}
-              onPress={() => {
-                console.log('[SubletScreen] City selected:', city);
-                setSelectedCity(city);
-              }}
-            >
-              <Text style={[styles.cityChipText, isSelected && styles.cityChipTextSelected]}>
-                {city}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>🏠</Text>
-          <Text style={styles.emptyTitle}>No sublets yet</Text>
-          <Text style={styles.emptyText}>
-            Be the first to post a sublet in {selectedCity}!
-          </Text>
-          <TouchableOpacity style={styles.emptyButton} onPress={handlePostSublet}>
-            <Text style={styles.emptyButtonText}>Create your first post</Text>
-          </TouchableOpacity>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      </ScrollView>
+      ) : (
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+          {filteredPosts.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyEmoji}>🏠</Text>
+              <Text style={styles.emptyTitle}>No sublets found</Text>
+              <Text style={styles.emptyText}>
+                {searchQuery ? 'Try a different search term' : 'Be the first to post a sublet!'}
+              </Text>
+              <TouchableOpacity style={styles.emptyButton} onPress={handlePostSublet}>
+                <Text style={styles.emptyButtonText}>Create your first post</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            filteredPosts.map((post) => {
+              const rentText = post.rent ? `€${post.rent}/month` : 'Contact for price';
+              const dateRange = `${formatDate(post.availableFrom)} - ${formatDate(post.availableTo)}`;
+              
+              return (
+                <TouchableOpacity
+                  key={post.id}
+                  style={styles.postCard}
+                  onPress={() => router.push(`/sublet/${post.id}`)}
+                >
+                  <View style={styles.postHeader}>
+                    <Text style={styles.postTitle}>{post.title}</Text>
+                    <Text style={styles.postRent}>{rentText}</Text>
+                  </View>
+                  {post.description && (
+                    <Text style={styles.postDescription} numberOfLines={2}>
+                      {post.description}
+                    </Text>
+                  )}
+                  <View style={styles.postFooter}>
+                    <View style={styles.postLocation}>
+                      <IconSymbol 
+                        ios_icon_name="location.fill" 
+                        android_material_icon_name="location-on" 
+                        size={16} 
+                        color={colors.textSecondary} 
+                      />
+                      <Text style={styles.postCity}>{post.city}</Text>
+                    </View>
+                    <Text style={styles.postDate}>{dateRange}</Text>
+                  </View>
+                  <View style={styles.postAuthor}>
+                    <IconSymbol 
+                      ios_icon_name="person.fill" 
+                      android_material_icon_name="person" 
+                      size={14} 
+                      color={colors.textSecondary} 
+                    />
+                    <Text style={styles.postAuthorName}>{post.user.name}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -95,16 +199,28 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    gap: spacing.sm,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: spacing.sm,
+    fontSize: 16,
     color: colors.text,
   },
   headerButtons: {
@@ -113,8 +229,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   iconButton: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
@@ -122,40 +238,16 @@ const styles = StyleSheet.create({
   },
   addButton: {
     backgroundColor: colors.primary,
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  citySelector: {
-    maxHeight: 60,
-    paddingVertical: spacing.md,
-  },
-  citySelectorContent: {
-    paddingHorizontal: spacing.lg,
-  },
-  cityChip: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.full,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    marginRight: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  cityChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  cityChipText: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '500',
-  },
-  cityChipTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flex: 1,
@@ -163,6 +255,71 @@ const styles = StyleSheet.create({
   contentContainer: {
     flexGrow: 1,
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  postCard: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
+  },
+  postTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginRight: spacing.sm,
+  },
+  postRent: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  postDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: spacing.sm,
+  },
+  postFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  postLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  postCity: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  postDate: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  postAuthor: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: spacing.xs,
+  },
+  postAuthorName: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   emptyState: {
     flex: 1,

@@ -17,9 +17,13 @@ export default function TabLayout() {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          height: 68,
+          paddingBottom: 10,
+          paddingTop: 10,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
         },
       }}
     >
@@ -31,7 +35,7 @@ export default function TabLayout() {
             <IconSymbol
               ios_icon_name="house.fill"
               android_material_icon_name="home"
-              size={24}
+              size={26}
               color={color}
             />
           ),
@@ -45,7 +49,7 @@ export default function TabLayout() {
             <IconSymbol
               ios_icon_name="airplane"
               android_material_icon_name="flight"
-              size={24}
+              size={26}
               color={color}
             />
           ),
@@ -59,7 +63,7 @@ export default function TabLayout() {
             <IconSymbol
               ios_icon_name="shippingbox.fill"
               android_material_icon_name="local-shipping"
-              size={24}
+              size={26}
               color={color}
             />
           ),
@@ -73,7 +77,7 @@ export default function TabLayout() {
             <IconSymbol
               ios_icon_name="message.fill"
               android_material_icon_name="chat"
-              size={24}
+              size={26}
               color={color}
             />
           ),
@@ -87,7 +91,7 @@ export default function TabLayout() {
             <IconSymbol
               ios_icon_name="person.fill"
               android_material_icon_name="person"
-              size={24}
+              size={26}
               color={color}
             />
           ),

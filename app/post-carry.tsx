@@ -4,6 +4,9 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Keyboa
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
+import { authenticatedPost } from '@/utils/api';
+import Modal from '@/components/ui/Modal';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function PostCarryScreen() {
   const router = useRouter();
@@ -12,23 +15,50 @@ export default function PostCarryScreen() {
   const [description, setDescription] = useState('');
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');
+  const [itemDescription, setItemDescription] = useState('');
+  const [travelDate, setTravelDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   console.log('PostCarryScreen: Rendering', { type });
 
   const handleSubmit = async () => {
-    console.log('PostCarryScreen: Submit carry', { type, title, description, fromCity, toCity });
+    console.log('PostCarryScreen: Submit carry', { type, title, description, fromCity, toCity, itemDescription, travelDate });
+    
+    if (!title.trim() || !fromCity.trim() || !toCity.trim()) {
+      setError('Please fill in title, from city, and to city');
+      return;
+    }
+
     setLoading(true);
+    setError('');
     
     try {
-      // TODO: Backend Integration - POST /api/carry with { type, title, description, fromCity, toCity, travelDate, itemType } → created carry item
-      console.log('PostCarryScreen: Would create carry item');
+      const postData = {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        fromCity: fromCity.trim(),
+        toCity: toCity.trim(),
+        travelDate: travelDate.toISOString(),
+        type,
+        itemDescription: itemDescription.trim() || undefined,
+      };
+
+      console.log('PostCarryScreen: Creating carry post with data:', postData);
+      await authenticatedPost('/api/carry-posts', postData);
+      console.log('PostCarryScreen: Carry post created successfully');
       router.back();
-    } catch (error) {
-      console.error('PostCarryScreen: Error creating carry item', error);
+    } catch (error: any) {
+      console.error('PostCarryScreen: Error creating carry post', error);
+      setError(error.message || 'Failed to create carry post. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   return (
@@ -57,7 +87,7 @@ export default function PostCarryScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.label}>Title</Text>
+          <Text style={styles.label}>Title *</Text>
           <TextInput
             style={styles.input}
             placeholder={type === 'request' ? 'e.g., Need documents sent' : 'e.g., Traveling to Munich'}
@@ -77,7 +107,16 @@ export default function PostCarryScreen() {
             numberOfLines={4}
           />
 
-          <Text style={styles.label}>From City</Text>
+          <Text style={styles.label}>Item Description</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g., Small package, documents"
+            placeholderTextColor={colors.textLight}
+            value={itemDescription}
+            onChangeText={setItemDescription}
+          />
+
+          <Text style={styles.label}>From City *</Text>
           <TextInput
             style={styles.input}
             placeholder="e.g., Berlin"
@@ -86,7 +125,7 @@ export default function PostCarryScreen() {
             onChangeText={setFromCity}
           />
 
-          <Text style={styles.label}>To City</Text>
+          <Text style={styles.label}>To City *</Text>
           <TextInput
             style={styles.input}
             placeholder="e.g., Munich"
@@ -94,6 +133,25 @@ export default function PostCarryScreen() {
             value={toCity}
             onChangeText={setToCity}
           />
+
+          <Text style={styles.label}>Travel Date</Text>
+          <TouchableOpacity 
+            style={styles.dateButton}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Text style={styles.dateButtonText}>{formatDate(travelDate)}</Text>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={travelDate}
+              mode="date"
+              display="default"
+              onChange={(event, selectedDate) => {
+                setShowDatePicker(false);
+                if (selectedDate) setTravelDate(selectedDate);
+              }}
+            />
+          )}
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
@@ -106,6 +164,14 @@ export default function PostCarryScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        isVisible={!!error}
+        title="Error"
+        message={error}
+        onClose={() => setError('')}
+        confirmText="OK"
+      />
     </SafeAreaView>
   );
 }
@@ -167,6 +233,18 @@ const styles = StyleSheet.create({
   textArea: {
     height: 100,
     textAlignVertical: 'top',
+  },
+  dateButton: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  dateButtonText: {
+    ...typography.body,
+    color: colors.text,
   },
   button: {
     backgroundColor: colors.primary,
