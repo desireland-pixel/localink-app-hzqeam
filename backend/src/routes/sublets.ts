@@ -1,19 +1,22 @@
 import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, gte, lte, between, or, inArray } from 'drizzle-orm';
+import { eq, and, gte, lte, isNull, isNotNull } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 
 interface SubletFilters {
+  type?: 'offering' | 'seeking';
   city?: string;
   availableFrom?: string;
   availableTo?: string;
   minRent?: string;
   maxRent?: string;
+  cityRegistrationRequired?: string;
   limit?: string;
   offset?: string;
 }
 
 interface SubletBody {
+  type: 'offering' | 'seeking';
   title: string;
   description?: string;
   city: string;
@@ -21,6 +24,11 @@ interface SubletBody {
   availableTo: string;
   rent?: string;
   imageUrls?: string[];
+  // Offering-specific fields
+  address?: string;
+  pincode?: string;
+  cityRegistrationRequired?: boolean;
+  deposit?: string;
 }
 
 export function registerSubletRoutes(app: App) {
@@ -34,11 +42,13 @@ export function registerSubletRoutes(app: App) {
       querystring: {
         type: 'object',
         properties: {
+          type: { type: 'string', enum: ['offering', 'seeking'] },
           city: { type: 'string' },
-          availableFrom: { type: 'string', format: 'date' },
-          availableTo: { type: 'string', format: 'date' },
+          availableFrom: { type: 'string' },
+          availableTo: { type: 'string' },
           minRent: { type: 'string' },
           maxRent: { type: 'string' },
+          cityRegistrationRequired: { type: 'string', enum: ['yes', 'no'] },
           limit: { type: 'string' },
           offset: { type: 'string' },
         },
@@ -50,6 +60,10 @@ export function registerSubletRoutes(app: App) {
 
     try {
       const conditions: any[] = [eq(schema.sublets.status, 'active')];
+
+      if (filters.type) {
+        conditions.push(eq(schema.sublets.type, filters.type));
+      }
 
       if (filters.city) {
         conditions.push(eq(schema.sublets.city, filters.city));
@@ -69,6 +83,12 @@ export function registerSubletRoutes(app: App) {
 
       if (filters.maxRent) {
         conditions.push(lte(schema.sublets.rent, filters.maxRent));
+      }
+
+      if (filters.cityRegistrationRequired === 'yes') {
+        conditions.push(eq(schema.sublets.cityRegistrationRequired, true));
+      } else if (filters.cityRegistrationRequired === 'no') {
+        conditions.push(eq(schema.sublets.cityRegistrationRequired, false));
       }
 
       const limit = parseInt(filters.limit || '20');
@@ -132,15 +152,20 @@ export function registerSubletRoutes(app: App) {
       tags: ['sublets'],
       body: {
         type: 'object',
-        required: ['title', 'city', 'availableFrom', 'availableTo'],
+        required: ['type', 'title', 'city', 'availableFrom', 'availableTo'],
         properties: {
+          type: { type: 'string', enum: ['offering', 'seeking'] },
           title: { type: 'string' },
           description: { type: 'string' },
           city: { type: 'string' },
-          availableFrom: { type: 'string', format: 'date' },
-          availableTo: { type: 'string', format: 'date' },
+          availableFrom: { type: 'string' },
+          availableTo: { type: 'string' },
           rent: { type: 'string' },
           imageUrls: { type: 'array', items: { type: 'string' } },
+          address: { type: 'string' },
+          pincode: { type: 'string' },
+          cityRegistrationRequired: { type: 'boolean' },
+          deposit: { type: 'string' },
         },
       },
     },
@@ -156,6 +181,7 @@ export function registerSubletRoutes(app: App) {
         .insert(schema.sublets)
         .values({
           userId: session.user.id,
+          type: body.type,
           title: body.title,
           description: body.description,
           city: body.city,
@@ -163,6 +189,10 @@ export function registerSubletRoutes(app: App) {
           availableTo: body.availableTo,
           rent: body.rent,
           imageUrls: body.imageUrls,
+          address: body.address,
+          pincode: body.pincode,
+          cityRegistrationRequired: body.cityRegistrationRequired,
+          deposit: body.deposit,
         })
         .returning();
 
@@ -189,13 +219,18 @@ export function registerSubletRoutes(app: App) {
       body: {
         type: 'object',
         properties: {
+          type: { type: 'string', enum: ['offering', 'seeking'] },
           title: { type: 'string' },
           description: { type: 'string' },
           city: { type: 'string' },
-          availableFrom: { type: 'string', format: 'date' },
-          availableTo: { type: 'string', format: 'date' },
+          availableFrom: { type: 'string' },
+          availableTo: { type: 'string' },
           rent: { type: 'string' },
           imageUrls: { type: 'array', items: { type: 'string' } },
+          address: { type: 'string' },
+          pincode: { type: 'string' },
+          cityRegistrationRequired: { type: 'boolean' },
+          deposit: { type: 'string' },
         },
       },
     },
@@ -224,6 +259,7 @@ export function registerSubletRoutes(app: App) {
       }
 
       const updateData: any = { updatedAt: new Date() };
+      if (body.type !== undefined) updateData.type = body.type;
       if (body.title !== undefined) updateData.title = body.title;
       if (body.description !== undefined) updateData.description = body.description;
       if (body.city !== undefined) updateData.city = body.city;
@@ -231,6 +267,10 @@ export function registerSubletRoutes(app: App) {
       if (body.availableTo !== undefined) updateData.availableTo = body.availableTo;
       if (body.rent !== undefined) updateData.rent = body.rent;
       if (body.imageUrls !== undefined) updateData.imageUrls = body.imageUrls;
+      if (body.address !== undefined) updateData.address = body.address;
+      if (body.pincode !== undefined) updateData.pincode = body.pincode;
+      if (body.cityRegistrationRequired !== undefined) updateData.cityRegistrationRequired = body.cityRegistrationRequired;
+      if (body.deposit !== undefined) updateData.deposit = body.deposit;
 
       const [updated] = await app.db
         .update(schema.sublets)

@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, numeric, date } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, numeric, date, boolean } from 'drizzle-orm/pg-core';
 import { user } from './auth-schema.js';
 import { relations } from 'drizzle-orm';
 
@@ -15,6 +15,7 @@ export const profiles = pgTable('profiles', {
 export const sublets = pgTable('sublets', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  type: text('type', { enum: ['offering', 'seeking'] }).notNull().default('offering'),
   title: text('title').notNull(),
   description: text('description'),
   city: text('city').notNull(),
@@ -22,6 +23,11 @@ export const sublets = pgTable('sublets', {
   availableTo: date('available_to').notNull(),
   rent: numeric('rent'),
   imageUrls: text('image_urls').array(),
+  // Offering-specific fields
+  address: text('address'),
+  pincode: text('pincode'),
+  cityRegistrationRequired: boolean('city_registration_required'),
+  deposit: text('deposit'),
   status: text('status', { enum: ['active', 'closed'] }).default('active').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
@@ -31,12 +37,14 @@ export const sublets = pgTable('sublets', {
 export const travelPosts = pgTable('travel_posts', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
-  title: text('title').notNull(),
+  type: text('type', { enum: ['offering', 'seeking'] }).notNull(),
   description: text('description'),
   fromCity: text('from_city').notNull(),
   toCity: text('to_city').notNull(),
   travelDate: date('travel_date').notNull(),
-  type: text('type', { enum: ['looking_for_buddy', 'offering_companionship'] }).notNull(),
+  // Seeking-specific fields
+  companionshipFor: text('companionship_for', { enum: ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others'] }),
+  travelDateTo: date('travel_date_to'),
   status: text('status', { enum: ['active', 'closed'] }).default('active').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),

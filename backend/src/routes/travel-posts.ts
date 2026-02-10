@@ -1,24 +1,28 @@
-import type { App } from '../index.js';
+import type { App} from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, gte, lte } from 'drizzle-orm';
+import { eq, and, gte, lte, between } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 
 interface TravelPostFilters {
+  type?: 'offering' | 'seeking';
   fromCity?: string;
   toCity?: string;
   travelDate?: string;
-  type?: 'looking_for_buddy' | 'offering_companionship';
+  travelDateFrom?: string;
+  travelDateTo?: string;
   limit?: string;
   offset?: string;
 }
 
 interface TravelPostBody {
-  title: string;
+  type: 'offering' | 'seeking';
   description?: string;
   fromCity: string;
   toCity: string;
   travelDate: string;
-  type: 'looking_for_buddy' | 'offering_companionship';
+  // Seeking-specific fields
+  companionshipFor?: 'Mother' | 'Father' | 'Parents' | 'MIL' | 'FIL' | 'Others';
+  travelDateTo?: string;
 }
 
 export function registerTravelPostRoutes(app: App) {
@@ -32,10 +36,12 @@ export function registerTravelPostRoutes(app: App) {
       querystring: {
         type: 'object',
         properties: {
+          type: { type: 'string', enum: ['offering', 'seeking'] },
           fromCity: { type: 'string' },
           toCity: { type: 'string' },
-          travelDate: { type: 'string', format: 'date' },
-          type: { type: 'string', enum: ['looking_for_buddy', 'offering_companionship'] },
+          travelDate: { type: 'string' },
+          travelDateFrom: { type: 'string' },
+          travelDateTo: { type: 'string' },
           limit: { type: 'string' },
           offset: { type: 'string' },
         },
@@ -47,6 +53,10 @@ export function registerTravelPostRoutes(app: App) {
 
     try {
       const conditions: any[] = [eq(schema.travelPosts.status, 'active')];
+
+      if (filters.type) {
+        conditions.push(eq(schema.travelPosts.type, filters.type));
+      }
 
       if (filters.fromCity) {
         conditions.push(eq(schema.travelPosts.fromCity, filters.fromCity));
@@ -60,8 +70,18 @@ export function registerTravelPostRoutes(app: App) {
         conditions.push(eq(schema.travelPosts.travelDate, filters.travelDate));
       }
 
-      if (filters.type) {
-        conditions.push(eq(schema.travelPosts.type, filters.type));
+      // Date range filtering (between travelDateFrom and travelDateTo)
+      if (filters.travelDateFrom && filters.travelDateTo) {
+        conditions.push(
+          and(
+            gte(schema.travelPosts.travelDate, filters.travelDateFrom),
+            lte(schema.travelPosts.travelDate, filters.travelDateTo)
+          )!
+        );
+      } else if (filters.travelDateFrom) {
+        conditions.push(gte(schema.travelPosts.travelDate, filters.travelDateFrom));
+      } else if (filters.travelDateTo) {
+        conditions.push(lte(schema.travelPosts.travelDate, filters.travelDateTo));
       }
 
       const limit = parseInt(filters.limit || '20');
@@ -125,14 +145,15 @@ export function registerTravelPostRoutes(app: App) {
       tags: ['travel-posts'],
       body: {
         type: 'object',
-        required: ['title', 'fromCity', 'toCity', 'travelDate', 'type'],
+        required: ['type', 'fromCity', 'toCity', 'travelDate'],
         properties: {
-          title: { type: 'string' },
+          type: { type: 'string', enum: ['offering', 'seeking'] },
           description: { type: 'string' },
           fromCity: { type: 'string' },
           toCity: { type: 'string' },
-          travelDate: { type: 'string', format: 'date' },
-          type: { type: 'string', enum: ['looking_for_buddy', 'offering_companionship'] },
+          travelDate: { type: 'string' },
+          companionshipFor: { type: 'string', enum: ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others'] },
+          travelDateTo: { type: 'string' },
         },
       },
     },
@@ -144,16 +165,23 @@ export function registerTravelPostRoutes(app: App) {
     app.logger.info({ userId: session.user.id, body }, 'Creating travel post');
 
     try {
+      // Validation: seeking type requires companionshipFor
+      if (body.type === 'seeking' && !body.companionshipFor) {
+        app.logger.warn({ userId: session.user.id }, 'companionshipFor required for seeking type');
+        return reply.status(400).send({ error: 'companionshipFor is required for seeking type' });
+      }
+
       const [post] = await app.db
         .insert(schema.travelPosts)
         .values({
           userId: session.user.id,
-          title: body.title,
+          type: body.type,
           description: body.description,
           fromCity: body.fromCity,
           toCity: body.toCity,
           travelDate: body.travelDate,
-          type: body.type,
+          companionshipFor: body.companionshipFor,
+          travelDateTo: body.travelDateTo,
         })
         .returning();
 
@@ -180,12 +208,13 @@ export function registerTravelPostRoutes(app: App) {
       body: {
         type: 'object',
         properties: {
-          title: { type: 'string' },
+          type: { type: 'string', enum: ['offering', 'seeking'] },
           description: { type: 'string' },
           fromCity: { type: 'string' },
           toCity: { type: 'string' },
-          travelDate: { type: 'string', format: 'date' },
-          type: { type: 'string', enum: ['looking_for_buddy', 'offering_companionship'] },
+          travelDate: { type: 'string' },
+          companionshipFor: { type: 'string', enum: ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others'] },
+          travelDateTo: { type: 'string' },
         },
       },
     },
@@ -214,12 +243,13 @@ export function registerTravelPostRoutes(app: App) {
       }
 
       const updateData: any = { updatedAt: new Date() };
-      if (body.title !== undefined) updateData.title = body.title;
+      if (body.type !== undefined) updateData.type = body.type;
       if (body.description !== undefined) updateData.description = body.description;
       if (body.fromCity !== undefined) updateData.fromCity = body.fromCity;
       if (body.toCity !== undefined) updateData.toCity = body.toCity;
       if (body.travelDate !== undefined) updateData.travelDate = body.travelDate;
-      if (body.type !== undefined) updateData.type = body.type;
+      if (body.companionshipFor !== undefined) updateData.companionshipFor = body.companionshipFor;
+      if (body.travelDateTo !== undefined) updateData.travelDateTo = body.travelDateTo;
 
       const [updated] = await app.db
         .update(schema.travelPosts)

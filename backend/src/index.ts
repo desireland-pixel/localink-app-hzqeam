@@ -2,6 +2,7 @@ import { createApplication, resend } from "@specific-dev/framework";
 import * as appSchema from './db/schema.js';
 import * as authSchema from './db/auth-schema.js';
 import { registerProfileRoutes } from './routes/profile.js';
+import { registerCityRoutes } from './routes/cities.js';
 import { registerSubletRoutes } from './routes/sublets.js';
 import { registerTravelPostRoutes } from './routes/travel-posts.js';
 import { registerCarryPostRoutes } from './routes/carry-posts.js';
@@ -66,6 +67,7 @@ app.withAuth({
 
 // Register all route modules
 registerProfileRoutes(app);
+registerCityRoutes(app);
 registerSubletRoutes(app);
 registerTravelPostRoutes(app);
 registerCarryPostRoutes(app);
