@@ -10,14 +10,16 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
+  Image,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "expo-router";
 import { colors, typography, spacing, borderRadius } from "@/styles/commonStyles";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Modal from "@/components/ui/Modal";
+import { apiPost } from "@/utils/api";
 
-type Mode = "signin" | "signup";
+type Mode = "signin" | "signup" | "forgot-password";
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -93,6 +95,34 @@ export default function AuthScreen() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    console.log('[AuthScreen] Forgot password attempt');
+    
+    if (!email) {
+      setError("Please enter your email address");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      console.log('[AuthScreen] Sending password reset email to:', email);
+      await apiPost('/api/auth/forgot-password', { email });
+      console.log('[AuthScreen] Password reset email sent successfully');
+      setSuccess("Password reset email sent! Please check your inbox.");
+      setTimeout(() => {
+        setMode("signin");
+      }, 2000);
+    } catch (err: any) {
+      console.error('[AuthScreen] Forgot password error:', err);
+      setError(err.message || "Failed to send reset email");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSocialAuth = async (provider: "google" | "apple") => {
     console.log('[AuthScreen] Social auth attempt, provider:', provider);
     setLoading(true);
@@ -123,107 +153,160 @@ export default function AuthScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.content}>
             <View style={styles.header}>
-              <Text style={styles.logo}>🔗</Text>
+              <Image
+                source={require('@/assets/images/3bb1fe19-9c66-4234-b9b2-a8f7aeb399e6.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
               <Text style={styles.title}>Localink</Text>
               <Text style={styles.subtitle}>
-                {mode === "signin" ? "Welcome back!" : "Create your account"}
+                {mode === "signin" ? "Welcome back!" : mode === "signup" ? "Create your account" : "Reset your password"}
               </Text>
             </View>
 
-            {mode === "signup" && (
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Name (optional)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your name"
-                  placeholderTextColor={colors.textLight}
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
-                  editable={!loading}
-                />
-              </View>
-            )}
+            {mode === "forgot-password" ? (
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Email</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your email"
+                    placeholderTextColor={colors.textLight}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                  />
+                </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your email"
-                placeholderTextColor={colors.textLight}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!loading}
-              />
-            </View>
+                <TouchableOpacity
+                  style={[styles.primaryButton, loading && styles.buttonDisabled]}
+                  onPress={handleForgotPassword}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.primaryButtonText}>Send Reset Link</Text>
+                  )}
+                </TouchableOpacity>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your password"
-                placeholderTextColor={colors.textLight}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                editable={!loading}
-              />
-            </View>
+                <TouchableOpacity
+                  style={styles.switchModeButton}
+                  onPress={() => setMode("signin")}
+                  disabled={loading}
+                >
+                  <Text style={styles.switchModeText}>Back to Sign In</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {mode === "signup" && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Name (optional)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your name"
+                      placeholderTextColor={colors.textLight}
+                      value={name}
+                      onChangeText={setName}
+                      autoCapitalize="words"
+                      editable={!loading}
+                    />
+                  </View>
+                )}
 
-            <TouchableOpacity
-              style={[styles.primaryButton, loading && styles.buttonDisabled]}
-              onPress={handleEmailAuth}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryButtonText}>
-                  {mode === "signin" ? "Sign In" : "Sign Up"}
-                </Text>
-              )}
-            </TouchableOpacity>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Email</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your email"
+                    placeholderTextColor={colors.textLight}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                  />
+                </View>
 
-            <TouchableOpacity
-              style={styles.switchModeButton}
-              onPress={() => setMode(mode === "signin" ? "signup" : "signin")}
-              disabled={loading}
-            >
-              <Text style={styles.switchModeText}>
-                {mode === "signin"
-                  ? "Don't have an account? Sign Up"
-                  : "Already have an account? Sign In"}
-              </Text>
-            </TouchableOpacity>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Password</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your password"
+                    placeholderTextColor={colors.textLight}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+                </View>
 
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or continue with</Text>
-              <View style={styles.dividerLine} />
-            </View>
+                {mode === "signin" && (
+                  <TouchableOpacity
+                    style={styles.forgotPasswordButton}
+                    onPress={() => setMode("forgot-password")}
+                    disabled={loading}
+                  >
+                    <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                  </TouchableOpacity>
+                )}
 
-            <TouchableOpacity
-              style={styles.socialButton}
-              onPress={() => handleSocialAuth("google")}
-              disabled={loading}
-            >
-              <Text style={styles.socialButtonText}>Continue with Google</Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.primaryButton, loading && styles.buttonDisabled]}
+                  onPress={handleEmailAuth}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.primaryButtonText}>
+                      {mode === "signin" ? "Sign In" : "Sign Up"}
+                    </Text>
+                  )}
+                </TouchableOpacity>
 
-            {Platform.OS === "ios" && (
-              <TouchableOpacity
-                style={[styles.socialButton, styles.appleButton]}
-                onPress={() => handleSocialAuth("apple")}
-                disabled={loading}
-              >
-                <Text style={[styles.socialButtonText, styles.appleButtonText]}>
-                  Continue with Apple
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.switchModeButton}
+                  onPress={() => setMode(mode === "signin" ? "signup" : "signin")}
+                  disabled={loading}
+                >
+                  <Text style={styles.switchModeText}>
+                    {mode === "signin"
+                      ? "Don't have an account? Sign Up"
+                      : "Already have an account? Sign In"}
+                  </Text>
+                </TouchableOpacity>
+
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>or</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.socialButton}
+                  onPress={() => handleSocialAuth("google")}
+                  disabled={loading}
+                >
+                  <Text style={styles.socialButtonText}>Continue with Google</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.appleButton]}
+                  onPress={() => handleSocialAuth("apple")}
+                  disabled={loading}
+                >
+                  <Text style={[styles.socialButtonText, styles.appleButtonText]}>
+                    Continue with Apple
+                  </Text>
+                </TouchableOpacity>
+              </>
             )}
           </View>
         </ScrollView>
@@ -280,8 +363,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   logo: {
-    fontSize: 60,
-    marginBottom: spacing.sm,
+    width: 120,
+    height: 120,
+    marginBottom: spacing.md,
   },
   title: {
     ...typography.h1,
@@ -312,6 +396,14 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     ...typography.body,
     color: colors.text,
+  },
+  forgotPasswordButton: {
+    alignSelf: "flex-end",
+    marginBottom: spacing.md,
+  },
+  forgotPasswordText: {
+    ...typography.bodySmall,
+    color: colors.primary,
   },
   primaryButton: {
     backgroundColor: colors.primary,

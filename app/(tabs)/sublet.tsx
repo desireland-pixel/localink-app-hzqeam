@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
@@ -17,6 +17,8 @@ interface Sublet {
   availableFrom: string;
   availableTo: string;
   rent?: string;
+  type: 'offering' | 'seeking';
+  imageUrls?: string[];
   status: string;
   createdAt: string;
   user?: {
@@ -30,6 +32,7 @@ export default function SubletScreen() {
   const [sublets, setSublets] = useState<Sublet[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({});
 
   console.log('SubletScreen: Rendering', { subletsCount: sublets.length, loading });
@@ -69,6 +72,12 @@ export default function SubletScreen() {
     router.push('/sublet-filters');
   };
 
+  const handleSearch = () => {
+    console.log('SubletScreen: Searching for:', searchQuery);
+    // Filter posts by search query
+    fetchPosts();
+  };
+
   const fromDateDisplay = (dateString: string) => {
     return formatDateToDDMMYYYY(dateString);
   };
@@ -77,16 +86,19 @@ export default function SubletScreen() {
     return formatDateToDDMMYYYY(dateString);
   };
 
+  const typeLabel = (type: string) => {
+    return type === 'offering' ? 'Offering' : 'Seeking';
+  };
+
+  const filteredSublets = sublets.filter(sublet =>
+    sublet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    sublet.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (sublet.description && sublet.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <IconSymbol
-          ios_icon_name="house.fill"
-          android_material_icon_name="home"
-          size={28}
-          color={colors.primary}
-          style={styles.headerIcon}
-        />
         <View style={styles.searchContainer}>
           <IconSymbol
             ios_icon_name="magnifyingglass"
@@ -98,6 +110,10 @@ export default function SubletScreen() {
             style={styles.searchInput}
             placeholder="Search sublets..."
             placeholderTextColor={colors.textLight}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
           />
         </View>
         <TouchableOpacity style={styles.iconButton} onPress={handleFilters}>
@@ -122,8 +138,9 @@ export default function SubletScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : sublets.length === 0 ? (
+      ) : filteredSublets.length === 0 ? (
         <View style={styles.emptyContainer}>
+          <Text style={styles.emptyEmoji}>🏠</Text>
           <Text style={styles.emptyTitle}>No sublet matches found</Text>
           <Text style={styles.emptySubtitle}>Post a request to reach hosts directly!</Text>
           <TouchableOpacity style={styles.requestButton} onPress={handlePostSublet}>
@@ -137,10 +154,12 @@ export default function SubletScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
           }
         >
-          {sublets.map((sublet) => {
+          {filteredSublets.map((sublet) => {
             const fromDisplay = fromDateDisplay(sublet.availableFrom);
             const toDisplay = toDateDisplay(sublet.availableTo);
             const authorName = sublet.user?.name || 'Unknown';
+            const label = typeLabel(sublet.type);
+            const hasImage = sublet.imageUrls && sublet.imageUrls.length > 0;
             
             return (
               <TouchableOpacity
@@ -148,23 +167,54 @@ export default function SubletScreen() {
                 style={styles.card}
                 onPress={() => router.push(`/sublet/${sublet.id}`)}
               >
-                <Text style={styles.cardTitle}>{sublet.title}</Text>
-                {sublet.description && (
-                  <Text style={styles.cardDescription} numberOfLines={2}>
-                    {sublet.description}
-                  </Text>
-                )}
-                <View style={styles.cardInfo}>
-                  <Text style={styles.cardInfoText}>{sublet.city}</Text>
-                  <Text style={styles.cardInfoText}>•</Text>
-                  <Text style={styles.cardInfoText}>{fromDisplay}</Text>
-                  <Text style={styles.cardInfoText}>-</Text>
-                  <Text style={styles.cardInfoText}>{toDisplay}</Text>
+                <View style={styles.cardContent}>
+                  <View style={styles.imageContainer}>
+                    {hasImage ? (
+                      <Image source={{ uri: sublet.imageUrls![0] }} style={styles.cardImage} />
+                    ) : (
+                      <View style={styles.imagePlaceholder}>
+                        <IconSymbol
+                          ios_icon_name="photo"
+                          android_material_icon_name="image"
+                          size={32}
+                          color={colors.textLight}
+                        />
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.cardTextContent}>
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.cardTitle} numberOfLines={1}>{sublet.title}</Text>
+                      <TouchableOpacity style={styles.likeButton}>
+                        <IconSymbol
+                          ios_icon_name="heart"
+                          android_material_icon_name="favorite-border"
+                          size={20}
+                          color={colors.primary}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.typeTag}>
+                      <Text style={styles.typeTagText}>{label}</Text>
+                    </View>
+                    {sublet.description && (
+                      <Text style={styles.cardDescription} numberOfLines={2}>
+                        {sublet.description}
+                      </Text>
+                    )}
+                    <View style={styles.cardInfo}>
+                      <Text style={styles.cardInfoText}>{sublet.city}</Text>
+                      <Text style={styles.cardInfoText}>•</Text>
+                      <Text style={styles.cardInfoText}>{fromDisplay}</Text>
+                      <Text style={styles.cardInfoText}>-</Text>
+                      <Text style={styles.cardInfoText}>{toDisplay}</Text>
+                    </View>
+                    {sublet.rent && (
+                      <Text style={styles.cardRent}>€{sublet.rent}/month</Text>
+                    )}
+                    <Text style={styles.cardAuthor}>Posted by {authorName}</Text>
+                  </View>
                 </View>
-                {sublet.rent && (
-                  <Text style={styles.cardRent}>€{sublet.rent}/month</Text>
-                )}
-                <Text style={styles.cardAuthor}>Posted by {authorName}</Text>
               </TouchableOpacity>
             );
           })}
@@ -187,9 +237,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-  },
-  headerIcon: {
-    marginRight: spacing.xs,
   },
   searchContainer: {
     flex: 1,
@@ -219,6 +266,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
+  },
+  emptyEmoji: {
+    fontSize: 64,
+    marginBottom: spacing.md,
   },
   emptyTitle: {
     ...typography.h3,
@@ -255,10 +306,58 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  cardContent: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  imageContainer: {
+    width: 80,
+    height: 80,
+  },
+  cardImage: {
+    width: 80,
+    height: 80,
+    borderRadius: borderRadius.md,
+  },
+  imagePlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardTextContent: {
+    flex: 1,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.xs,
+  },
   cardTitle: {
     ...typography.h3,
     color: colors.text,
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  likeButton: {
+    padding: spacing.xs,
+  },
+  typeTag: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+    alignSelf: 'flex-start',
     marginBottom: spacing.xs,
+  },
+  typeTagText: {
+    ...typography.bodySmall,
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
   },
   cardDescription: {
     ...typography.body,
@@ -270,6 +369,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     marginBottom: spacing.xs,
+    flexWrap: 'wrap',
   },
   cardInfoText: {
     ...typography.bodySmall,

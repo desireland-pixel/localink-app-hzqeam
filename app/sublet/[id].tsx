@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -8,6 +8,7 @@ import { authenticatedGet, authenticatedPost } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
+import { IconSymbol } from '@/components/IconSymbol';
 
 interface Sublet {
   id: string;
@@ -18,6 +19,7 @@ interface Sublet {
   availableFrom: string;
   availableTo: string;
   rent?: string;
+  type: 'offering' | 'seeking';
   imageUrls?: string[];
   status: string;
   createdAt: string;
@@ -65,7 +67,11 @@ export default function SubletDetailsScreen() {
     try {
       const response = await authenticatedPost<{ conversationId: string }>(
         '/api/conversations',
-        { participantId: sublet.userId }
+        {
+          postId: id,
+          postType: 'sublet',
+          recipientId: sublet.userId,
+        }
       );
       console.log('SubletDetailsScreen: Conversation created', response);
       router.push(`/chat/${response.conversationId}`);
@@ -98,10 +104,32 @@ export default function SubletDetailsScreen() {
   const fromDateDisplay = formatDateToDDMMYYYY(sublet.availableFrom);
   const toDateDisplay = formatDateToDDMMYYYY(sublet.availableTo);
   const isOwnPost = user?.id === sublet.userId;
+  const hasImage = sublet.imageUrls && sublet.imageUrls.length > 0;
+  const typeLabel = sublet.type === 'offering' ? 'Offering' : 'Seeking';
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
+        <View style={styles.imageContainer}>
+          {hasImage ? (
+            <Image source={{ uri: sublet.imageUrls![0] }} style={styles.image} />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <IconSymbol
+                ios_icon_name="photo"
+                android_material_icon_name="image"
+                size={64}
+                color={colors.textLight}
+              />
+              <Text style={styles.imagePlaceholderText}>No photo available</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.typeTag}>
+          <Text style={styles.typeTagText}>{typeLabel}</Text>
+        </View>
+
         <Text style={styles.title}>{sublet.title}</Text>
         
         {sublet.description && (
@@ -133,8 +161,23 @@ export default function SubletDetailsScreen() {
         </View>
 
         <View style={styles.authorSection}>
-          <Text style={styles.authorLabel}>Posted by</Text>
-          <Text style={styles.authorName}>{sublet.user.name}</Text>
+          <View style={styles.authorHeader}>
+            <View>
+              <Text style={styles.authorLabel}>Posted by</Text>
+              <Text style={styles.authorName}>{sublet.user.name}</Text>
+            </View>
+            {!isOwnPost && (
+              <TouchableOpacity style={styles.msgButton} onPress={handleContact}>
+                <IconSymbol
+                  ios_icon_name="message.fill"
+                  android_material_icon_name="message"
+                  size={20}
+                  color="#FFFFFF"
+                />
+                <Text style={styles.msgButtonText}>Msg</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </ScrollView>
 
@@ -180,17 +223,53 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+  },
+  imageContainer: {
+    width: '100%',
+    height: 250,
+    backgroundColor: colors.border,
+  },
+  image: {
+    width: '100%',
+    height: 250,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+  },
+  imagePlaceholderText: {
+    ...typography.body,
+    color: colors.textLight,
+    marginTop: spacing.sm,
+  },
+  typeTag: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    alignSelf: 'flex-start',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    borderRadius: borderRadius.sm,
+  },
+  typeTagText: {
+    ...typography.bodySmall,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   title: {
     ...typography.h2,
     color: colors.text,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
     marginBottom: spacing.md,
   },
   description: {
     ...typography.body,
     color: colors.textSecondary,
+    marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
     lineHeight: 24,
   },
@@ -198,6 +277,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
+    marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -223,9 +303,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
+    marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  authorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   authorLabel: {
     ...typography.bodySmall,
@@ -235,6 +321,20 @@ const styles = StyleSheet.create({
   authorName: {
     ...typography.body,
     color: colors.text,
+    fontWeight: '600',
+  },
+  msgButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    gap: spacing.xs,
+  },
+  msgButtonText: {
+    ...typography.bodySmall,
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   footer: {

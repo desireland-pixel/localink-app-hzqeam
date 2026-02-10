@@ -31,6 +31,7 @@ export default function CarryScreen() {
   const [posts, setPosts] = useState<CarryPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({});
 
   console.log('CarryScreen: Rendering', { postsCount: posts.length, loading });
@@ -71,16 +72,16 @@ export default function CarryScreen() {
     return type;
   };
 
+  const filteredPosts = posts.filter(post =>
+    post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    post.fromCity.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    post.toCity.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (post.description && post.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <IconSymbol
-          ios_icon_name="cube.box.fill"
-          android_material_icon_name="inventory"
-          size={28}
-          color={colors.primary}
-          style={styles.headerIcon}
-        />
         <View style={styles.searchContainer}>
           <IconSymbol
             ios_icon_name="magnifyingglass"
@@ -92,6 +93,9 @@ export default function CarryScreen() {
             style={styles.searchInput}
             placeholder="Search carry posts..."
             placeholderTextColor={colors.textLight}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
           />
         </View>
         <TouchableOpacity
@@ -122,8 +126,9 @@ export default function CarryScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : posts.length === 0 ? (
+      ) : filteredPosts.length === 0 ? (
         <View style={styles.emptyContainer}>
+          <Text style={styles.emptyEmoji}>📦</Text>
           <Text style={styles.emptyTitle}>No ally matches found</Text>
           <Text style={styles.emptySubtitle}>Post a request to find the right fit!</Text>
           <TouchableOpacity
@@ -140,7 +145,7 @@ export default function CarryScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
           }
         >
-          {posts.map((post) => {
+          {filteredPosts.map((post) => {
             const dateDisplay = travelDateDisplay(post.travelDate);
             const label = typeLabel(post.type);
             const authorName = post.user?.name || 'Unknown';
@@ -151,7 +156,20 @@ export default function CarryScreen() {
                 style={styles.card}
                 onPress={() => router.push(`/carry/${post.id}`)}
               >
-                <Text style={styles.cardTitle}>{post.title}</Text>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle} numberOfLines={1}>{post.title}</Text>
+                  <TouchableOpacity style={styles.likeButton}>
+                    <IconSymbol
+                      ios_icon_name="heart"
+                      android_material_icon_name="favorite-border"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.typeTag}>
+                  <Text style={styles.typeTagText}>{label}</Text>
+                </View>
                 {post.description && (
                   <Text style={styles.cardDescription} numberOfLines={2}>
                     {post.description}
@@ -168,7 +186,6 @@ export default function CarryScreen() {
                     </>
                   )}
                 </View>
-                <Text style={styles.cardType}>{label}</Text>
                 <Text style={styles.cardAuthor}>Posted by {authorName}</Text>
               </TouchableOpacity>
             );
@@ -192,9 +209,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-  },
-  headerIcon: {
-    marginRight: spacing.xs,
   },
   searchContainer: {
     flex: 1,
@@ -224,6 +238,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
+  },
+  emptyEmoji: {
+    fontSize: 64,
+    marginBottom: spacing.md,
   },
   emptyTitle: {
     ...typography.h3,
@@ -260,10 +278,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.xs,
+  },
   cardTitle: {
     ...typography.h3,
     color: colors.text,
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  likeButton: {
+    padding: spacing.xs,
+  },
+  typeTag: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+    alignSelf: 'flex-start',
     marginBottom: spacing.xs,
+  },
+  typeTagText: {
+    ...typography.bodySmall,
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
   },
   cardDescription: {
     ...typography.body,
@@ -275,16 +317,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     marginBottom: spacing.xs,
+    flexWrap: 'wrap',
   },
   cardInfoText: {
     ...typography.bodySmall,
     color: colors.textSecondary,
-  },
-  cardType: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: '600',
-    marginBottom: spacing.xs,
   },
   cardAuthor: {
     ...typography.bodySmall,
