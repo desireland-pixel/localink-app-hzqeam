@@ -18,7 +18,7 @@ interface ModalProps {
   confirmText?: string;
   cancelText?: string;
   onConfirm?: () => void;
-  type?: 'info' | 'error' | 'success' | 'confirm';
+  type?: 'info' | 'error' | 'success' | 'confirm' | 'warning';
 }
 
 export default function Modal({
@@ -45,7 +45,8 @@ export default function Modal({
       case 'success':
         return '✅';
       case 'confirm':
-        return '❓';
+      case 'warning':
+        return '⚠️';
       default:
         return 'ℹ️';
     }
@@ -67,7 +68,7 @@ export default function Modal({
               <Text style={styles.message}>{message}</Text>
               
               <View style={styles.buttonContainer}>
-                {type === 'confirm' && (
+                {(type === 'confirm' || type === 'warning') && (
                   <TouchableOpacity
                     style={[styles.button, styles.cancelButton]}
                     onPress={onClose}

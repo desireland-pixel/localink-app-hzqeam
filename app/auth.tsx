@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "expo-router";
 import { colors, typography, spacing, borderRadius } from "@/styles/commonStyles";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Modal from "@/components/ui/Modal";
@@ -19,7 +20,8 @@ import Modal from "@/components/ui/Modal";
 type Mode = "signin" | "signup";
 
 export default function AuthScreen() {
-  const { signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const { user, profile, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, loading: authLoading, profileLoading } = useAuth();
 
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -29,9 +31,28 @@ export default function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  console.log('[AuthScreen] Rendering, mode:', mode);
+  console.log('[AuthScreen] Rendering, mode:', mode, 'user:', user?.id, 'profile:', profile?.name);
 
-  if (authLoading) {
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (authLoading || profileLoading) {
+      console.log('[AuthScreen] Auth/profile loading, waiting...');
+      return;
+    }
+
+    if (user) {
+      console.log('[AuthScreen] User authenticated, checking profile...');
+      if (profile && profile.name && profile.city) {
+        console.log('[AuthScreen] Profile complete, redirecting to main app');
+        router.replace('/(tabs)/sublet');
+      } else {
+        console.log('[AuthScreen] Profile incomplete, redirecting to create-profile');
+        router.replace('/create-profile');
+      }
+    }
+  }, [user, profile, authLoading, profileLoading]);
+
+  if (authLoading || profileLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -57,6 +78,7 @@ export default function AuthScreen() {
         console.log('[AuthScreen] Signing in with email');
         await signInWithEmail(email, password);
         console.log('[AuthScreen] Sign in successful');
+        // Navigation will be handled by useEffect
       } else {
         console.log('[AuthScreen] Signing up with email');
         await signUpWithEmail(email, password, name);
@@ -83,6 +105,7 @@ export default function AuthScreen() {
         await signInWithApple();
       }
       console.log('[AuthScreen] Social auth successful');
+      // Navigation will be handled by useEffect
     } catch (err: any) {
       console.error('[AuthScreen] Social auth error:', err);
       setError(err.message || "Authentication failed");

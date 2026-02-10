@@ -1,14 +1,13 @@
 
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { useRouter, useSegments } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors, typography, spacing } from '@/styles/commonStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function IndexScreen() {
   const router = useRouter();
-  const segments = useSegments();
   const { user, profile, loading, profileLoading } = useAuth();
 
   useEffect(() => {
@@ -16,8 +15,7 @@ export default function IndexScreen() {
       user: user?.id, 
       profile: profile?.name, 
       loading, 
-      profileLoading,
-      segments: segments.join('/')
+      profileLoading
     });
     
     if (loading || profileLoading) {
@@ -25,20 +23,21 @@ export default function IndexScreen() {
       return;
     }
 
-    if (!user) {
-      console.log('[IndexScreen] No user, redirecting to auth');
-      router.replace('/auth');
-      return;
-    }
+    // Use setTimeout to ensure navigation happens after render
+    const timer = setTimeout(() => {
+      if (!user) {
+        console.log('[IndexScreen] No user, redirecting to auth');
+        router.replace('/auth');
+      } else if (!profile || !profile.name || !profile.city) {
+        console.log('[IndexScreen] User authenticated but profile incomplete, redirecting to create-profile');
+        router.replace('/create-profile');
+      } else {
+        console.log('[IndexScreen] User authenticated with complete profile, redirecting to tabs');
+        router.replace('/(tabs)/sublet');
+      }
+    }, 100);
 
-    if (!profile || !profile.name || !profile.city) {
-      console.log('[IndexScreen] User authenticated but profile incomplete, redirecting to create-profile');
-      router.replace('/create-profile');
-      return;
-    }
-
-    console.log('[IndexScreen] User authenticated with complete profile, redirecting to tabs');
-    router.replace('/(tabs)/sublet');
+    return () => clearTimeout(timer);
   }, [user, profile, loading, profileLoading]);
 
   const isLoading = loading || profileLoading;

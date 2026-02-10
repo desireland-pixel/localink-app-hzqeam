@@ -13,15 +13,17 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [showSignOutModal, setShowSignOutModal] = useState(false);
 
-  console.log('[ProfileScreen iOS] Rendering');
+  console.log('[ProfileScreen iOS] Rendering, user:', user?.id, 'profile:', profile?.name);
 
   const handleSignOut = async () => {
-    console.log('[ProfileScreen] Signing out');
+    console.log('[ProfileScreen iOS] Signing out');
+    setShowSignOutModal(false);
     try {
       await signOut();
-      router.replace('/welcome');
+      console.log('[ProfileScreen iOS] Sign out successful, redirecting to auth');
+      router.replace('/auth');
     } catch (error) {
-      console.error('[ProfileScreen] Sign out error:', error);
+      console.error('[ProfileScreen iOS] Sign out error:', error);
     }
   };
 
@@ -116,19 +118,10 @@ export default function ProfileScreen() {
         onClose={() => setShowSignOutModal(false)}
         title="Sign Out"
         message="Are you sure you want to sign out?"
-        type="warning"
-        actions={[
-          {
-            text: 'Cancel',
-            onPress: () => setShowSignOutModal(false),
-            style: 'cancel',
-          },
-          {
-            text: 'Sign Out',
-            onPress: handleSignOut,
-            style: 'destructive',
-          },
-        ]}
+        type="confirm"
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        onConfirm={handleSignOut}
       />
     </SafeAreaView>
   );

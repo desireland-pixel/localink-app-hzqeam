@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,13 +17,29 @@ const GERMAN_CITIES = [
 
 export default function CreateProfileScreen() {
   const router = useRouter();
-  const { user, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, loading: authLoading } = useAuth();
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  console.log('[CreateProfile] Rendering, user:', user?.id);
+  console.log('[CreateProfile] Rendering, user:', user?.id, 'profile:', profile?.name);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      console.log('[CreateProfile] No user, redirecting to auth');
+      router.replace('/auth');
+    }
+  }, [user, authLoading]);
+
+  // Redirect if profile already complete
+  useEffect(() => {
+    if (profile && profile.name && profile.city) {
+      console.log('[CreateProfile] Profile already complete, redirecting to main app');
+      router.replace('/(tabs)/sublet');
+    }
+  }, [profile]);
 
   const handleSubmit = async () => {
     console.log('[CreateProfile] Submit profile', { name, city });
@@ -40,6 +56,7 @@ export default function CreateProfileScreen() {
 
     if (!user) {
       setError('Authentication error. Please sign in again.');
+      router.replace('/auth');
       return;
     }
 
@@ -64,6 +81,15 @@ export default function CreateProfileScreen() {
       setLoading(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -151,6 +177,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: spacing.md,
   },
   keyboardView: {
     flex: 1,
