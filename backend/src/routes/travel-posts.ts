@@ -2,6 +2,7 @@ import type { App} from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { eq, and, gte, lte, between, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
+import { TRAVEL_CITIES } from '../cities.js';
 
 interface TravelPostFilters {
   type?: 'offering' | 'seeking';
@@ -23,6 +24,20 @@ interface TravelPostBody {
   // Seeking-specific fields
   companionshipFor?: 'Mother' | 'Father' | 'Parents' | 'MIL' | 'FIL' | 'Others';
   travelDateTo?: string;
+  // Offering-specific field
+  alsoPostAsAlly?: boolean;
+}
+
+// Validation helper
+function validateCity(city: string): boolean {
+  return TRAVEL_CITIES.some(c => c.toLowerCase() === city.toLowerCase());
+}
+
+function isFutureDate(dateStr: string): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const date = new Date(dateStr);
+  return date >= today;
 }
 
 export function registerTravelPostRoutes(app: App) {
@@ -206,6 +221,16 @@ export function registerTravelPostRoutes(app: App) {
           travelDate: { type: 'string' },
           companionshipFor: { type: 'string', enum: ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others'] },
           travelDateTo: { type: 'string' },
+          alsoPostAsAlly: { type: 'boolean' },
+        },
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            travelPostId: { type: 'string' },
+            carryPostId: { type: 'string' },
+          },
         },
       },
     },
@@ -217,6 +242,28 @@ export function registerTravelPostRoutes(app: App) {
     app.logger.info({ userId: session.user.id, body }, 'Creating travel post');
 
     try {
+      // Validation: cities must be from predefined list
+      if (!validateCity(body.fromCity)) {
+        app.logger.warn({ fromCity: body.fromCity }, 'Invalid fromCity');
+        return reply.status(400).send({ error: 'Invalid fromCity. Must be from predefined list.' });
+      }
+      if (!validateCity(body.toCity)) {
+        app.logger.warn({ toCity: body.toCity }, 'Invalid toCity');
+        return reply.status(400).send({ error: 'Invalid toCity. Must be from predefined list.' });
+      }
+
+      // Validation: travelDate must be in the future
+      if (!isFutureDate(body.travelDate)) {
+        app.logger.warn({ travelDate: body.travelDate }, 'travelDate must be in the future');
+        return reply.status(400).send({ error: 'travelDate must be in the future' });
+      }
+
+      // Validation: if travelDateTo is provided, it must be >= travelDate
+      if (body.travelDateTo && body.travelDateTo < body.travelDate) {
+        app.logger.warn({ travelDate: body.travelDate, travelDateTo: body.travelDateTo }, 'travelDateTo must be >= travelDate');
+        return reply.status(400).send({ error: 'travelDateTo must be greater than or equal to travelDate' });
+      }
+
       const [post] = await app.db
         .insert(schema.travelPosts)
         .values({
@@ -232,7 +279,31 @@ export function registerTravelPostRoutes(app: App) {
         .returning();
 
       app.logger.info({ travelPostId: post.id, userId: session.user.id }, 'Travel post created successfully');
-      return post;
+
+      // If alsoPostAsAlly is true and type is 'offering', create a carry post
+      let carryPostId: string | undefined;
+      if (body.alsoPostAsAlly && body.type === 'offering') {
+        const [carryPost] = await app.db
+          .insert(schema.carryPosts)
+          .values({
+            userId: session.user.id,
+            title: `Carry & Send: ${body.fromCity} to ${body.toCity}`,
+            description: body.description,
+            fromCity: body.fromCity,
+            toCity: body.toCity,
+            travelDate: body.travelDate,
+            type: 'traveler',
+          })
+          .returning();
+
+        carryPostId = carryPost.id;
+        app.logger.info({ carryPostId, travelPostId: post.id }, 'Associated carry post created');
+      }
+
+      return {
+        travelPostId: post.id,
+        ...(carryPostId && { carryPostId }),
+      };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id }, 'Failed to create travel post');
       return reply.status(500).send({ error: 'Failed to create travel post' });
@@ -286,6 +357,22 @@ export function registerTravelPostRoutes(app: App) {
       if (existing.userId !== session.user.id) {
         app.logger.warn({ userId: session.user.id, travelPostId: id }, 'Unauthorized travel post update attempt');
         return reply.status(403).send({ error: 'You can only update your own travel posts' });
+      }
+
+      // Validation: if cities are provided, validate them
+      if (body.fromCity && !validateCity(body.fromCity)) {
+        app.logger.warn({ fromCity: body.fromCity }, 'Invalid fromCity');
+        return reply.status(400).send({ error: 'Invalid fromCity. Must be from predefined list.' });
+      }
+      if (body.toCity && !validateCity(body.toCity)) {
+        app.logger.warn({ toCity: body.toCity }, 'Invalid toCity');
+        return reply.status(400).send({ error: 'Invalid toCity. Must be from predefined list.' });
+      }
+
+      // Validation: if travelDate is provided, it must be in the future
+      if (body.travelDate && !isFutureDate(body.travelDate)) {
+        app.logger.warn({ travelDate: body.travelDate }, 'travelDate must be in the future');
+        return reply.status(400).send({ error: 'travelDate must be in the future' });
       }
 
       const updateData: any = { updatedAt: new Date() };
