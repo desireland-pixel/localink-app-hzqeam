@@ -26,8 +26,8 @@ export default function IndexScreen() {
     }
 
     if (!user) {
-      console.log('[IndexScreen] No user, showing welcome');
-      router.replace('/welcome');
+      console.log('[IndexScreen] No user, redirecting to auth');
+      router.replace('/auth');
       return;
     }
 
