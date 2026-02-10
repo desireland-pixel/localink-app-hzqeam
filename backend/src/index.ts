@@ -8,6 +8,9 @@ import { registerTravelPostRoutes } from './routes/travel-posts.js';
 import { registerCarryPostRoutes } from './routes/carry-posts.js';
 import { registerConversationRoutes } from './routes/conversations.js';
 import { registerWebSocketRoutes } from './routes/websocket.js';
+import { registerFavoriteRoutes } from './routes/favorites.js';
+import { registerUploadRoutes } from './routes/upload.js';
+import { registerShareRoutes } from './routes/share.js';
 
 const schema = { ...appSchema, ...authSchema };
 
@@ -73,6 +76,9 @@ registerTravelPostRoutes(app);
 registerCarryPostRoutes(app);
 registerConversationRoutes(app);
 registerWebSocketRoutes(app);
+registerFavoriteRoutes(app);
+registerUploadRoutes(app);
+registerShareRoutes(app);
 
 await app.run();
 app.logger.info('Localink API running');

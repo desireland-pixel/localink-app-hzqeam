@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, numeric, date, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, numeric, date, boolean, uniqueIndex } from 'drizzle-orm/pg-core';
 import { user } from './auth-schema.js';
 import { relations } from 'drizzle-orm';
 
@@ -87,6 +87,17 @@ export const messages = pgTable('messages', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Favorites (Likes)
+export const favorites = pgTable('favorites', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  postId: uuid('post_id').notNull(),
+  postType: text('post_type', { enum: ['sublet', 'travel', 'carry'] }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uniqueFavorite: uniqueIndex('favorites_user_post_type_idx').on(table.userId, table.postId, table.postType),
+}));
+
 // Relations
 export const profilesRelations = relations(profiles, ({ one }) => ({
   user: one(user, {
@@ -135,6 +146,13 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
   sender: one(user, {
     fields: [messages.senderId],
+    references: [user.id],
+  }),
+}));
+
+export const favoritesRelations = relations(favorites, ({ one }) => ({
+  user: one(user, {
+    fields: [favorites.userId],
     references: [user.id],
   }),
 }));
