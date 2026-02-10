@@ -46,6 +46,7 @@ export default function PostTravelScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDateToPicker, setShowDateToPicker] = useState(false);
   const [companionshipFor, setCompanionshipFor] = useState('');
+  const [showCompanionshipDropdown, setShowCompanionshipDropdown] = useState(false);
   const [description, setDescription] = useState('');
   const [alsoPostAsAlly, setAlsoPostAsAlly] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
@@ -83,6 +84,16 @@ export default function PostTravelScreen() {
     if (travelDate < today) {
       setError('Travel date must be in the future');
       return;
+    }
+
+    // Validate Date (To) is not before Date (From)
+    if (travelDateTo) {
+      const fromTime = travelDate.getTime();
+      const toTime = travelDateTo.getTime();
+      if (toTime < fromTime) {
+        setError('End date cannot be before start date');
+        return;
+      }
     }
 
     setLoading(true);
@@ -251,27 +262,25 @@ export default function PostTravelScreen() {
                 numberOfLines={4}
               />
 
-              <View style={styles.allySection}>
-                <Text style={styles.allyLabel}>I can be an Ally and bring something from the departure country</Text>
-                <Text style={styles.allyInfo}>(info: Your post will be published on the "Carry" page as well)</Text>
-                <View style={styles.allyButtons}>
-                  <TouchableOpacity
-                    style={[styles.allyButton, alsoPostAsAlly === true && styles.allyButtonActive]}
-                    onPress={() => setAlsoPostAsAlly(true)}
-                  >
-                    <Text style={[styles.allyButtonText, alsoPostAsAlly === true && styles.allyButtonTextActive]}>
-                      Yes
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.allyButton, alsoPostAsAlly === false && styles.allyButtonActive]}
-                    onPress={() => setAlsoPostAsAlly(false)}
-                  >
-                    <Text style={[styles.allyButtonText, alsoPostAsAlly === false && styles.allyButtonTextActive]}>
-                      No
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+              <Text style={styles.label}>I can be an Ally and bring something from the departure country</Text>
+              <Text style={styles.infoText}>(info: Your post will be published on the "Carry" page as well)</Text>
+              <View style={styles.allyButtons}>
+                <TouchableOpacity
+                  style={[styles.allyButton, alsoPostAsAlly === true && styles.allyButtonActive]}
+                  onPress={() => setAlsoPostAsAlly(true)}
+                >
+                  <Text style={[styles.allyButtonText, alsoPostAsAlly === true && styles.allyButtonTextActive]}>
+                    Yes
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.allyButton, alsoPostAsAlly === false && styles.allyButtonActive]}
+                  onPress={() => setAlsoPostAsAlly(false)}
+                >
+                  <Text style={[styles.allyButtonText, alsoPostAsAlly === false && styles.allyButtonTextActive]}>
+                    No
+                  </Text>
+                </TouchableOpacity>
               </View>
             </>
           )}
@@ -279,27 +288,32 @@ export default function PostTravelScreen() {
           {travelType === 'seeking' && (
             <>
               <Text style={styles.label}>For *</Text>
-              <View style={styles.optionsGrid}>
-                {COMPANIONSHIP_FOR_OPTIONS.map((option) => (
-                  <TouchableOpacity
-                    key={option}
-                    style={[
-                      styles.optionButton,
-                      companionshipFor === option && styles.optionButtonActive,
-                    ]}
-                    onPress={() => setCompanionshipFor(option)}
-                  >
-                    <Text
-                      style={[
-                        styles.optionText,
-                        companionshipFor === option && styles.optionTextActive,
-                      ]}
-                    >
-                      {option}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <TouchableOpacity 
+                style={styles.dropdownButton}
+                onPress={() => setShowCompanionshipDropdown(!showCompanionshipDropdown)}
+              >
+                <Text style={[styles.dropdownButtonText, !companionshipFor && styles.dropdownButtonPlaceholder]}>
+                  {companionshipFor || 'Select...'}
+                </Text>
+              </TouchableOpacity>
+              {showCompanionshipDropdown && (
+                <View style={styles.dropdown}>
+                  <ScrollView style={styles.dropdownScroll}>
+                    {COMPANIONSHIP_FOR_OPTIONS.map((option) => (
+                      <TouchableOpacity
+                        key={option}
+                        style={styles.dropdownOption}
+                        onPress={() => {
+                          setCompanionshipFor(option);
+                          setShowCompanionshipDropdown(false);
+                        }}
+                      >
+                        <Text style={styles.dropdownOptionText}>{option}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
 
               <Text style={styles.label}>From *</Text>
               <TouchableOpacity 
@@ -382,16 +396,16 @@ export default function PostTravelScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowDateToPicker(true)}
               >
-                <Text style={styles.dateButtonText}>
-                  {travelDateToDisplay || 'Optional - Select end date'}
+                <Text style={[styles.dateButtonText, !travelDateToDisplay && styles.dateButtonPlaceholder]}>
+                  {travelDateToDisplay || 'dd.mm.yyyy'}
                 </Text>
               </TouchableOpacity>
               {showDateToPicker && (
                 <DateTimePicker
-                  value={travelDateTo || new Date()}
+                  value={travelDateTo || travelDate}
                   mode="date"
                   display="default"
-                  minimumDate={minDate}
+                  minimumDate={travelDate}
                   onChange={(event, selectedDate) => {
                     setShowDateToPicker(false);
                     if (selectedDate) setTravelDateTo(selectedDate);
@@ -502,31 +516,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     marginTop: spacing.md,
   },
-  optionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  optionButton: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  optionButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  optionText: {
-    ...typography.body,
-    color: colors.text,
-  },
-  optionTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+  infoText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginBottom: spacing.sm,
   },
   input: {
     backgroundColor: colors.card,
@@ -541,6 +535,43 @@ const styles = StyleSheet.create({
   textArea: {
     height: 100,
     textAlignVertical: 'top',
+  },
+  dropdownButton: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  dropdownButtonText: {
+    ...typography.body,
+    color: colors.text,
+  },
+  dropdownButtonPlaceholder: {
+    color: colors.textLight,
+  },
+  dropdown: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+    maxHeight: 200,
+  },
+  dropdownScroll: {
+    maxHeight: 200,
+  },
+  dropdownOption: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  dropdownOptionText: {
+    ...typography.body,
+    color: colors.text,
   },
   cityButton: {
     backgroundColor: colors.card,
@@ -591,33 +622,17 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
   },
-  allySection: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginTop: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  allyLabel: {
-    ...typography.body,
-    color: colors.text,
-    fontWeight: '600',
-    marginBottom: spacing.xs,
-  },
-  allyInfo: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
-    marginBottom: spacing.md,
+  dateButtonPlaceholder: {
+    color: colors.textLight,
   },
   allyButtons: {
     flexDirection: 'row',
     gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   allyButton: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',

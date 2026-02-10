@@ -8,6 +8,7 @@ import { authenticatedGet, authenticatedPost } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
+import { IconSymbol } from '@/components/IconSymbol';
 
 interface TravelPost {
   id: string;
@@ -114,11 +115,29 @@ export default function TravelDetailsScreen() {
   const travelDateDisplay = formatDateToDDMMYYYY(travelPost.travelDate);
   const travelDateToDisplay = travelPost.travelDateTo ? formatDateToDDMMYYYY(travelPost.travelDateTo) : null;
 
+  const handleEdit = () => {
+    console.log('TravelDetailsScreen: Edit post', id);
+    // TODO: Navigate to edit screen
+    router.push(`/edit-travel/${id}`);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
         <View style={styles.card}>
-          <Text style={styles.title}>{title}</Text>
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>{title}</Text>
+            {isOwnPost && (
+              <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                <IconSymbol
+                  ios_icon_name="pencil"
+                  android_material_icon_name="edit"
+                  size={20}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
           
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{getTypeLabel(travelPost.type)}</Text>
@@ -224,10 +243,24 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.lg,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+  },
   title: {
     ...typography.h2,
     color: colors.text,
-    marginBottom: spacing.md,
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  editButton: {
+    padding: spacing.xs,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   badge: {
     backgroundColor: colors.primary,

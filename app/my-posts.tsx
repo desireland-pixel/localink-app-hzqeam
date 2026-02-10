@@ -7,6 +7,7 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 import { authenticatedGet, authenticatedPatch } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import Modal from '@/components/ui/Modal';
+import { IconSymbol } from '@/components/IconSymbol';
 
 interface Post {
   id: string;
@@ -97,6 +98,17 @@ export default function MyPostsScreen() {
       router.push(`/travel/${postId}`);
     } else if (selectedTab === 'carry') {
       router.push(`/carry/${postId}`);
+    }
+  };
+
+  const handleEditPost = (postId: string) => {
+    console.log('MyPostsScreen: Edit post', { postId, selectedTab });
+    if (selectedTab === 'sublet') {
+      router.push(`/edit-sublet/${postId}`);
+    } else if (selectedTab === 'travel') {
+      router.push(`/edit-travel/${postId}`);
+    } else if (selectedTab === 'carry') {
+      router.push(`/edit-carry/${postId}`);
     }
   };
 
@@ -234,22 +246,40 @@ export default function MyPostsScreen() {
                         {isClosed ? 'Closed' : 'Active'}
                       </Text>
                     </View>
-                    {!isClosed && (
-                      <TouchableOpacity
-                        style={[styles.closeButton, isClosing && styles.closeButtonDisabled]}
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          handleClosePost(post.id);
-                        }}
-                        disabled={isClosing}
-                      >
-                        {isClosing ? (
-                          <ActivityIndicator size="small" color={colors.primary} />
-                        ) : (
-                          <Text style={styles.closeButtonText}>Close Post</Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
+                    <View style={styles.actionButtons}>
+                      {!isClosed && (
+                        <TouchableOpacity
+                          style={styles.editIconButton}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            handleEditPost(post.id);
+                          }}
+                        >
+                          <IconSymbol
+                            ios_icon_name="pencil"
+                            android_material_icon_name="edit"
+                            size={20}
+                            color={colors.primary}
+                          />
+                        </TouchableOpacity>
+                      )}
+                      {!isClosed && (
+                        <TouchableOpacity
+                          style={[styles.closeButton, isClosing && styles.closeButtonDisabled]}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            handleClosePost(post.id);
+                          }}
+                          disabled={isClosing}
+                        >
+                          {isClosing ? (
+                            <ActivityIndicator size="small" color={colors.primary} />
+                          ) : (
+                            <Text style={styles.closeButtonText}>Close</Text>
+                          )}
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
                 </TouchableOpacity>
               );
@@ -391,6 +421,18 @@ const styles = StyleSheet.create({
   },
   statusTextClosed: {
     color: colors.textSecondary,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    alignItems: 'center',
+  },
+  editIconButton: {
+    padding: spacing.xs,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   closeButton: {
     paddingHorizontal: spacing.md,

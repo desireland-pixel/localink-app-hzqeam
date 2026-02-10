@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -9,6 +9,8 @@ import Modal from '@/components/ui/Modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { CitySearchInput } from '@/components/CitySearchInput';
 import { formatDateToDDMMYYYY, dateToISOString } from '@/utils/cities';
+import * as ImagePicker from 'expo-image-picker';
+import { IconSymbol } from '@/components/IconSymbol';
 
 type SubletType = 'offering' | 'seeking' | null;
 
@@ -29,8 +31,84 @@ export default function PostSubletScreen() {
   const [showToPicker, setShowToPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
-  console.log('PostSubletScreen: Rendering', { subletType });
+  console.log('PostSubletScreen: Rendering', { subletType, imageCount: imageUrls.length });
+
+  const handlePickImages = async () => {
+    console.log('PostSubletScreen: Pick images');
+    
+    if (imageUrls.length >= 5) {
+      setError('Maximum 5 images allowed');
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+        selectionLimit: 5 - imageUrls.length,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        console.log('PostSubletScreen: Images selected', result.assets.length);
+        setUploadingImages(true);
+        
+        try {
+          // Create FormData for image upload
+          const formData = new FormData();
+          result.assets.forEach((asset, index) => {
+            const uri = asset.uri;
+            const filename = uri.split('/').pop() || `image_${index}.jpg`;
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `image/${match[1]}` : 'image/jpeg';
+            
+            formData.append('images', {
+              uri,
+              name: filename,
+              type,
+            } as any);
+          });
+
+          // Upload images to backend
+          console.log('PostSubletScreen: Uploading images to backend');
+          const response = await fetch(`${require('@/utils/api').BACKEND_URL}/api/upload/images`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to upload images');
+          }
+
+          const data = await response.json();
+          console.log('PostSubletScreen: Images uploaded', data);
+          
+          if (data.urls && Array.isArray(data.urls)) {
+            setImageUrls([...imageUrls, ...data.urls]);
+          }
+        } catch (uploadError: any) {
+          console.error('PostSubletScreen: Error uploading images', uploadError);
+          setError(uploadError.message || 'Failed to upload images');
+        } finally {
+          setUploadingImages(false);
+        }
+      }
+    } catch (error: any) {
+      console.error('PostSubletScreen: Error picking images', error);
+      setError(error.message || 'Failed to pick images');
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    console.log('PostSubletScreen: Remove image', index);
+    setImageUrls(imageUrls.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async () => {
     console.log('PostSubletScreen: Submit sublet', { subletType, title, city, availableFrom, availableTo });
@@ -64,6 +142,7 @@ export default function PostSubletScreen() {
         availableTo: dateToISOString(availableTo),
         rent: rent.trim() || undefined,
         type: subletType,
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
       };
 
       // Add offering-specific fields
@@ -215,6 +294,47 @@ export default function PostSubletScreen() {
                 onChangeText={setDeposit}
                 keyboardType="numeric"
               />
+
+              <Text style={styles.label}>Photos (Max 5)</Text>
+              <View style={styles.imagesContainer}>
+                {imageUrls.map((url, index) => (
+                  <View key={index} style={styles.imageWrapper}>
+                    <Image source={{ uri: url }} style={styles.imagePreview} />
+                    <TouchableOpacity
+                      style={styles.removeImageButton}
+                      onPress={() => handleRemoveImage(index)}
+                    >
+                      <IconSymbol
+                        ios_icon_name="xmark.circle.fill"
+                        android_material_icon_name="cancel"
+                        size={24}
+                        color={colors.error}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {imageUrls.length < 5 && (
+                  <TouchableOpacity
+                    style={styles.addImageButton}
+                    onPress={handlePickImages}
+                    disabled={uploadingImages}
+                  >
+                    {uploadingImages ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <>
+                        <IconSymbol
+                          ios_icon_name="plus.circle.fill"
+                          android_material_icon_name="add-circle"
+                          size={32}
+                          color={colors.primary}
+                        />
+                        <Text style={styles.addImageText}>Add Photo</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
 
               <Text style={styles.label}>Available From</Text>
               <TouchableOpacity 
@@ -471,5 +591,44 @@ const styles = StyleSheet.create({
   buttonText: {
     ...typography.button,
     color: '#FFFFFF',
+  },
+  imagesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  imageWrapper: {
+    position: 'relative',
+    width: 100,
+    height: 100,
+  },
+  imagePreview: {
+    width: 100,
+    height: 100,
+    borderRadius: borderRadius.md,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+  },
+  addImageButton: {
+    width: 100,
+    height: 100,
+    borderRadius: borderRadius.md,
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+  },
+  addImageText: {
+    ...typography.bodySmall,
+    color: colors.primary,
+    marginTop: spacing.xs,
   },
 });

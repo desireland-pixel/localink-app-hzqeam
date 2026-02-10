@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { authenticatedGet } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 
 interface Sublet {
@@ -29,23 +29,26 @@ interface Sublet {
 
 export default function SubletScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [sublets, setSublets] = useState<Sublet[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({});
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   console.log('SubletScreen: Rendering', { subletsCount: sublets.length, loading });
 
   useEffect(() => {
     fetchPosts();
-  }, [filters]);
+    fetchFavorites();
+  }, [params.filters]);
 
   const fetchPosts = async () => {
     console.log('SubletScreen: Fetching sublets');
     setLoading(true);
     try {
-      const data = await authenticatedGet<Sublet[]>('/api/sublets');
+      const filterParams = params.filters ? `?${params.filters}` : '';
+      const data = await authenticatedGet<Sublet[]>(`/api/sublets${filterParams}`);
       console.log('SubletScreen: Fetched sublets', data);
       setSublets(data);
     } catch (error) {
@@ -56,10 +59,51 @@ export default function SubletScreen() {
     }
   };
 
+  const fetchFavorites = async () => {
+    try {
+      // TODO: Backend Integration - GET /api/favorites → [{ id, postId, postType, createdAt }]
+      console.log('SubletScreen: Fetching favorites');
+      const data = await authenticatedGet<Array<{ postId: string; postType: string }>>('/api/favorites');
+      const subletFavorites = data.filter(f => f.postType === 'sublet').map(f => f.postId);
+      setFavorites(new Set(subletFavorites));
+    } catch (error) {
+      console.error('SubletScreen: Error fetching favorites', error);
+    }
+  };
+
+  const toggleFavorite = async (postId: string) => {
+    console.log('SubletScreen: Toggle favorite', postId);
+    const isFavorited = favorites.has(postId);
+    
+    // Optimistic update
+    const newFavorites = new Set(favorites);
+    if (isFavorited) {
+      newFavorites.delete(postId);
+    } else {
+      newFavorites.add(postId);
+    }
+    setFavorites(newFavorites);
+
+    try {
+      if (isFavorited) {
+        // TODO: Backend Integration - DELETE /api/favorites/:postId?postType=sublet → { success: true }
+        await authenticatedDelete(`/api/favorites/${postId}?postType=sublet`, {});
+      } else {
+        // TODO: Backend Integration - POST /api/favorites with { postId, postType: 'sublet' } → { success: true, favorite }
+        await authenticatedPost('/api/favorites', { postId, postType: 'sublet' });
+      }
+    } catch (error) {
+      console.error('SubletScreen: Error toggling favorite', error);
+      // Revert on error
+      setFavorites(favorites);
+    }
+  };
+
   const onRefresh = () => {
     console.log('SubletScreen: Refreshing');
     setRefreshing(true);
     fetchPosts();
+    fetchFavorites();
   };
 
   const handlePostSublet = () => {
@@ -70,24 +114,6 @@ export default function SubletScreen() {
   const handleFilters = () => {
     console.log('SubletScreen: Navigate to filters');
     router.push('/sublet-filters');
-  };
-
-  const handleSearch = () => {
-    console.log('SubletScreen: Searching for:', searchQuery);
-    // Filter posts by search query
-    fetchPosts();
-  };
-
-  const fromDateDisplay = (dateString: string) => {
-    return formatDateToDDMMYYYY(dateString);
-  };
-
-  const toDateDisplay = (dateString: string) => {
-    return formatDateToDDMMYYYY(dateString);
-  };
-
-  const typeLabel = (type: string) => {
-    return type === 'offering' ? 'Offering' : 'Seeking';
   };
 
   const filteredSublets = sublets.filter(sublet =>
@@ -112,7 +138,6 @@ export default function SubletScreen() {
             placeholderTextColor={colors.textLight}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            onSubmitEditing={handleSearch}
             returnKeyType="search"
           />
         </View>
@@ -155,11 +180,11 @@ export default function SubletScreen() {
           }
         >
           {filteredSublets.map((sublet) => {
-            const fromDisplay = fromDateDisplay(sublet.availableFrom);
-            const toDisplay = toDateDisplay(sublet.availableTo);
-            const authorName = sublet.user?.name || 'Unknown';
-            const label = typeLabel(sublet.type);
+            const fromDisplay = formatDateToDDMMYYYY(sublet.availableFrom);
+            const toDisplay = formatDateToDDMMYYYY(sublet.availableTo);
+            const label = sublet.type === 'offering' ? 'Offering' : 'Seeking';
             const hasImage = sublet.imageUrls && sublet.imageUrls.length > 0;
+            const isFavorited = favorites.has(sublet.id);
             
             return (
               <TouchableOpacity
@@ -185,23 +210,24 @@ export default function SubletScreen() {
                   <View style={styles.cardTextContent}>
                     <View style={styles.cardHeader}>
                       <Text style={styles.cardTitle} numberOfLines={1}>{sublet.title}</Text>
-                      <TouchableOpacity style={styles.likeButton}>
+                      <TouchableOpacity 
+                        style={styles.likeButton}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(sublet.id);
+                        }}
+                      >
                         <IconSymbol
-                          ios_icon_name="heart"
-                          android_material_icon_name="favorite-border"
+                          ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                          android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
                           size={20}
-                          color={colors.primary}
+                          color={isFavorited ? colors.primary : colors.textSecondary}
                         />
                       </TouchableOpacity>
                     </View>
                     <View style={styles.typeTag}>
                       <Text style={styles.typeTagText}>{label}</Text>
                     </View>
-                    {sublet.description && (
-                      <Text style={styles.cardDescription} numberOfLines={2}>
-                        {sublet.description}
-                      </Text>
-                    )}
                     <View style={styles.cardInfo}>
                       <Text style={styles.cardInfoText}>{sublet.city}</Text>
                       <Text style={styles.cardInfoText}>•</Text>
@@ -212,7 +238,6 @@ export default function SubletScreen() {
                     {sublet.rent && (
                       <Text style={styles.cardRent}>€{sublet.rent}/month</Text>
                     )}
-                    <Text style={styles.cardAuthor}>Posted by {authorName}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -359,11 +384,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
-  cardDescription: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
   cardInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -379,10 +399,5 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.primary,
     fontWeight: '600',
-    marginBottom: spacing.xs,
-  },
-  cardAuthor: {
-    ...typography.bodySmall,
-    color: colors.textLight,
   },
 });

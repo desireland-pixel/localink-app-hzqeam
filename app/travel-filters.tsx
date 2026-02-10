@@ -22,8 +22,18 @@ export default function TravelFiltersScreen() {
 
   const handleApply = () => {
     console.log('[TravelFiltersScreen] Applying filters', { companionshipType, fromCity, toCity, dateStart, dateEnd });
-    // TODO: Pass filters back to feed screen
+    
+    // Build query params
+    const params = new URLSearchParams();
+    if (companionshipType) params.append('type', companionshipType);
+    if (fromCity) params.append('fromCity', fromCity);
+    if (toCity) params.append('toCity', toCity);
+    if (dateStart) params.append('travelDateFrom', dateStart.toISOString().split('T')[0]);
+    if (dateEnd) params.append('travelDateTo', dateEnd.toISOString().split('T')[0]);
+    
+    // Navigate back with filters
     router.back();
+    router.setParams({ filters: params.toString() });
   };
 
   const handleReset = () => {
@@ -35,8 +45,8 @@ export default function TravelFiltersScreen() {
     setDateEnd(null);
   };
 
-  const dateStartDisplay = dateStart ? formatDateToDDMMYYYY(dateStart) : 'Select start date';
-  const dateEndDisplay = dateEnd ? formatDateToDDMMYYYY(dateEnd) : 'Select end date';
+  const dateStartDisplay = dateStart ? formatDateToDDMMYYYY(dateStart) : '';
+  const dateEndDisplay = dateEnd ? formatDateToDDMMYYYY(dateEnd) : '';
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -75,15 +85,16 @@ export default function TravelFiltersScreen() {
           placeholder="Search city or type India/Germany..."
         />
 
-        <Text style={styles.sectionTitle}>Date (between)</Text>
+        <Text style={styles.sectionTitle}>Date</Text>
         <View style={styles.row}>
           <View style={styles.halfWidth}>
-            <Text style={styles.label}>Start</Text>
             <TouchableOpacity 
               style={styles.dateButton}
               onPress={() => setShowStartPicker(true)}
             >
-              <Text style={styles.dateButtonText}>{dateStartDisplay}</Text>
+              <Text style={[styles.dateButtonText, !dateStartDisplay && styles.dateButtonPlaceholder]}>
+                {dateStartDisplay || 'dd.mm.yyyy'}
+              </Text>
             </TouchableOpacity>
             {showStartPicker && (
               <DateTimePicker
@@ -99,12 +110,13 @@ export default function TravelFiltersScreen() {
           </View>
           <View style={styles.separator} />
           <View style={styles.halfWidth}>
-            <Text style={styles.label}>End</Text>
             <TouchableOpacity 
               style={styles.dateButton}
               onPress={() => setShowEndPicker(true)}
             >
-              <Text style={styles.dateButtonText}>{dateEndDisplay}</Text>
+              <Text style={[styles.dateButtonText, !dateEndDisplay && styles.dateButtonPlaceholder]}>
+                {dateEndDisplay || 'dd.mm.yyyy'}
+              </Text>
             </TouchableOpacity>
             {showEndPicker && (
               <DateTimePicker
@@ -141,24 +153,18 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
   },
   sectionTitle: {
     ...typography.h3,
     color: colors.text,
-    marginBottom: spacing.md,
-    marginTop: spacing.lg,
-  },
-  label: {
-    ...typography.bodySmall,
-    color: colors.text,
-    fontWeight: '600',
     marginBottom: spacing.sm,
+    marginTop: spacing.md,
   },
   radioButtons: {
     flexDirection: 'row',
     gap: spacing.sm,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   typeOption: {
     flex: 1,
@@ -184,8 +190,8 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginBottom: spacing.md,
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   halfWidth: {
     flex: 1,
@@ -204,6 +210,9 @@ const styles = StyleSheet.create({
   dateButtonText: {
     ...typography.body,
     color: colors.text,
+  },
+  dateButtonPlaceholder: {
+    color: colors.textLight,
   },
   footer: {
     flexDirection: 'row',

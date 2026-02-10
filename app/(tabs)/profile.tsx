@@ -40,6 +40,14 @@ export default function ProfileScreen() {
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
+            <TouchableOpacity style={styles.editAvatarButton}>
+              <IconSymbol 
+                ios_icon_name="pencil.circle.fill" 
+                android_material_icon_name="edit" 
+                size={24} 
+                color={colors.primary} 
+              />
+            </TouchableOpacity>
           </View>
           <Text style={styles.profileName}>{userName}</Text>
           <View style={styles.locationContainer}>
@@ -56,6 +64,30 @@ export default function ProfileScreen() {
         <View style={styles.menuSection}>
           <TouchableOpacity 
             style={styles.menuItem}
+            onPress={() => {
+              console.log('[ProfileScreen] Navigate to personal details');
+              // TODO: Navigate to personal details screen
+            }}
+          >
+            <View style={styles.menuItemLeft}>
+              <IconSymbol 
+                ios_icon_name="person.fill" 
+                android_material_icon_name="person" 
+                size={22} 
+                color={colors.text} 
+              />
+              <Text style={styles.menuItemText}>Personal details</Text>
+            </View>
+            <IconSymbol 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron-right" 
+              size={20} 
+              color={colors.textSecondary} 
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuItem}
             onPress={() => router.push('/my-posts')}
           >
             <View style={styles.menuItemLeft}>
@@ -66,6 +98,103 @@ export default function ProfileScreen() {
                 color={colors.text} 
               />
               <Text style={styles.menuItemText}>My Posts</Text>
+            </View>
+            <IconSymbol 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron-right" 
+              size={20} 
+              color={colors.textSecondary} 
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => {
+              console.log('[ProfileScreen] Navigate to favourites');
+              // TODO: Navigate to favourites screen
+              router.push('/favourites');
+            }}
+          >
+            <View style={styles.menuItemLeft}>
+              <IconSymbol 
+                ios_icon_name="heart.fill" 
+                android_material_icon_name="favorite" 
+                size={22} 
+                color={colors.text} 
+              />
+              <Text style={styles.menuItemText}>Favourites</Text>
+            </View>
+            <IconSymbol 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron-right" 
+              size={20} 
+              color={colors.textSecondary} 
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => {
+              console.log('[ProfileScreen] Navigate to notifications');
+              // TODO: Navigate to notifications screen
+            }}
+          >
+            <View style={styles.menuItemLeft}>
+              <IconSymbol 
+                ios_icon_name="bell.fill" 
+                android_material_icon_name="notifications" 
+                size={22} 
+                color={colors.text} 
+              />
+              <Text style={styles.menuItemText}>Notifications</Text>
+            </View>
+            <IconSymbol 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron-right" 
+              size={20} 
+              color={colors.textSecondary} 
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => {
+              console.log('[ProfileScreen] Navigate to FAQs');
+              // TODO: Navigate to FAQs screen
+            }}
+          >
+            <View style={styles.menuItemLeft}>
+              <IconSymbol 
+                ios_icon_name="questionmark.circle.fill" 
+                android_material_icon_name="help" 
+                size={22} 
+                color={colors.text} 
+              />
+              <Text style={styles.menuItemText}>FAQs</Text>
+            </View>
+            <IconSymbol 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron-right" 
+              size={20} 
+              color={colors.textSecondary} 
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => {
+              console.log('[ProfileScreen] Navigate to data & privacy');
+              // TODO: Navigate to data & privacy screen
+            }}
+          >
+            <View style={styles.menuItemLeft}>
+              <IconSymbol 
+                ios_icon_name="lock.fill" 
+                android_material_icon_name="lock" 
+                size={22} 
+                color={colors.text} 
+              />
+              <Text style={styles.menuItemText}>Data & Privacy</Text>
             </View>
             <IconSymbol 
               ios_icon_name="chevron.right" 
@@ -160,11 +289,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.md,
+    position: 'relative',
   },
   avatarText: {
     fontSize: 32,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  editAvatarButton: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 2,
   },
   profileName: {
     fontSize: 24,

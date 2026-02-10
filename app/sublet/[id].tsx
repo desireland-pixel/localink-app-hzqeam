@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Share, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -19,6 +19,8 @@ interface Sublet {
   availableFrom: string;
   availableTo: string;
   rent?: string;
+  deposit?: string;
+  cityRegistrationRequired?: boolean;
   type: 'offering' | 'seeking';
   imageUrls?: string[];
   status: string;
@@ -81,6 +83,38 @@ export default function SubletDetailsScreen() {
     }
   };
 
+  const handleShare = async () => {
+    if (!sublet) return;
+    console.log('SubletDetailsScreen: Share post', id);
+    
+    try {
+      const shareData = await authenticatedGet<{ shareUrl: string; title: string; description: string }>(
+        `/api/posts/sublet/${id}/share`
+      );
+      console.log('SubletDetailsScreen: Share data fetched', shareData);
+      
+      await Share.share({
+        message: `${shareData.title}\n\n${shareData.description}\n\n${shareData.shareUrl}`,
+        title: shareData.title,
+        url: shareData.shareUrl,
+      });
+    } catch (error: any) {
+      console.error('SubletDetailsScreen: Error sharing', error);
+      // Fallback to basic share
+      const shareMessage = `Check out this sublet: ${sublet.title} in ${sublet.city}`;
+      await Share.share({
+        message: shareMessage,
+        title: sublet.title,
+      });
+    }
+  };
+
+  const handleEdit = () => {
+    console.log('SubletDetailsScreen: Edit post', id);
+    // TODO: Navigate to edit screen
+    router.push(`/edit-sublet/${id}`);
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -126,11 +160,38 @@ export default function SubletDetailsScreen() {
           )}
         </View>
 
-        <View style={styles.typeTag}>
-          <Text style={styles.typeTagText}>{typeLabel}</Text>
+        <View style={styles.headerActions}>
+          <View style={styles.typeTag}>
+            <Text style={styles.typeTagText}>{typeLabel}</Text>
+          </View>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
+              <IconSymbol
+                ios_icon_name="square.and.arrow.up"
+                android_material_icon_name="share"
+                size={20}
+                color={colors.text}
+              />
+            </TouchableOpacity>
+            {isOwnPost && (
+              <TouchableOpacity style={styles.actionButton} onPress={handleEdit}>
+                <IconSymbol
+                  ios_icon_name="pencil"
+                  android_material_icon_name="edit"
+                  size={20}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         <Text style={styles.title}>{sublet.title}</Text>
+        
+        <View style={styles.postIdContainer}>
+          <Text style={styles.postIdLabel}>Post ID:</Text>
+          <Text style={styles.postIdValue}>{sublet.id}</Text>
+        </View>
         
         {sublet.description && (
           <Text style={styles.description}>{sublet.description}</Text>
@@ -158,6 +219,22 @@ export default function SubletDetailsScreen() {
               <Text style={styles.infoValue}>€{sublet.rent}/month</Text>
             </View>
           )}
+
+          {sublet.deposit && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Deposit</Text>
+              <Text style={styles.infoValue}>€{sublet.deposit}</Text>
+            </View>
+          )}
+
+          {sublet.cityRegistrationRequired !== undefined && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>City Registration</Text>
+              <Text style={styles.infoValue}>
+                {sublet.cityRegistrationRequired ? 'Required' : 'Not Required'}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.authorSection}>
@@ -174,7 +251,7 @@ export default function SubletDetailsScreen() {
                   size={20}
                   color="#FFFFFF"
                 />
-                <Text style={styles.msgButtonText}>Msg</Text>
+                <Text style={styles.msgButtonText}>Message</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -245,13 +322,17 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     marginTop: spacing.sm,
   },
+  headerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+  },
   typeTag: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    alignSelf: 'flex-start',
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
     borderRadius: borderRadius.sm,
   },
   typeTagText: {
@@ -259,12 +340,39 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  actionButton: {
+    padding: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   title: {
     ...typography.h2,
     color: colors.text,
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  postIdContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  postIdLabel: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  postIdValue: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   description: {
     ...typography.body,

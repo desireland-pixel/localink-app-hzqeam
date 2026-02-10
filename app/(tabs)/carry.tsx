@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { authenticatedGet } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 
 interface CarryPost {
@@ -28,23 +28,26 @@ interface CarryPost {
 
 export default function CarryScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [posts, setPosts] = useState<CarryPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({});
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   console.log('CarryScreen: Rendering', { postsCount: posts.length, loading });
 
   useEffect(() => {
     fetchPosts();
-  }, [filters]);
+    fetchFavorites();
+  }, [params.filters]);
 
   const fetchPosts = async () => {
     console.log('CarryScreen: Fetching carry posts');
     setLoading(true);
     try {
-      const data = await authenticatedGet<CarryPost[]>('/api/carry-posts');
+      const filterParams = params.filters ? `?${params.filters}` : '';
+      const data = await authenticatedGet<CarryPost[]>(`/api/carry-posts${filterParams}`);
       console.log('CarryScreen: Fetched carry posts', data);
       setPosts(data);
     } catch (error) {
@@ -55,21 +58,51 @@ export default function CarryScreen() {
     }
   };
 
+  const fetchFavorites = async () => {
+    try {
+      // TODO: Backend Integration - GET /api/favorites → [{ id, postId, postType, createdAt }]
+      console.log('CarryScreen: Fetching favorites');
+      const data = await authenticatedGet<Array<{ postId: string; postType: string }>>('/api/favorites');
+      const carryFavorites = data.filter(f => f.postType === 'carry').map(f => f.postId);
+      setFavorites(new Set(carryFavorites));
+    } catch (error) {
+      console.error('CarryScreen: Error fetching favorites', error);
+    }
+  };
+
+  const toggleFavorite = async (postId: string) => {
+    console.log('CarryScreen: Toggle favorite', postId);
+    const isFavorited = favorites.has(postId);
+    
+    // Optimistic update
+    const newFavorites = new Set(favorites);
+    if (isFavorited) {
+      newFavorites.delete(postId);
+    } else {
+      newFavorites.add(postId);
+    }
+    setFavorites(newFavorites);
+
+    try {
+      if (isFavorited) {
+        // TODO: Backend Integration - DELETE /api/favorites/:postId?postType=carry → { success: true }
+        await authenticatedDelete(`/api/favorites/${postId}?postType=carry`, {});
+      } else {
+        // TODO: Backend Integration - POST /api/favorites with { postId, postType: 'carry' } → { success: true, favorite }
+        await authenticatedPost('/api/favorites', { postId, postType: 'carry' });
+      }
+    } catch (error) {
+      console.error('CarryScreen: Error toggling favorite', error);
+      // Revert on error
+      setFavorites(favorites);
+    }
+  };
+
   const onRefresh = () => {
     console.log('CarryScreen: Refreshing');
     setRefreshing(true);
     fetchPosts();
-  };
-
-  const travelDateDisplay = (dateString: string | undefined) => {
-    if (!dateString) return '';
-    return formatDateToDDMMYYYY(dateString);
-  };
-
-  const typeLabel = (type: string) => {
-    if (type === 'request') return 'Request';
-    if (type === 'traveler') return 'Traveler';
-    return type;
+    fetchFavorites();
   };
 
   const filteredPosts = posts.filter(post =>
@@ -146,9 +179,10 @@ export default function CarryScreen() {
           }
         >
           {filteredPosts.map((post) => {
-            const dateDisplay = travelDateDisplay(post.travelDate);
-            const label = typeLabel(post.type);
+            const dateDisplay = post.travelDate ? formatDateToDDMMYYYY(post.travelDate) : '';
+            const label = post.type === 'request' ? 'Request' : 'Traveler';
             const authorName = post.user?.name || 'Unknown';
+            const isFavorited = favorites.has(post.id);
             
             return (
               <TouchableOpacity
@@ -158,12 +192,18 @@ export default function CarryScreen() {
               >
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardTitle} numberOfLines={1}>{post.title}</Text>
-                  <TouchableOpacity style={styles.likeButton}>
+                  <TouchableOpacity 
+                    style={styles.likeButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(post.id);
+                    }}
+                  >
                     <IconSymbol
-                      ios_icon_name="heart"
-                      android_material_icon_name="favorite-border"
+                      ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                      android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
                       size={20}
-                      color={colors.primary}
+                      color={isFavorited ? colors.primary : colors.textSecondary}
                     />
                   </TouchableOpacity>
                 </View>

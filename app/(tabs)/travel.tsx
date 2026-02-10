@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { authenticatedGet } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 
 interface TravelPost {
@@ -29,23 +29,26 @@ interface TravelPost {
 
 export default function TravelScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [posts, setPosts] = useState<TravelPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({});
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   console.log('TravelScreen: Rendering', { postsCount: posts.length, loading });
 
   useEffect(() => {
     fetchPosts();
-  }, [filters]);
+    fetchFavorites();
+  }, [params.filters]);
 
   const fetchPosts = async () => {
     console.log('TravelScreen: Fetching travel posts');
     setLoading(true);
     try {
-      const data = await authenticatedGet<TravelPost[]>('/api/travel-posts');
+      const filterParams = params.filters ? `?${params.filters}` : '';
+      const data = await authenticatedGet<TravelPost[]>(`/api/travel-posts${filterParams}`);
       console.log('TravelScreen: Fetched travel posts', data);
       setPosts(data);
     } catch (error) {
@@ -56,20 +59,51 @@ export default function TravelScreen() {
     }
   };
 
+  const fetchFavorites = async () => {
+    try {
+      // TODO: Backend Integration - GET /api/favorites → [{ id, postId, postType, createdAt }]
+      console.log('TravelScreen: Fetching favorites');
+      const data = await authenticatedGet<Array<{ postId: string; postType: string }>>('/api/favorites');
+      const travelFavorites = data.filter(f => f.postType === 'travel').map(f => f.postId);
+      setFavorites(new Set(travelFavorites));
+    } catch (error) {
+      console.error('TravelScreen: Error fetching favorites', error);
+    }
+  };
+
+  const toggleFavorite = async (postId: string) => {
+    console.log('TravelScreen: Toggle favorite', postId);
+    const isFavorited = favorites.has(postId);
+    
+    // Optimistic update
+    const newFavorites = new Set(favorites);
+    if (isFavorited) {
+      newFavorites.delete(postId);
+    } else {
+      newFavorites.add(postId);
+    }
+    setFavorites(newFavorites);
+
+    try {
+      if (isFavorited) {
+        // TODO: Backend Integration - DELETE /api/favorites/:postId?postType=travel → { success: true }
+        await authenticatedDelete(`/api/favorites/${postId}?postType=travel`, {});
+      } else {
+        // TODO: Backend Integration - POST /api/favorites with { postId, postType: 'travel' } → { success: true, favorite }
+        await authenticatedPost('/api/favorites', { postId, postType: 'travel' });
+      }
+    } catch (error) {
+      console.error('TravelScreen: Error toggling favorite', error);
+      // Revert on error
+      setFavorites(favorites);
+    }
+  };
+
   const onRefresh = () => {
     console.log('TravelScreen: Refreshing');
     setRefreshing(true);
     fetchPosts();
-  };
-
-  const travelDateDisplay = (dateString: string) => {
-    return formatDateToDDMMYYYY(dateString);
-  };
-
-  const typeLabel = (type: string) => {
-    if (type === 'seeking') return 'Seeking';
-    if (type === 'offering') return 'Offering';
-    return type;
+    fetchFavorites();
   };
 
   const filteredPosts = posts.filter(post =>
@@ -145,10 +179,11 @@ export default function TravelScreen() {
           }
         >
           {filteredPosts.map((post) => {
-            const dateDisplay = travelDateDisplay(post.travelDate);
-            const label = typeLabel(post.type);
-            const title = post.title || `${label} from ${post.fromCity} to ${post.toCity}`;
+            const dateDisplay = formatDateToDDMMYYYY(post.travelDate);
+            const dateToDisplay = post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo) : null;
+            const label = post.type === 'seeking' ? 'Seeking' : 'Offering';
             const authorName = post.user?.name || 'Unknown';
+            const isFavorited = favorites.has(post.id);
             
             return (
               <TouchableOpacity
@@ -157,31 +192,43 @@ export default function TravelScreen() {
                 onPress={() => router.push(`/travel/${post.id}`)}
               >
                 <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle} numberOfLines={1}>{title}</Text>
-                  <TouchableOpacity style={styles.likeButton}>
+                  <View style={styles.typeTag}>
+                    <Text style={styles.typeTagText}>{label}</Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.likeButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(post.id);
+                    }}
+                  >
                     <IconSymbol
-                      ios_icon_name="heart"
-                      android_material_icon_name="favorite-border"
+                      ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                      android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
                       size={20}
-                      color={colors.primary}
+                      color={isFavorited ? colors.primary : colors.textSecondary}
                     />
                   </TouchableOpacity>
                 </View>
-                <View style={styles.typeTag}>
-                  <Text style={styles.typeTagText}>{label}</Text>
+                <View style={styles.routeContainer}>
+                  <Text style={styles.routeText}>{post.fromCity}</Text>
+                  <Text style={styles.routeArrow}>→</Text>
+                  <Text style={styles.routeText}>{post.toCity}</Text>
+                </View>
+                <View style={styles.dateContainer}>
+                  <Text style={styles.dateText}>{dateDisplay}</Text>
+                  {dateToDisplay && (
+                    <>
+                      <Text style={styles.dateSeparator}>-</Text>
+                      <Text style={styles.dateText}>{dateToDisplay}</Text>
+                    </>
+                  )}
                 </View>
                 {post.description && (
                   <Text style={styles.cardDescription} numberOfLines={2}>
                     {post.description}
                   </Text>
                 )}
-                <View style={styles.cardInfo}>
-                  <Text style={styles.cardInfoText}>{post.fromCity}</Text>
-                  <Text style={styles.cardInfoText}>→</Text>
-                  <Text style={styles.cardInfoText}>{post.toCity}</Text>
-                  <Text style={styles.cardInfoText}>•</Text>
-                  <Text style={styles.cardInfoText}>{dateDisplay}</Text>
-                </View>
                 <Text style={styles.cardAuthor}>Posted by {authorName}</Text>
               </TouchableOpacity>
             );
@@ -277,25 +324,14 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.xs,
-  },
-  cardTitle: {
-    ...typography.h3,
-    color: colors.text,
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  likeButton: {
-    padding: spacing.xs,
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   typeTag: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
-    alignSelf: 'flex-start',
-    marginBottom: spacing.xs,
   },
   typeTagText: {
     ...typography.bodySmall,
@@ -303,21 +339,42 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
+  likeButton: {
+    padding: spacing.xs,
+  },
+  routeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  routeText: {
+    ...typography.h3,
+    color: colors.text,
+  },
+  routeArrow: {
+    ...typography.h3,
+    color: colors.textSecondary,
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  dateText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  dateSeparator: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
   cardDescription: {
     ...typography.body,
     color: colors.textSecondary,
     marginBottom: spacing.sm,
-  },
-  cardInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-    flexWrap: 'wrap',
-  },
-  cardInfoText: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
+    lineHeight: 20,
   },
   cardAuthor: {
     ...typography.bodySmall,
