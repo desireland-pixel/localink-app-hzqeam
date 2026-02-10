@@ -7,33 +7,67 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 import { authenticatedPost } from '@/utils/api';
 import Modal from '@/components/ui/Modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { CitySearchInput } from '@/components/CitySearchInput';
+import { formatDateToDDMMYYYY, dateToISOString } from '@/utils/cities';
 
 type TravelType = 'offering' | 'seeking' | null;
+
+const TRAVEL_CITIES = [
+  'Delhi',
+  'Mumbai',
+  'Bengaluru',
+  'Hyderabad',
+  'Chennai',
+  'Kochi',
+  'Kolkata',
+  'Ahmedabad',
+  'Goa',
+  'Thiruvananthapuram',
+  'Frankfurt',
+  'Munich',
+  'Berlin',
+  'Düsseldorf',
+  'Hamburg',
+  'Stuttgart',
+  'Cologne',
+  'Hannover',
+  'India',
+  'Germany',
+];
+
+const COMPANIONSHIP_FOR_OPTIONS = ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others'];
 
 export default function PostTravelScreen() {
   const router = useRouter();
   const [travelType, setTravelType] = useState<TravelType>(null);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');
   const [travelDate, setTravelDate] = useState(new Date());
+  const [travelDateTo, setTravelDateTo] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showDateToPicker, setShowDateToPicker] = useState(false);
+  const [companionshipFor, setCompanionshipFor] = useState('');
+  const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   console.log('PostTravelScreen: Rendering', { travelType });
 
   const handleSubmit = async () => {
-    console.log('PostTravelScreen: Submit travel', { travelType, title, description, fromCity, toCity, travelDate });
+    console.log('PostTravelScreen: Submit travel', { travelType, fromCity, toCity, travelDate });
     
     if (!travelType) {
       setError('Please select if you are offering or seeking travel companionship');
       return;
     }
     
-    if (!title.trim() || !fromCity.trim() || !toCity.trim()) {
-      setError('Please fill in title, from city, and to city');
+    if (!fromCity.trim() || !toCity.trim()) {
+      setError('Please fill in from city and to city');
+      return;
+    }
+
+    if (travelType === 'seeking' && !companionshipFor.trim()) {
+      setError('Please select who you need companionship for');
       return;
     }
 
@@ -41,15 +75,20 @@ export default function PostTravelScreen() {
     setError('');
     
     try {
-      const apiType = travelType === 'offering' ? 'offering_companionship' : 'looking_for_buddy';
-      const postData = {
-        title: title.trim(),
+      const postData: any = {
         description: description.trim() || undefined,
         fromCity: fromCity.trim(),
         toCity: toCity.trim(),
-        travelDate: travelDate.toISOString(),
-        type: apiType,
+        travelDate: dateToISOString(travelDate),
+        type: travelType,
       };
+
+      if (travelType === 'seeking') {
+        postData.companionshipFor = companionshipFor;
+        if (travelDateTo) {
+          postData.travelDateTo = dateToISOString(travelDateTo);
+        }
+      }
 
       console.log('PostTravelScreen: Creating travel post with data:', postData);
       await authenticatedPost('/api/travel-posts', postData);
@@ -63,11 +102,10 @@ export default function PostTravelScreen() {
     }
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-
   const fieldsDisabled = travelType === null;
+
+  const travelDateDisplay = formatDateToDDMMYYYY(travelDate);
+  const travelDateToDisplay = travelDateTo ? formatDateToDDMMYYYY(travelDateTo) : '';
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -76,8 +114,6 @@ export default function PostTravelScreen() {
         style={styles.keyboardView}
       >
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.heading}>Travel buddy</Text>
-
           <View style={styles.radioContainer}>
             <Text style={styles.radioLabel}>I am</Text>
             <View style={styles.radioButtons}>
@@ -106,50 +142,26 @@ export default function PostTravelScreen() {
 
           {travelType === 'offering' && (
             <>
-              <Text style={styles.label}>Title *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., Traveling to Munich, can accompany"
-                placeholderTextColor={colors.textLight}
-                value={title}
-                onChangeText={setTitle}
-              />
-
-              <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Describe your travel plans and who you can help..."
-                placeholderTextColor={colors.textLight}
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={4}
-              />
-
-              <Text style={styles.label}>From City *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., Berlin"
-                placeholderTextColor={colors.textLight}
+              <Text style={styles.label}>From *</Text>
+              <CitySearchInput
                 value={fromCity}
                 onChangeText={setFromCity}
+                placeholder="Search city..."
               />
 
-              <Text style={styles.label}>To City *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., Munich"
-                placeholderTextColor={colors.textLight}
+              <Text style={styles.label}>To *</Text>
+              <CitySearchInput
                 value={toCity}
                 onChangeText={setToCity}
+                placeholder="Search city..."
               />
 
-              <Text style={styles.label}>Travel Date</Text>
+              <Text style={styles.label}>Date *</Text>
               <TouchableOpacity 
                 style={styles.dateButton}
                 onPress={() => setShowDatePicker(true)}
               >
-                <Text style={styles.dateButtonText}>{formatDate(travelDate)}</Text>
+                <Text style={styles.dateButtonText}>{travelDateDisplay}</Text>
               </TouchableOpacity>
               {showDatePicker && (
                 <DateTimePicker
@@ -162,55 +174,66 @@ export default function PostTravelScreen() {
                   }}
                 />
               )}
+
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Describe your exact travel city, who you can help, Luggage limit, ..."
+                placeholderTextColor={colors.textLight}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={4}
+              />
             </>
           )}
 
           {travelType === 'seeking' && (
             <>
-              <Text style={styles.label}>Title *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., Need travel companion to Munich"
-                placeholderTextColor={colors.textLight}
-                value={title}
-                onChangeText={setTitle}
-              />
+              <Text style={styles.label}>For *</Text>
+              <View style={styles.optionsGrid}>
+                {COMPANIONSHIP_FOR_OPTIONS.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.optionButton,
+                      companionshipFor === option && styles.optionButtonActive,
+                    ]}
+                    onPress={() => setCompanionshipFor(option)}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        companionshipFor === option && styles.optionTextActive,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-              <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Describe your travel needs and who you're looking for..."
-                placeholderTextColor={colors.textLight}
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={4}
-              />
-
-              <Text style={styles.label}>From City *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., Berlin"
-                placeholderTextColor={colors.textLight}
+              <Text style={styles.label}>From *</Text>
+              <CitySearchInput
                 value={fromCity}
                 onChangeText={setFromCity}
+                placeholder="Search city..."
               />
 
-              <Text style={styles.label}>To City *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., Munich"
-                placeholderTextColor={colors.textLight}
+              <Text style={styles.label}>To *</Text>
+              <CitySearchInput
                 value={toCity}
                 onChangeText={setToCity}
+                placeholder="Search city..."
               />
 
-              <Text style={styles.label}>Travel Date</Text>
+              <Text style={styles.label}>Date (From) *</Text>
+              <Text style={styles.infoText}>For fixed travel date</Text>
               <TouchableOpacity 
                 style={styles.dateButton}
                 onPress={() => setShowDatePicker(true)}
               >
-                <Text style={styles.dateButtonText}>{formatDate(travelDate)}</Text>
+                <Text style={styles.dateButtonText}>{travelDateDisplay}</Text>
               </TouchableOpacity>
               {showDatePicker && (
                 <DateTimePicker
@@ -223,6 +246,39 @@ export default function PostTravelScreen() {
                   }}
                 />
               )}
+
+              <Text style={styles.label}>Date (To)</Text>
+              <Text style={styles.infoText}>For fixed travel period, but ticket not booked</Text>
+              <TouchableOpacity 
+                style={styles.dateButton}
+                onPress={() => setShowDateToPicker(true)}
+              >
+                <Text style={styles.dateButtonText}>
+                  {travelDateToDisplay || 'Optional - Select end date'}
+                </Text>
+              </TouchableOpacity>
+              {showDateToPicker && (
+                <DateTimePicker
+                  value={travelDateTo || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowDateToPicker(false);
+                    if (selectedDate) setTravelDateTo(selectedDate);
+                  }}
+                />
+              )}
+
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Describe your exact travel city, travel need, ..."
+                placeholderTextColor={colors.textLight}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={4}
+              />
             </>
           )}
 
@@ -245,7 +301,6 @@ export default function PostTravelScreen() {
         title="Error"
         message={error}
         onClose={() => setError('')}
-        confirmText="OK"
         type="error"
       />
     </SafeAreaView>
@@ -265,11 +320,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
-  heading: {
-    ...typography.h2,
+  sectionTitle: {
+    ...typography.h3,
     color: colors.text,
-    marginBottom: spacing.lg,
-    fontWeight: '700',
+    marginBottom: spacing.md,
+    fontWeight: '600',
   },
   radioContainer: {
     flexDirection: 'row',
@@ -322,6 +377,38 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: spacing.sm,
     marginTop: spacing.md,
+  },
+  infoText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginBottom: spacing.sm,
+  },
+  optionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  optionButton: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  optionButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  optionText: {
+    ...typography.body,
+    color: colors.text,
+  },
+  optionTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   input: {
     backgroundColor: colors.card,

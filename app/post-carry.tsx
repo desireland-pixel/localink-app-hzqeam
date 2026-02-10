@@ -7,6 +7,7 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 import { authenticatedPost } from '@/utils/api';
 import Modal from '@/components/ui/Modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { formatDateToDDMMYYYY, dateToISOString } from '@/utils/cities';
 
 type CarryType = 'offering' | 'seeking' | null;
 
@@ -48,7 +49,7 @@ export default function PostCarryScreen() {
         description: description.trim() || undefined,
         fromCity: fromCity.trim(),
         toCity: toCity.trim(),
-        travelDate: travelDate.toISOString(),
+        travelDate: dateToISOString(travelDate),
         type: apiType,
         itemDescription: itemDescription.trim() || undefined,
       };
@@ -65,11 +66,8 @@ export default function PostCarryScreen() {
     }
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-
   const fieldsDisabled = carryType === null;
+  const travelDateDisplay = formatDateToDDMMYYYY(travelDate);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -78,8 +76,6 @@ export default function PostCarryScreen() {
         style={styles.keyboardView}
       >
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.heading}>Ally</Text>
-
           <View style={styles.radioContainer}>
             <Text style={styles.radioLabel}>I am</Text>
             <View style={styles.radioButtons}>
@@ -151,7 +147,7 @@ export default function PostCarryScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowDatePicker(true)}
               >
-                <Text style={styles.dateButtonText}>{formatDate(travelDate)}</Text>
+                <Text style={styles.dateButtonText}>{travelDateDisplay}</Text>
               </TouchableOpacity>
               {showDatePicker && (
                 <DateTimePicker
@@ -221,7 +217,7 @@ export default function PostCarryScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowDatePicker(true)}
               >
-                <Text style={styles.dateButtonText}>{formatDate(travelDate)}</Text>
+                <Text style={styles.dateButtonText}>{travelDateDisplay}</Text>
               </TouchableOpacity>
               {showDatePicker && (
                 <DateTimePicker
@@ -284,12 +280,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-  },
-  heading: {
-    ...typography.h2,
-    color: colors.text,
-    marginBottom: spacing.lg,
-    fontWeight: '700',
   },
   radioContainer: {
     flexDirection: 'row',

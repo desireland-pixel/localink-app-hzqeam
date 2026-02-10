@@ -7,6 +7,7 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 import { authenticatedGet, authenticatedPost } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
+import { formatDateToDDMMYYYY } from '@/utils/cities';
 
 interface CarryPost {
   id: string;
@@ -83,14 +84,6 @@ export default function CarryDetailsScreen() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
   const getTypeLabel = (type: string) => {
     return type === 'request' ? 'Request' : 'Traveler';
   };
@@ -136,7 +129,7 @@ export default function CarryDetailsScreen() {
           {carryPost.travelDate && (
             <View style={styles.dateContainer}>
               <Text style={styles.dateLabel}>Travel Date:</Text>
-              <Text style={styles.dateText}>{formatDate(carryPost.travelDate)}</Text>
+              <Text style={styles.dateText}>{formatDateToDDMMYYYY(carryPost.travelDate)}</Text>
             </View>
           )}
 

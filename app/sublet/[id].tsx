@@ -7,6 +7,7 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 import { authenticatedGet, authenticatedPost } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
+import { formatDateToDDMMYYYY } from '@/utils/cities';
 
 interface Sublet {
   id: string;
@@ -32,68 +33,51 @@ export default function SubletDetailsScreen() {
   const { user } = useAuth();
   const [sublet, setSublet] = useState<Sublet | null>(null);
   const [loading, setLoading] = useState(true);
-  const [contacting, setContacting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
-  console.log('SubletDetailsScreen: Viewing sublet', { id });
+  console.log('SubletDetailsScreen: Rendering', { id, sublet });
 
   useEffect(() => {
-    fetchSublet();
+    if (id) {
+      fetchSublet();
+    }
   }, [id]);
 
   const fetchSublet = async () => {
+    console.log('SubletDetailsScreen: Fetching sublet', id);
+    setLoading(true);
     try {
-      console.log('[SubletDetails] Fetching sublet:', id);
       const data = await authenticatedGet<Sublet>(`/api/sublets/${id}`);
-      console.log('[SubletDetails] Sublet fetched:', data);
+      console.log('SubletDetailsScreen: Fetched sublet', data);
       setSublet(data);
-    } catch (err) {
-      console.error('[SubletDetails] Error fetching sublet:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load sublet');
+    } catch (error: any) {
+      console.error('SubletDetailsScreen: Error fetching sublet', error);
+      setError(error.message || 'Failed to load sublet');
     } finally {
       setLoading(false);
     }
   };
 
   const handleContact = async () => {
-    if (!sublet || contacting) return;
+    if (!sublet) return;
+    console.log('SubletDetailsScreen: Contact user', sublet.userId);
     
-    console.log('SubletDetailsScreen: Contact owner');
-    setContacting(true);
-
     try {
-      console.log('[SubletDetails] Creating conversation with:', sublet.user.id);
-      const response = await authenticatedPost<{ conversationId: string; conversation: any }>(
+      const response = await authenticatedPost<{ conversationId: string }>(
         '/api/conversations',
-        {
-          postId: id,
-          postType: 'sublet',
-          recipientId: sublet.user.id,
-        }
+        { participantId: sublet.userId }
       );
-      console.log('[SubletDetails] Conversation created:', response);
-      
-      // Navigate to the chat
+      console.log('SubletDetailsScreen: Conversation created', response);
       router.push(`/chat/${response.conversationId}`);
-    } catch (err) {
-      console.error('[SubletDetails] Error creating conversation:', err);
-      setError(err instanceof Error ? err.message : 'Failed to start conversation');
-    } finally {
-      setContacting(false);
+    } catch (error: any) {
+      console.error('SubletDetailsScreen: Error creating conversation', error);
+      setError(error.message || 'Failed to start conversation');
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -103,7 +87,7 @@ export default function SubletDetailsScreen() {
 
   if (!sublet) {
     return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Sublet not found</Text>
         </View>
@@ -111,65 +95,62 @@ export default function SubletDetailsScreen() {
     );
   }
 
-  const isOwnPost = sublet.userId === user?.id;
+  const fromDateDisplay = formatDateToDDMMYYYY(sublet.availableFrom);
+  const toDateDisplay = formatDateToDDMMYYYY(sublet.availableTo);
+  const isOwnPost = user?.id === sublet.userId;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
-        <View style={styles.card}>
-          <Text style={styles.title}>{sublet.title}</Text>
-          <Text style={styles.city}>📍 {sublet.city}</Text>
-          
-          <View style={styles.dateContainer}>
-            <Text style={styles.dateLabel}>Available:</Text>
-            <Text style={styles.dateText}>
-              {formatDate(sublet.availableFrom)} - {formatDate(sublet.availableTo)}
-            </Text>
+        <Text style={styles.title}>{sublet.title}</Text>
+        
+        {sublet.description && (
+          <Text style={styles.description}>{sublet.description}</Text>
+        )}
+
+        <View style={styles.infoSection}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>City</Text>
+            <Text style={styles.infoValue}>{sublet.city}</Text>
           </View>
-
+          
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Available From</Text>
+            <Text style={styles.infoValue}>{fromDateDisplay}</Text>
+          </View>
+          
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Available To</Text>
+            <Text style={styles.infoValue}>{toDateDisplay}</Text>
+          </View>
+          
           {sublet.rent && (
-            <Text style={styles.rent}>💰 €{sublet.rent}/month</Text>
-          )}
-
-          {sublet.description && (
-            <View style={styles.descriptionContainer}>
-              <Text style={styles.descriptionLabel}>Description:</Text>
-              <Text style={styles.description}>{sublet.description}</Text>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Rent</Text>
+              <Text style={styles.infoValue}>€{sublet.rent}/month</Text>
             </View>
           )}
-
-          <View style={styles.userContainer}>
-            <Text style={styles.userLabel}>Posted by:</Text>
-            <Text style={styles.userName}>{sublet.user.name}</Text>
-          </View>
         </View>
 
-        {!isOwnPost && (
-          <TouchableOpacity 
-            style={[styles.contactButton, contacting && styles.contactButtonDisabled]} 
-            onPress={handleContact}
-            disabled={contacting}
-          >
-            {contacting ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.contactButtonText}>Contact Owner</Text>
-            )}
-          </TouchableOpacity>
-        )}
-
-        {isOwnPost && (
-          <View style={styles.ownPostNotice}>
-            <Text style={styles.ownPostText}>This is your post</Text>
-          </View>
-        )}
+        <View style={styles.authorSection}>
+          <Text style={styles.authorLabel}>Posted by</Text>
+          <Text style={styles.authorName}>{sublet.user.name}</Text>
+        </View>
       </ScrollView>
+
+      {!isOwnPost && (
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
+            <Text style={styles.contactButtonText}>Contact</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <Modal
         visible={!!error}
-        onClose={() => setError(null)}
         title="Error"
-        message={error || ''}
+        message={error}
+        onClose={() => setError('')}
         type="error"
       />
     </SafeAreaView>
@@ -181,11 +162,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -195,96 +171,86 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: spacing.xl,
   },
   errorText: {
-    ...typography.body,
+    ...typography.h3,
     color: colors.textSecondary,
+    textAlign: 'center',
   },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
+  content: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
   title: {
     ...typography.h2,
     color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  city: {
-    ...typography.body,
-    color: colors.textSecondary,
     marginBottom: spacing.md,
-  },
-  dateContainer: {
-    marginBottom: spacing.md,
-  },
-  dateLabel: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  dateText: {
-    ...typography.body,
-    color: colors.text,
-  },
-  rent: {
-    ...typography.h3,
-    color: colors.primary,
-    marginBottom: spacing.md,
-  },
-  descriptionContainer: {
-    marginBottom: spacing.md,
-  },
-  descriptionLabel: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
   },
   description: {
     ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+    lineHeight: 24,
+  },
+  infoSection: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  infoLabel: {
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+  infoValue: {
+    ...typography.body,
     color: colors.text,
-    lineHeight: 22,
+    fontWeight: '600',
   },
-  userContainer: {
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+  authorSection: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  userLabel: {
+  authorLabel: {
     ...typography.bodySmall,
     color: colors.textSecondary,
     marginBottom: spacing.xs,
   },
-  userName: {
+  authorName: {
     ...typography.body,
     color: colors.text,
     fontWeight: '600',
+  },
+  footer: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   contactButton: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  contactButtonDisabled: {
-    opacity: 0.5,
   },
   contactButtonText: {
     ...typography.button,
     color: '#FFFFFF',
-  },
-  ownPostNotice: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  ownPostText: {
-    ...typography.body,
-    color: colors.textSecondary,
   },
 });

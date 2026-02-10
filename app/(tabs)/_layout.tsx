@@ -61,8 +61,8 @@ export default function TabLayout() {
           title: 'Carry',
           tabBarIcon: ({ color }) => (
             <IconSymbol
-              ios_icon_name="shippingbox.fill"
-              android_material_icon_name="local-shipping"
+              ios_icon_name="cube.box.fill"
+              android_material_icon_name="inventory"
               size={26}
               color={color}
             />
@@ -95,6 +95,13 @@ export default function TabLayout() {
               color={color}
             />
           ),
+        }}
+      />
+      {/* Hide the (home) folder from tabs */}
+      <Tabs.Screen
+        name="(home)"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

@@ -1,75 +1,124 @@
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
+import { CitySearchInput } from '@/components/CitySearchInput';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { formatDateToDDMMYYYY } from '@/utils/cities';
 
 export default function TravelFiltersScreen() {
   const router = useRouter();
+  const [companionshipType, setCompanionshipType] = useState<'offering' | 'seeking' | null>(null);
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');
-  const [travelType, setTravelType] = useState<'all' | 'looking_for_buddy' | 'offering_companionship'>('all');
+  const [dateStart, setDateStart] = useState<Date | null>(null);
+  const [dateEnd, setDateEnd] = useState<Date | null>(null);
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
 
-  console.log('[TravelFiltersScreen] Rendering', { fromCity, toCity, travelType });
+  console.log('[TravelFiltersScreen] Rendering', { companionshipType, fromCity, toCity });
 
   const handleApply = () => {
-    console.log('[TravelFiltersScreen] Applying filters', { fromCity, toCity, travelType });
+    console.log('[TravelFiltersScreen] Applying filters', { companionshipType, fromCity, toCity, dateStart, dateEnd });
     // TODO: Pass filters back to feed screen
     router.back();
   };
 
   const handleReset = () => {
     console.log('[TravelFiltersScreen] Resetting filters');
+    setCompanionshipType(null);
     setFromCity('');
     setToCity('');
-    setTravelType('all');
+    setDateStart(null);
+    setDateEnd(null);
   };
+
+  const dateStartDisplay = dateStart ? formatDateToDDMMYYYY(dateStart) : 'Select start date';
+  const dateEndDisplay = dateEnd ? formatDateToDDMMYYYY(dateEnd) : 'Select end date';
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
-        <Text style={styles.sectionTitle}>Route</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="From City"
-          placeholderTextColor={colors.textLight}
+        <Text style={styles.sectionTitle}>Companionship</Text>
+        <View style={styles.radioButtons}>
+          <TouchableOpacity
+            style={[styles.typeOption, companionshipType === 'offering' && styles.typeOptionActive]}
+            onPress={() => setCompanionshipType('offering')}
+          >
+            <Text style={[styles.typeText, companionshipType === 'offering' && styles.typeTextActive]}>
+              Offering
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.typeOption, companionshipType === 'seeking' && styles.typeOptionActive]}
+            onPress={() => setCompanionshipType('seeking')}
+          >
+            <Text style={[styles.typeText, companionshipType === 'seeking' && styles.typeTextActive]}>
+              Seeking
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sectionTitle}>From</Text>
+        <CitySearchInput
           value={fromCity}
           onChangeText={setFromCity}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="To City"
-          placeholderTextColor={colors.textLight}
-          value={toCity}
-          onChangeText={setToCity}
+          placeholder="Search city or type India/Germany..."
         />
 
-        <Text style={styles.sectionTitle}>Travel Type</Text>
-        <TouchableOpacity
-          style={[styles.typeOption, travelType === 'all' && styles.typeOptionActive]}
-          onPress={() => setTravelType('all')}
-        >
-          <Text style={[styles.typeText, travelType === 'all' && styles.typeTextActive]}>
-            All Types
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.typeOption, travelType === 'looking_for_buddy' && styles.typeOptionActive]}
-          onPress={() => setTravelType('looking_for_buddy')}
-        >
-          <Text style={[styles.typeText, travelType === 'looking_for_buddy' && styles.typeTextActive]}>
-            Looking for Buddy
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.typeOption, travelType === 'offering_companionship' && styles.typeOptionActive]}
-          onPress={() => setTravelType('offering_companionship')}
-        >
-          <Text style={[styles.typeText, travelType === 'offering_companionship' && styles.typeTextActive]}>
-            Offering Companionship
-          </Text>
-        </TouchableOpacity>
+        <Text style={styles.sectionTitle}>To</Text>
+        <CitySearchInput
+          value={toCity}
+          onChangeText={setToCity}
+          placeholder="Search city or type India/Germany..."
+        />
+
+        <Text style={styles.sectionTitle}>Date (between)</Text>
+        <View style={styles.row}>
+          <View style={styles.halfWidth}>
+            <Text style={styles.label}>Start</Text>
+            <TouchableOpacity 
+              style={styles.dateButton}
+              onPress={() => setShowStartPicker(true)}
+            >
+              <Text style={styles.dateButtonText}>{dateStartDisplay}</Text>
+            </TouchableOpacity>
+            {showStartPicker && (
+              <DateTimePicker
+                value={dateStart || new Date()}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowStartPicker(false);
+                  if (selectedDate) setDateStart(selectedDate);
+                }}
+              />
+            )}
+          </View>
+          <View style={styles.separator} />
+          <View style={styles.halfWidth}>
+            <Text style={styles.label}>End</Text>
+            <TouchableOpacity 
+              style={styles.dateButton}
+              onPress={() => setShowEndPicker(true)}
+            >
+              <Text style={styles.dateButtonText}>{dateEndDisplay}</Text>
+            </TouchableOpacity>
+            {showEndPicker && (
+              <DateTimePicker
+                value={dateEnd || new Date()}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowEndPicker(false);
+                  if (selectedDate) setDateEnd(selectedDate);
+                }}
+              />
+            )}
+          </View>
+        </View>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -100,25 +149,26 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     marginTop: spacing.lg,
   },
-  input: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...typography.body,
+  label: {
+    ...typography.bodySmall,
     color: colors.text,
+    fontWeight: '600',
+    marginBottom: spacing.sm,
+  },
+  radioButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
     marginBottom: spacing.md,
   },
   typeOption: {
+    flex: 1,
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: spacing.sm,
+    alignItems: 'center',
   },
   typeOptionActive: {
     backgroundColor: colors.primary,
@@ -131,6 +181,29 @@ const styles = StyleSheet.create({
   typeTextActive: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: spacing.md,
+  },
+  halfWidth: {
+    flex: 1,
+  },
+  separator: {
+    width: spacing.md,
+  },
+  dateButton: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  dateButtonText: {
+    ...typography.body,
+    color: colors.text,
   },
   footer: {
     flexDirection: 'row',

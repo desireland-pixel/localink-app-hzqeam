@@ -7,6 +7,8 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 import { authenticatedPost } from '@/utils/api';
 import Modal from '@/components/ui/Modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { CitySearchInput } from '@/components/CitySearchInput';
+import { formatDateToDDMMYYYY, dateToISOString } from '@/utils/cities';
 
 type SubletType = 'offering' | 'seeking' | null;
 
@@ -16,7 +18,11 @@ export default function PostSubletScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [city, setCity] = useState('');
+  const [address, setAddress] = useState('');
+  const [pincode, setPincode] = useState('');
+  const [cityRegistration, setCityRegistration] = useState<boolean | null>(null);
   const [rent, setRent] = useState('');
+  const [deposit, setDeposit] = useState('');
   const [availableFrom, setAvailableFrom] = useState(new Date());
   const [availableTo, setAvailableTo] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
   const [showFromPicker, setShowFromPicker] = useState(false);
@@ -27,7 +33,7 @@ export default function PostSubletScreen() {
   console.log('PostSubletScreen: Rendering', { subletType });
 
   const handleSubmit = async () => {
-    console.log('PostSubletScreen: Submit sublet', { subletType, title, description, city, rent, availableFrom, availableTo });
+    console.log('PostSubletScreen: Submit sublet', { subletType, title, city, availableFrom, availableTo });
     
     if (!subletType) {
       setError('Please select if you are offering or seeking a sublet');
@@ -39,19 +45,34 @@ export default function PostSubletScreen() {
       return;
     }
 
+    if (subletType === 'offering') {
+      if (!address.trim() || !pincode.trim() || cityRegistration === null) {
+        setError('Please fill in address, pin code, and city registration');
+        return;
+      }
+    }
+
     setLoading(true);
     setError('');
     
     try {
-      const postData = {
+      const postData: any = {
         title: title.trim(),
         description: description.trim() || undefined,
         city: city.trim(),
-        availableFrom: availableFrom.toISOString(),
-        availableTo: availableTo.toISOString(),
+        availableFrom: dateToISOString(availableFrom),
+        availableTo: dateToISOString(availableTo),
         rent: rent.trim() || undefined,
         type: subletType,
       };
+
+      // Add offering-specific fields
+      if (subletType === 'offering') {
+        postData.address = address.trim();
+        postData.pincode = pincode.trim();
+        postData.cityRegistrationRequired = cityRegistration;
+        postData.deposit = deposit.trim() || undefined;
+      }
 
       console.log('PostSubletScreen: Creating sublet with data:', postData);
       await authenticatedPost('/api/sublets', postData);
@@ -65,11 +86,10 @@ export default function PostSubletScreen() {
     }
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-
   const fieldsDisabled = subletType === null;
+
+  const availableFromDisplay = formatDateToDDMMYYYY(availableFrom);
+  const availableToDisplay = formatDateToDDMMYYYY(availableTo);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -78,8 +98,6 @@ export default function PostSubletScreen() {
         style={styles.keyboardView}
       >
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.heading}>Sublet</Text>
-
           <View style={styles.radioContainer}>
             <Text style={styles.radioLabel}>I am</Text>
             <View style={styles.radioButtons}>
@@ -129,13 +147,54 @@ export default function PostSubletScreen() {
               />
 
               <Text style={styles.label}>City *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., Berlin"
-                placeholderTextColor={colors.textLight}
+              <CitySearchInput
                 value={city}
                 onChangeText={setCity}
+                placeholder="Search city..."
               />
+
+              <Text style={styles.label}>Address *</Text>
+              <Text style={styles.infoText}>Your address will not be published</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Street address"
+                placeholderTextColor={colors.textLight}
+                value={address}
+                onChangeText={setAddress}
+              />
+
+              <Text style={styles.label}>Pin code *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., 10115"
+                placeholderTextColor={colors.textLight}
+                value={pincode}
+                onChangeText={setPincode}
+                keyboardType="numeric"
+              />
+
+              <Text style={styles.label}>City registration *</Text>
+              <View style={styles.radioButtons}>
+                <TouchableOpacity
+                  style={styles.radioOption}
+                  onPress={() => setCityRegistration(true)}
+                >
+                  <View style={styles.radioCircle}>
+                    {cityRegistration === true && <View style={styles.radioCircleSelected} />}
+                  </View>
+                  <Text style={styles.radioText}>Yes</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.radioOption}
+                  onPress={() => setCityRegistration(false)}
+                >
+                  <View style={styles.radioCircle}>
+                    {cityRegistration === false && <View style={styles.radioCircleSelected} />}
+                  </View>
+                  <Text style={styles.radioText}>No</Text>
+                </TouchableOpacity>
+              </View>
 
               <Text style={styles.label}>Monthly Rent (€)</Text>
               <TextInput
@@ -147,12 +206,22 @@ export default function PostSubletScreen() {
                 keyboardType="numeric"
               />
 
+              <Text style={styles.label}>Deposit (€)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., 1600"
+                placeholderTextColor={colors.textLight}
+                value={deposit}
+                onChangeText={setDeposit}
+                keyboardType="numeric"
+              />
+
               <Text style={styles.label}>Available From</Text>
               <TouchableOpacity 
                 style={styles.dateButton}
                 onPress={() => setShowFromPicker(true)}
               >
-                <Text style={styles.dateButtonText}>{formatDate(availableFrom)}</Text>
+                <Text style={styles.dateButtonText}>{availableFromDisplay}</Text>
               </TouchableOpacity>
               {showFromPicker && (
                 <DateTimePicker
@@ -171,7 +240,7 @@ export default function PostSubletScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowToPicker(true)}
               >
-                <Text style={styles.dateButtonText}>{formatDate(availableTo)}</Text>
+                <Text style={styles.dateButtonText}>{availableToDisplay}</Text>
               </TouchableOpacity>
               {showToPicker && (
                 <DateTimePicker
@@ -210,12 +279,10 @@ export default function PostSubletScreen() {
               />
 
               <Text style={styles.label}>City *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., Berlin"
-                placeholderTextColor={colors.textLight}
+              <CitySearchInput
                 value={city}
                 onChangeText={setCity}
+                placeholder="Search city..."
               />
 
               <Text style={styles.label}>Budget (€/month)</Text>
@@ -233,7 +300,7 @@ export default function PostSubletScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowFromPicker(true)}
               >
-                <Text style={styles.dateButtonText}>{formatDate(availableFrom)}</Text>
+                <Text style={styles.dateButtonText}>{availableFromDisplay}</Text>
               </TouchableOpacity>
               {showFromPicker && (
                 <DateTimePicker
@@ -252,7 +319,7 @@ export default function PostSubletScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowToPicker(true)}
               >
-                <Text style={styles.dateButtonText}>{formatDate(availableTo)}</Text>
+                <Text style={styles.dateButtonText}>{availableToDisplay}</Text>
               </TouchableOpacity>
               {showToPicker && (
                 <DateTimePicker
@@ -287,7 +354,6 @@ export default function PostSubletScreen() {
         title="Error"
         message={error}
         onClose={() => setError('')}
-        confirmText="OK"
         type="error"
       />
     </SafeAreaView>
@@ -306,12 +372,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-  },
-  heading: {
-    ...typography.h2,
-    color: colors.text,
-    marginBottom: spacing.lg,
-    fontWeight: '700',
   },
   radioContainer: {
     flexDirection: 'row',
@@ -364,6 +424,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: spacing.sm,
     marginTop: spacing.md,
+  },
+  infoText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginBottom: spacing.sm,
   },
   input: {
     backgroundColor: colors.card,

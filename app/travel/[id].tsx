@@ -7,16 +7,19 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 import { authenticatedGet, authenticatedPost } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
+import { formatDateToDDMMYYYY } from '@/utils/cities';
 
 interface TravelPost {
   id: string;
   userId: string;
-  title: string;
+  title?: string;
   description?: string;
   fromCity: string;
   toCity: string;
   travelDate: string;
-  type: 'looking_for_buddy' | 'offering_companionship';
+  type: 'seeking' | 'offering';
+  companionshipFor?: string;
+  travelDateTo?: string;
   status: string;
   createdAt: string;
   user: {
@@ -82,16 +85,8 @@ export default function TravelDetailsScreen() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
   const getTypeLabel = (type: string) => {
-    return type === 'looking_for_buddy' ? 'Looking for Buddy' : 'Offering Companionship';
+    return type === 'seeking' ? 'Seeking Travel Buddy' : 'Offering Companionship';
   };
 
   if (loading) {
@@ -115,12 +110,15 @@ export default function TravelDetailsScreen() {
   }
 
   const isOwnPost = travelPost.userId === user?.id;
+  const title = travelPost.title || `${getTypeLabel(travelPost.type)} from ${travelPost.fromCity} to ${travelPost.toCity}`;
+  const travelDateDisplay = formatDateToDDMMYYYY(travelPost.travelDate);
+  const travelDateToDisplay = travelPost.travelDateTo ? formatDateToDDMMYYYY(travelPost.travelDateTo) : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
         <View style={styles.card}>
-          <Text style={styles.title}>{travelPost.title}</Text>
+          <Text style={styles.title}>{title}</Text>
           
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{getTypeLabel(travelPost.type)}</Text>
@@ -134,8 +132,22 @@ export default function TravelDetailsScreen() {
 
           <View style={styles.dateContainer}>
             <Text style={styles.dateLabel}>Travel Date:</Text>
-            <Text style={styles.dateText}>{formatDate(travelPost.travelDate)}</Text>
+            <Text style={styles.dateText}>{travelDateDisplay}</Text>
           </View>
+
+          {travelDateToDisplay && (
+            <View style={styles.dateContainer}>
+              <Text style={styles.dateLabel}>Travel Date To:</Text>
+              <Text style={styles.dateText}>{travelDateToDisplay}</Text>
+            </View>
+          )}
+
+          {travelPost.companionshipFor && (
+            <View style={styles.dateContainer}>
+              <Text style={styles.dateLabel}>Companionship For:</Text>
+              <Text style={styles.dateText}>{travelPost.companionshipFor}</Text>
+            </View>
+          )}
 
           {travelPost.description && (
             <View style={styles.descriptionContainer}>

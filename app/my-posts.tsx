@@ -1,20 +1,103 @@
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
+import { authenticatedGet, authenticatedPatch } from '@/utils/api';
+import { formatDateToDDMMYYYY } from '@/utils/cities';
+import Modal from '@/components/ui/Modal';
+
+interface Post {
+  id: string;
+  title?: string;
+  description?: string;
+  city?: string;
+  fromCity?: string;
+  toCity?: string;
+  availableFrom?: string;
+  availableTo?: string;
+  travelDate?: string;
+  rent?: string;
+  type?: string;
+  status: string;
+  createdAt: string;
+}
 
 export default function MyPostsScreen() {
+  const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState<'sublet' | 'travel' | 'carry'>('sublet');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [error, setError] = useState('');
+  const [closingPostId, setClosingPostId] = useState<string | null>(null);
 
-  console.log('MyPostsScreen: Rendering', { selectedTab });
+  console.log('MyPostsScreen: Rendering', { selectedTab, postsCount: posts.length });
+
+  useEffect(() => {
+    fetchPosts();
+  }, [selectedTab]);
+
+  const fetchPosts = async () => {
+    console.log('MyPostsScreen: Fetching posts', { selectedTab });
+    setLoading(true);
+    try {
+      let data: Post[] = [];
+      if (selectedTab === 'sublet') {
+        data = await authenticatedGet<Post[]>('/api/my/sublets');
+      } else if (selectedTab === 'travel') {
+        data = await authenticatedGet<Post[]>('/api/my/travel-posts');
+      } else if (selectedTab === 'carry') {
+        data = await authenticatedGet<Post[]>('/api/my/carry-posts');
+      }
+      console.log('MyPostsScreen: Fetched posts', data);
+      setPosts(data);
+    } catch (error: any) {
+      console.error('MyPostsScreen: Error fetching posts', error);
+      setError(error.message || 'Failed to load posts');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const onRefresh = async () => {
     console.log('MyPostsScreen: Refreshing posts', { selectedTab });
     setRefreshing(true);
-    // TODO: Backend Integration - GET /api/sublets?userId=me or /api/travels?userId=me or /api/carry?userId=me
-    setTimeout(() => setRefreshing(false), 1000);
+    await fetchPosts();
+    setRefreshing(false);
+  };
+
+  const handleClosePost = async (postId: string) => {
+    console.log('MyPostsScreen: Closing post', { postId, selectedTab });
+    setClosingPostId(postId);
+    try {
+      if (selectedTab === 'sublet') {
+        await authenticatedPatch(`/api/sublets/${postId}/close`, {});
+      } else if (selectedTab === 'travel') {
+        await authenticatedPatch(`/api/travel-posts/${postId}/close`, {});
+      } else if (selectedTab === 'carry') {
+        await authenticatedPatch(`/api/carry-posts/${postId}/close`, {});
+      }
+      console.log('MyPostsScreen: Post closed successfully');
+      await fetchPosts();
+    } catch (error: any) {
+      console.error('MyPostsScreen: Error closing post', error);
+      setError(error.message || 'Failed to close post');
+    } finally {
+      setClosingPostId(null);
+    }
+  };
+
+  const handleViewPost = (postId: string) => {
+    console.log('MyPostsScreen: View post', { postId, selectedTab });
+    if (selectedTab === 'sublet') {
+      router.push(`/sublet/${postId}`);
+    } else if (selectedTab === 'travel') {
+      router.push(`/travel/${postId}`);
+    } else if (selectedTab === 'carry') {
+      router.push(`/carry/${postId}`);
+    }
   };
 
   return (
@@ -46,18 +129,142 @@ export default function MyPostsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
-      >
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>📝</Text>
-          <Text style={styles.emptyTitle}>No posts yet</Text>
-          <Text style={styles.emptyText}>Your {selectedTab} posts will appear here</Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      </ScrollView>
+      ) : (
+        <ScrollView
+          style={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          }
+        >
+          {posts.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyEmoji}>📝</Text>
+              <Text style={styles.emptyTitle}>No posts yet</Text>
+              <Text style={styles.emptyText}>Your {selectedTab} posts will appear here</Text>
+            </View>
+          ) : (
+            posts.map((post) => {
+              const isClosing = closingPostId === post.id;
+              const isClosed = post.status === 'closed';
+              
+              return (
+                <TouchableOpacity
+                  key={post.id}
+                  style={[styles.postCard, isClosed && styles.postCardClosed]}
+                  onPress={() => handleViewPost(post.id)}
+                >
+                  {selectedTab === 'sublet' && (
+                    <>
+                      <Text style={styles.postTitle}>{post.title}</Text>
+                      {post.description && (
+                        <Text style={styles.postDescription} numberOfLines={2}>
+                          {post.description}
+                        </Text>
+                      )}
+                      <View style={styles.postInfo}>
+                        <Text style={styles.postInfoText}>{post.city}</Text>
+                        <Text style={styles.postInfoText}>•</Text>
+                        <Text style={styles.postInfoText}>
+                          {post.availableFrom && formatDateToDDMMYYYY(post.availableFrom)}
+                        </Text>
+                        <Text style={styles.postInfoText}>-</Text>
+                        <Text style={styles.postInfoText}>
+                          {post.availableTo && formatDateToDDMMYYYY(post.availableTo)}
+                        </Text>
+                      </View>
+                      {post.rent && (
+                        <Text style={styles.postRent}>€{post.rent}/month</Text>
+                      )}
+                    </>
+                  )}
+                  
+                  {selectedTab === 'travel' && (
+                    <>
+                      <Text style={styles.postTitle}>
+                        {post.title || `${post.fromCity} → ${post.toCity}`}
+                      </Text>
+                      {post.description && (
+                        <Text style={styles.postDescription} numberOfLines={2}>
+                          {post.description}
+                        </Text>
+                      )}
+                      <View style={styles.postInfo}>
+                        <Text style={styles.postInfoText}>{post.fromCity}</Text>
+                        <Text style={styles.postInfoText}>→</Text>
+                        <Text style={styles.postInfoText}>{post.toCity}</Text>
+                        <Text style={styles.postInfoText}>•</Text>
+                        <Text style={styles.postInfoText}>
+                          {post.travelDate && formatDateToDDMMYYYY(post.travelDate)}
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                  
+                  {selectedTab === 'carry' && (
+                    <>
+                      <Text style={styles.postTitle}>{post.title}</Text>
+                      {post.description && (
+                        <Text style={styles.postDescription} numberOfLines={2}>
+                          {post.description}
+                        </Text>
+                      )}
+                      <View style={styles.postInfo}>
+                        <Text style={styles.postInfoText}>{post.fromCity}</Text>
+                        <Text style={styles.postInfoText}>→</Text>
+                        <Text style={styles.postInfoText}>{post.toCity}</Text>
+                        {post.travelDate && (
+                          <>
+                            <Text style={styles.postInfoText}>•</Text>
+                            <Text style={styles.postInfoText}>
+                              {formatDateToDDMMYYYY(post.travelDate)}
+                            </Text>
+                          </>
+                        )}
+                      </View>
+                    </>
+                  )}
+                  
+                  <View style={styles.postActions}>
+                    <View style={[styles.statusBadge, isClosed && styles.statusBadgeClosed]}>
+                      <Text style={[styles.statusText, isClosed && styles.statusTextClosed]}>
+                        {isClosed ? 'Closed' : 'Active'}
+                      </Text>
+                    </View>
+                    {!isClosed && (
+                      <TouchableOpacity
+                        style={[styles.closeButton, isClosing && styles.closeButtonDisabled]}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleClosePost(post.id);
+                        }}
+                        disabled={isClosing}
+                      >
+                        {isClosing ? (
+                          <ActivityIndicator size="small" color={colors.primary} />
+                        ) : (
+                          <Text style={styles.closeButtonText}>Close Post</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </ScrollView>
+      )}
+
+      <Modal
+        visible={!!error}
+        title="Error"
+        message={error}
+        onClose={() => setError('')}
+        type="error"
+      />
     </SafeAreaView>
   );
 }
@@ -98,6 +305,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.lg,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -116,5 +328,83 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  postCard: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginTop: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  postCardClosed: {
+    opacity: 0.6,
+  },
+  postTitle: {
+    ...typography.h3,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  postDescription: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  postInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  postInfoText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  postRent: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
+    marginBottom: spacing.sm,
+  },
+  postActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  statusBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  statusBadgeClosed: {
+    backgroundColor: colors.textLight,
+  },
+  statusText: {
+    ...typography.bodySmall,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  statusTextClosed: {
+    color: colors.textSecondary,
+  },
+  closeButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  closeButtonDisabled: {
+    opacity: 0.5,
+  },
+  closeButtonText: {
+    ...typography.bodySmall,
+    color: colors.primary,
+    fontWeight: '600',
   },
 });

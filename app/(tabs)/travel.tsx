@@ -6,16 +6,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { authenticatedGet } from '@/utils/api';
+import { formatDateToDDMMYYYY } from '@/utils/cities';
 
 interface TravelPost {
   id: string;
   userId: string;
-  title: string;
+  title?: string;
   description?: string;
   fromCity: string;
   toCity: string;
   travelDate: string;
-  type: 'looking_for_buddy' | 'offering_companionship';
+  type: 'seeking' | 'offering';
+  companionshipFor?: string;
+  travelDateTo?: string;
   status: string;
   createdAt: string;
   user: {
@@ -26,180 +29,126 @@ interface TravelPost {
 
 export default function TravelScreen() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
   const [posts, setPosts] = useState<TravelPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<any>(null);
+  const [filters, setFilters] = useState({});
 
-  console.log('[TravelScreen] Rendering', { searchQuery, postsCount: posts.length });
+  console.log('TravelScreen: Rendering', { postsCount: posts.length, loading });
 
   useEffect(() => {
     fetchPosts();
   }, [filters]);
 
   const fetchPosts = async () => {
-    console.log('[TravelScreen] Fetching posts with filters:', filters);
+    console.log('TravelScreen: Fetching travel posts');
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (filters?.fromCity) params.append('fromCity', filters.fromCity);
-      if (filters?.toCity) params.append('toCity', filters.toCity);
-      if (filters?.type && filters.type !== 'all') params.append('type', filters.type);
-      
-      const queryString = params.toString();
-      const endpoint = `/api/travel-posts${queryString ? `?${queryString}` : ''}`;
-      
-      const data = await authenticatedGet<TravelPost[]>(endpoint);
-      console.log('[TravelScreen] Fetched posts:', data);
-      setPosts(data || []);
+      const data = await authenticatedGet<TravelPost[]>('/api/travel-posts');
+      console.log('TravelScreen: Fetched travel posts', data);
+      setPosts(data);
     } catch (error) {
-      console.error('[TravelScreen] Error fetching posts:', error);
-      setPosts([]);
+      console.error('TravelScreen: Error fetching travel posts', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredPosts = posts.filter(post => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      post.title.toLowerCase().includes(query) ||
-      post.fromCity.toLowerCase().includes(query) ||
-      post.toCity.toLowerCase().includes(query) ||
-      post.description?.toLowerCase().includes(query)
-    );
-  });
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const travelDateDisplay = (dateString: string) => {
+    return formatDateToDDMMYYYY(dateString);
   };
 
-  const getTypeLabel = (type: string) => {
-    return type === 'looking_for_buddy' ? 'Looking for Buddy' : 'Offering Companionship';
+  const typeLabel = (type: string) => {
+    if (type === 'seeking') return 'Seeking travel buddy';
+    if (type === 'offering') return 'Offering companionship';
+    return type;
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.searchContainer}>
-          <IconSymbol 
-            ios_icon_name="magnifyingglass" 
-            android_material_icon_name="search" 
-            size={20} 
-            color={colors.textSecondary} 
+          <IconSymbol
+            ios_icon_name="magnifyingglass"
+            android_material_icon_name="search"
+            size={20}
+            color={colors.textSecondary}
           />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by city..."
-            placeholderTextColor={colors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+            placeholder="Search travel posts..."
+            placeholderTextColor={colors.textLight}
           />
         </View>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity 
-            onPress={() => router.push('/travel-filters')} 
-            style={styles.iconButton}
-          >
-            <IconSymbol 
-              ios_icon_name="line.3.horizontal.decrease.circle" 
-              android_material_icon_name="filter-list" 
-              size={22} 
-              color={colors.text} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => router.push('/post-travel')} 
-            style={styles.addButton}
-          >
-            <IconSymbol 
-              ios_icon_name="plus" 
-              android_material_icon_name="add" 
-              size={22} 
-              color="#FFFFFF" 
-            />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => router.push('/travel-filters')}
+        >
+          <IconSymbol
+            ios_icon_name="line.3.horizontal.decrease.circle"
+            android_material_icon_name="filter-list"
+            size={24}
+            color={colors.text}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => router.push('/post-travel')}
+        >
+          <IconSymbol
+            ios_icon_name="plus.circle.fill"
+            android_material_icon_name="add-circle"
+            size={24}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
+      ) : posts.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyTitle}>No travel buddy matches found</Text>
+          <Text style={styles.emptySubtitle}>Post a request to connect with others!</Text>
+          <TouchableOpacity
+            style={styles.requestButton}
+            onPress={() => router.push('/post-travel')}
+          >
+            <Text style={styles.requestButtonText}>Request</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-          {filteredPosts.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyEmoji}>✈️</Text>
-              <Text style={styles.emptyTitle}>No travel buddy matches found</Text>
-              <Text style={styles.emptyText}>
-                Post a request to connect with others!
-              </Text>
-              <TouchableOpacity 
-                style={styles.emptyButton} 
-                onPress={() => router.push('/post-travel')}
+        <ScrollView style={styles.content}>
+          {posts.map((post) => {
+            const dateDisplay = travelDateDisplay(post.travelDate);
+            const label = typeLabel(post.type);
+            const title = post.title || `${label} from ${post.fromCity} to ${post.toCity}`;
+            
+            return (
+              <TouchableOpacity
+                key={post.id}
+                style={styles.card}
+                onPress={() => router.push(`/travel/${post.id}`)}
               >
-                <Text style={styles.emptyButtonText}>Request</Text>
+                <Text style={styles.cardTitle}>{title}</Text>
+                {post.description && (
+                  <Text style={styles.cardDescription} numberOfLines={2}>
+                    {post.description}
+                  </Text>
+                )}
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardInfoText}>{post.fromCity}</Text>
+                  <Text style={styles.cardInfoText}>→</Text>
+                  <Text style={styles.cardInfoText}>{post.toCity}</Text>
+                  <Text style={styles.cardInfoText}>•</Text>
+                  <Text style={styles.cardInfoText}>{dateDisplay}</Text>
+                </View>
+                <Text style={styles.cardType}>{label}</Text>
+                <Text style={styles.cardAuthor}>Posted by {post.user.name}</Text>
               </TouchableOpacity>
-            </View>
-          ) : (
-            filteredPosts.map((post) => {
-              const typeLabel = getTypeLabel(post.type);
-              const dateText = formatDate(post.travelDate);
-              
-              return (
-                <TouchableOpacity
-                  key={post.id}
-                  style={styles.postCard}
-                  onPress={() => router.push(`/travel/${post.id}`)}
-                >
-                  <View style={styles.postHeader}>
-                    <Text style={styles.postTitle}>{post.title}</Text>
-                    <View style={styles.typeBadge}>
-                      <Text style={styles.typeBadgeText}>{typeLabel}</Text>
-                    </View>
-                  </View>
-                  {post.description && (
-                    <Text style={styles.postDescription} numberOfLines={2}>
-                      {post.description}
-                    </Text>
-                  )}
-                  <View style={styles.postRoute}>
-                    <Text style={styles.postCity}>{post.fromCity}</Text>
-                    <IconSymbol 
-                      ios_icon_name="arrow.right" 
-                      android_material_icon_name="arrow-forward" 
-                      size={16} 
-                      color={colors.textSecondary} 
-                    />
-                    <Text style={styles.postCity}>{post.toCity}</Text>
-                  </View>
-                  <View style={styles.postFooter}>
-                    <View style={styles.postDate}>
-                      <IconSymbol 
-                        ios_icon_name="calendar" 
-                        android_material_icon_name="calendar-today" 
-                        size={14} 
-                        color={colors.textSecondary} 
-                      />
-                      <Text style={styles.postDateText}>{dateText}</Text>
-                    </View>
-                    <View style={styles.postAuthor}>
-                      <IconSymbol 
-                        ios_icon_name="person.fill" 
-                        android_material_icon_name="person" 
-                        size={14} 
-                        color={colors.textSecondary} 
-                      />
-                      <Text style={styles.postAuthorName}>{post.user.name}</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })
-          )}
+            );
+          })}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -210,16 +159,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingTop: Platform.OS === 'android' ? 16 : 0,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    gap: spacing.sm,
   },
   searchContainer: {
     flex: 1,
@@ -229,50 +177,57 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
+    gap: spacing.sm,
   },
   searchInput: {
     flex: 1,
-    marginLeft: spacing.sm,
     fontSize: 16,
     color: colors.text,
   },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
   iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-  },
-  addButton: {
-    backgroundColor: colors.primary,
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: spacing.xs,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+  },
+  requestButton: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+  },
+  requestButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
   content: {
     flex: 1,
-  },
-  contentContainer: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
   },
-  postCard: {
+  card: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
@@ -280,107 +235,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  postHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  postTitle: {
-    flex: 1,
+  cardTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: colors.text,
-    marginRight: spacing.sm,
+    marginBottom: spacing.xs,
   },
-  typeBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: borderRadius.sm,
-  },
-  typeBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  postDescription: {
+  cardDescription: {
     fontSize: 14,
     color: colors.textSecondary,
-    lineHeight: 20,
     marginBottom: spacing.sm,
   },
-  postRoute: {
+  cardInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
   },
-  postCity: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: colors.text,
-  },
-  postFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  postDate: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  postDateText: {
-    fontSize: 12,
+  cardInfoText: {
+    fontSize: 14,
     color: colors.textSecondary,
   },
-  postAuthor: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  postAuthorName: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xxl * 2,
-  },
-  emptyEmoji: {
-    fontSize: 64,
-    marginBottom: spacing.lg,
-  },
-  emptyTitle: {
-    fontSize: 22,
+  cardType: {
+    fontSize: 14,
+    color: colors.primary,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: spacing.sm,
-    textAlign: 'center',
+    marginBottom: spacing.xs,
   },
-  emptyText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.xl,
-    lineHeight: 22,
-  },
-  emptyButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    borderRadius: borderRadius.md,
-  },
-  emptyButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  cardAuthor: {
+    fontSize: 12,
+    color: colors.textLight,
   },
 });
