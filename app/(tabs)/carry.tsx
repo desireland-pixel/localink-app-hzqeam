@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, borderRadius } from '@/styles/commonStyles';
+import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { authenticatedGet } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
@@ -20,7 +20,7 @@ interface CarryPost {
   itemDescription?: string;
   status: string;
   createdAt: string;
-  user: {
+  user?: {
     id: string;
     name: string;
   };
@@ -30,6 +30,7 @@ export default function CarryScreen() {
   const router = useRouter();
   const [posts, setPosts] = useState<CarryPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [filters, setFilters] = useState({});
 
   console.log('CarryScreen: Rendering', { postsCount: posts.length, loading });
@@ -49,7 +50,14 @@ export default function CarryScreen() {
       console.error('CarryScreen: Error fetching carry posts', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    console.log('CarryScreen: Refreshing');
+    setRefreshing(true);
+    fetchPosts();
   };
 
   const travelDateDisplay = (dateString: string | undefined) => {
@@ -66,6 +74,13 @@ export default function CarryScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
+        <IconSymbol
+          ios_icon_name="cube.box.fill"
+          android_material_icon_name="inventory"
+          size={28}
+          color={colors.primary}
+          style={styles.headerIcon}
+        />
         <View style={styles.searchContainer}>
           <IconSymbol
             ios_icon_name="magnifyingglass"
@@ -119,10 +134,16 @@ export default function CarryScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView style={styles.content}>
+        <ScrollView 
+          style={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+          }
+        >
           {posts.map((post) => {
             const dateDisplay = travelDateDisplay(post.travelDate);
             const label = typeLabel(post.type);
+            const authorName = post.user?.name || 'Unknown';
             
             return (
               <TouchableOpacity
@@ -148,7 +169,7 @@ export default function CarryScreen() {
                   )}
                 </View>
                 <Text style={styles.cardType}>{label}</Text>
-                <Text style={styles.cardAuthor}>Posted by {post.user.name}</Text>
+                <Text style={styles.cardAuthor}>Posted by {authorName}</Text>
               </TouchableOpacity>
             );
           })}
@@ -167,10 +188,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     gap: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  headerIcon: {
+    marginRight: spacing.xs,
   },
   searchContainer: {
     flex: 1,
@@ -184,7 +208,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    ...typography.body,
     color: colors.text,
   },
   iconButton: {
@@ -202,14 +226,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    ...typography.h3,
     color: colors.text,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   emptySubtitle: {
-    fontSize: 16,
+    ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: spacing.xl,
@@ -221,8 +244,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   requestButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.button,
     color: '#FFFFFF',
   },
   content: {
@@ -239,13 +261,12 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...typography.h3,
     color: colors.text,
     marginBottom: spacing.xs,
   },
   cardDescription: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
     marginBottom: spacing.sm,
   },
@@ -256,17 +277,17 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   cardInfoText: {
-    fontSize: 14,
+    ...typography.bodySmall,
     color: colors.textSecondary,
   },
   cardType: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.primary,
     fontWeight: '600',
     marginBottom: spacing.xs,
   },
   cardAuthor: {
-    fontSize: 12,
+    ...typography.bodySmall,
     color: colors.textLight,
   },
 });

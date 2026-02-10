@@ -1,6 +1,10 @@
 
 // Top 200 cities for Germany and India
 export const CITIES = [
+  // Countries
+  'India',
+  'Germany',
+  
   // Germany - Major cities
   'Berlin',
   'Munich',

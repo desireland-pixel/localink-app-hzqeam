@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
@@ -19,7 +19,7 @@ interface Sublet {
   rent?: string;
   status: string;
   createdAt: string;
-  user: {
+  user?: {
     id: string;
     name: string;
   };
@@ -29,6 +29,7 @@ export default function SubletScreen() {
   const router = useRouter();
   const [sublets, setSublets] = useState<Sublet[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [filters, setFilters] = useState({});
 
   console.log('SubletScreen: Rendering', { subletsCount: sublets.length, loading });
@@ -48,7 +49,14 @@ export default function SubletScreen() {
       console.error('SubletScreen: Error fetching sublets', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    console.log('SubletScreen: Refreshing');
+    setRefreshing(true);
+    fetchPosts();
   };
 
   const handlePostSublet = () => {
@@ -72,6 +80,13 @@ export default function SubletScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
+        <IconSymbol
+          ios_icon_name="house.fill"
+          android_material_icon_name="home"
+          size={28}
+          color={colors.primary}
+          style={styles.headerIcon}
+        />
         <View style={styles.searchContainer}>
           <IconSymbol
             ios_icon_name="magnifyingglass"
@@ -116,10 +131,16 @@ export default function SubletScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView style={styles.content}>
+        <ScrollView 
+          style={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+          }
+        >
           {sublets.map((sublet) => {
             const fromDisplay = fromDateDisplay(sublet.availableFrom);
             const toDisplay = toDateDisplay(sublet.availableTo);
+            const authorName = sublet.user?.name || 'Unknown';
             
             return (
               <TouchableOpacity
@@ -143,7 +164,7 @@ export default function SubletScreen() {
                 {sublet.rent && (
                   <Text style={styles.cardRent}>€{sublet.rent}/month</Text>
                 )}
-                <Text style={styles.cardAuthor}>Posted by {sublet.user.name}</Text>
+                <Text style={styles.cardAuthor}>Posted by {authorName}</Text>
               </TouchableOpacity>
             );
           })}
@@ -162,10 +183,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     gap: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  headerIcon: {
+    marginRight: spacing.xs,
   },
   searchContainer: {
     flex: 1,

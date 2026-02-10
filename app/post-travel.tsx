@@ -35,7 +35,7 @@ const TRAVEL_CITIES = [
   'Germany',
 ];
 
-const COMPANIONSHIP_FOR_OPTIONS = ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others'];
+const COMPANIONSHIP_FOR_OPTIONS = ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others', 'No selection'];
 
 export default function PostTravelScreen() {
   const router = useRouter();
@@ -228,7 +228,6 @@ export default function PostTravelScreen() {
               />
 
               <Text style={styles.label}>Date (From) *</Text>
-              <Text style={styles.infoText}>For fixed travel date</Text>
               <TouchableOpacity 
                 style={styles.dateButton}
                 onPress={() => setShowDatePicker(true)}
@@ -248,7 +247,6 @@ export default function PostTravelScreen() {
               )}
 
               <Text style={styles.label}>Date (To)</Text>
-              <Text style={styles.infoText}>For fixed travel period, but ticket not booked</Text>
               <TouchableOpacity 
                 style={styles.dateButton}
                 onPress={() => setShowDateToPicker(true)}
@@ -320,12 +318,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
-  sectionTitle: {
-    ...typography.h3,
-    color: colors.text,
-    marginBottom: spacing.md,
-    fontWeight: '600',
-  },
   radioContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -377,12 +369,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: spacing.sm,
     marginTop: spacing.md,
-  },
-  infoText: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
-    marginBottom: spacing.sm,
   },
   optionsGrid: {
     flexDirection: 'row',
