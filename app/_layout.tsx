@@ -117,7 +117,7 @@ export default function RootLayout() {
                   name="post-sublet" 
                   options={{ 
                     headerShown: true,
-                    title: 'Post Sublet',
+                    title: 'Sublet',
                     headerBackTitle: 'Cancel'
                   }} 
                 />
@@ -125,7 +125,7 @@ export default function RootLayout() {
                   name="post-travel" 
                   options={{ 
                     headerShown: true,
-                    title: 'Post Travel',
+                    title: 'Travel buddy',
                     headerBackTitle: 'Cancel'
                   }} 
                 />
@@ -133,7 +133,7 @@ export default function RootLayout() {
                   name="post-carry" 
                   options={{ 
                     headerShown: true,
-                    title: 'Post Carry',
+                    title: 'Ally',
                     headerBackTitle: 'Cancel'
                   }} 
                 />

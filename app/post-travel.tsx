@@ -8,9 +8,11 @@ import { authenticatedPost } from '@/utils/api';
 import Modal from '@/components/ui/Modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
+type TravelType = 'offering' | 'seeking' | null;
+
 export default function PostTravelScreen() {
   const router = useRouter();
-  const [type, setType] = useState<'looking_for_buddy' | 'offering_companionship'>('looking_for_buddy');
+  const [travelType, setTravelType] = useState<TravelType>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [fromCity, setFromCity] = useState('');
@@ -20,10 +22,15 @@ export default function PostTravelScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  console.log('PostTravelScreen: Rendering', { type });
+  console.log('PostTravelScreen: Rendering', { travelType });
 
   const handleSubmit = async () => {
-    console.log('PostTravelScreen: Submit travel', { type, title, description, fromCity, toCity, travelDate });
+    console.log('PostTravelScreen: Submit travel', { travelType, title, description, fromCity, toCity, travelDate });
+    
+    if (!travelType) {
+      setError('Please select if you are offering or seeking travel companionship');
+      return;
+    }
     
     if (!title.trim() || !fromCity.trim() || !toCity.trim()) {
       setError('Please fill in title, from city, and to city');
@@ -34,13 +41,14 @@ export default function PostTravelScreen() {
     setError('');
     
     try {
+      const apiType = travelType === 'offering' ? 'offering_companionship' : 'looking_for_buddy';
       const postData = {
         title: title.trim(),
         description: description.trim() || undefined,
         fromCity: fromCity.trim(),
         toCity: toCity.trim(),
         travelDate: travelDate.toISOString(),
-        type,
+        type: apiType,
       };
 
       console.log('PostTravelScreen: Creating travel post with data:', postData);
@@ -59,6 +67,8 @@ export default function PostTravelScreen() {
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
+  const fieldsDisabled = travelType === null;
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView 
@@ -66,100 +76,177 @@ export default function PostTravelScreen() {
         style={styles.keyboardView}
       >
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-          <View style={styles.toggleContainer}>
-            <TouchableOpacity
-              style={[styles.toggleButton, type === 'looking_for_buddy' && styles.toggleButtonActive]}
-              onPress={() => setType('looking_for_buddy')}
-            >
-              <Text style={[styles.toggleText, type === 'looking_for_buddy' && styles.toggleTextActive]}>
-                Looking for Buddy
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toggleButton, type === 'offering_companionship' && styles.toggleButtonActive]}
-              onPress={() => setType('offering_companionship')}
-            >
-              <Text style={[styles.toggleText, type === 'offering_companionship' && styles.toggleTextActive]}>
-                Offering Companionship
-              </Text>
-            </TouchableOpacity>
+          <Text style={styles.heading}>Travel buddy</Text>
+
+          <View style={styles.radioContainer}>
+            <Text style={styles.radioLabel}>I am</Text>
+            <View style={styles.radioButtons}>
+              <TouchableOpacity
+                style={styles.radioOption}
+                onPress={() => setTravelType('offering')}
+              >
+                <View style={styles.radioCircle}>
+                  {travelType === 'offering' && <View style={styles.radioCircleSelected} />}
+                </View>
+                <Text style={styles.radioText}>offering</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.radioOption}
+                onPress={() => setTravelType('seeking')}
+              >
+                <View style={styles.radioCircle}>
+                  {travelType === 'seeking' && <View style={styles.radioCircleSelected} />}
+                </View>
+                <Text style={styles.radioText}>seeking</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.radioLabelEnd}>travel companionship.</Text>
           </View>
 
-          <Text style={styles.label}>Title *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., Looking for travel companion"
-            placeholderTextColor={colors.textLight}
-            value={title}
-            onChangeText={setTitle}
-          />
+          {travelType === 'offering' && (
+            <>
+              <Text style={styles.label}>Title *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Traveling to Munich, can accompany"
+                placeholderTextColor={colors.textLight}
+                value={title}
+                onChangeText={setTitle}
+              />
 
-          <Text style={styles.label}>Description</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Describe your travel plans..."
-            placeholderTextColor={colors.textLight}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={4}
-          />
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Describe your travel plans and who you can help..."
+                placeholderTextColor={colors.textLight}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={4}
+              />
 
-          <Text style={styles.label}>From City *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., Berlin"
-            placeholderTextColor={colors.textLight}
-            value={fromCity}
-            onChangeText={setFromCity}
-          />
+              <Text style={styles.label}>From City *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Berlin"
+                placeholderTextColor={colors.textLight}
+                value={fromCity}
+                onChangeText={setFromCity}
+              />
 
-          <Text style={styles.label}>To City *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., Munich"
-            placeholderTextColor={colors.textLight}
-            value={toCity}
-            onChangeText={setToCity}
-          />
+              <Text style={styles.label}>To City *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Munich"
+                placeholderTextColor={colors.textLight}
+                value={toCity}
+                onChangeText={setToCity}
+              />
 
-          <Text style={styles.label}>Travel Date</Text>
-          <TouchableOpacity 
-            style={styles.dateButton}
-            onPress={() => setShowDatePicker(true)}
-          >
-            <Text style={styles.dateButtonText}>{formatDate(travelDate)}</Text>
-          </TouchableOpacity>
-          {showDatePicker && (
-            <DateTimePicker
-              value={travelDate}
-              mode="date"
-              display="default"
-              onChange={(event, selectedDate) => {
-                setShowDatePicker(false);
-                if (selectedDate) setTravelDate(selectedDate);
-              }}
-            />
+              <Text style={styles.label}>Travel Date</Text>
+              <TouchableOpacity 
+                style={styles.dateButton}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={styles.dateButtonText}>{formatDate(travelDate)}</Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={travelDate}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(false);
+                    if (selectedDate) setTravelDate(selectedDate);
+                  }}
+                />
+              )}
+            </>
           )}
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSubmit}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? 'Posting...' : 'Post Travel'}
-            </Text>
-          </TouchableOpacity>
+          {travelType === 'seeking' && (
+            <>
+              <Text style={styles.label}>Title *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Need travel companion to Munich"
+                placeholderTextColor={colors.textLight}
+                value={title}
+                onChangeText={setTitle}
+              />
+
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Describe your travel needs and who you're looking for..."
+                placeholderTextColor={colors.textLight}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={4}
+              />
+
+              <Text style={styles.label}>From City *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Berlin"
+                placeholderTextColor={colors.textLight}
+                value={fromCity}
+                onChangeText={setFromCity}
+              />
+
+              <Text style={styles.label}>To City *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Munich"
+                placeholderTextColor={colors.textLight}
+                value={toCity}
+                onChangeText={setToCity}
+              />
+
+              <Text style={styles.label}>Travel Date</Text>
+              <TouchableOpacity 
+                style={styles.dateButton}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={styles.dateButtonText}>{formatDate(travelDate)}</Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={travelDate}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(false);
+                    if (selectedDate) setTravelDate(selectedDate);
+                  }}
+                />
+              )}
+            </>
+          )}
+
+          {!fieldsDisabled && (
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? 'Posting...' : 'Post'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
 
       <Modal
-        isVisible={!!error}
+        visible={!!error}
         title="Error"
         message={error}
         onClose={() => setError('')}
         confirmText="OK"
+        type="error"
       />
     </SafeAreaView>
   );
@@ -178,29 +265,56 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
-  toggleContainer: {
-    flexDirection: 'row',
+  heading: {
+    ...typography.h2,
+    color: colors.text,
     marginBottom: spacing.lg,
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    padding: 4,
+    fontWeight: '700',
   },
-  toggleButton: {
-    flex: 1,
-    paddingVertical: spacing.sm,
+  radioContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: borderRadius.md,
+    flexWrap: 'wrap',
+    marginBottom: spacing.xl,
   },
-  toggleButtonActive: {
+  radioLabel: {
+    ...typography.body,
+    color: colors.text,
+    marginRight: spacing.sm,
+  },
+  radioLabelEnd: {
+    ...typography.body,
+    color: colors.text,
+    marginLeft: spacing.sm,
+  },
+  radioButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: spacing.sm,
+  },
+  radioCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.xs,
+  },
+  radioCircleSelected: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: colors.primary,
   },
-  toggleText: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  toggleTextActive: {
-    color: '#FFFFFF',
+  radioText: {
+    ...typography.body,
+    color: colors.text,
   },
   label: {
     ...typography.bodySmall,

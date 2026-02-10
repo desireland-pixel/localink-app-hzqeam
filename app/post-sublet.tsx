@@ -8,8 +8,11 @@ import { authenticatedPost } from '@/utils/api';
 import Modal from '@/components/ui/Modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
+type SubletType = 'offering' | 'seeking' | null;
+
 export default function PostSubletScreen() {
   const router = useRouter();
+  const [subletType, setSubletType] = useState<SubletType>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [city, setCity] = useState('');
@@ -21,10 +24,15 @@ export default function PostSubletScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  console.log('PostSubletScreen: Rendering');
+  console.log('PostSubletScreen: Rendering', { subletType });
 
   const handleSubmit = async () => {
-    console.log('PostSubletScreen: Submit sublet', { title, description, city, rent, availableFrom, availableTo });
+    console.log('PostSubletScreen: Submit sublet', { subletType, title, description, city, rent, availableFrom, availableTo });
+    
+    if (!subletType) {
+      setError('Please select if you are offering or seeking a sublet');
+      return;
+    }
     
     if (!title.trim() || !city.trim()) {
       setError('Please fill in title and city');
@@ -42,6 +50,7 @@ export default function PostSubletScreen() {
         availableFrom: availableFrom.toISOString(),
         availableTo: availableTo.toISOString(),
         rent: rent.trim() || undefined,
+        type: subletType,
       };
 
       console.log('PostSubletScreen: Creating sublet with data:', postData);
@@ -60,6 +69,8 @@ export default function PostSubletScreen() {
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
+  const fieldsDisabled = subletType === null;
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView 
@@ -67,101 +78,217 @@ export default function PostSubletScreen() {
         style={styles.keyboardView}
       >
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.label}>Title *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., Cozy 2-bedroom apartment"
-            placeholderTextColor={colors.textLight}
-            value={title}
-            onChangeText={setTitle}
-          />
+          <Text style={styles.heading}>Sublet</Text>
 
-          <Text style={styles.label}>Description</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Describe your sublet..."
-            placeholderTextColor={colors.textLight}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={4}
-          />
+          <View style={styles.radioContainer}>
+            <Text style={styles.radioLabel}>I am</Text>
+            <View style={styles.radioButtons}>
+              <TouchableOpacity
+                style={styles.radioOption}
+                onPress={() => setSubletType('offering')}
+              >
+                <View style={styles.radioCircle}>
+                  {subletType === 'offering' && <View style={styles.radioCircleSelected} />}
+                </View>
+                <Text style={styles.radioText}>offering</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.radioOption}
+                onPress={() => setSubletType('seeking')}
+              >
+                <View style={styles.radioCircle}>
+                  {subletType === 'seeking' && <View style={styles.radioCircleSelected} />}
+                </View>
+                <Text style={styles.radioText}>seeking</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.radioLabelEnd}>a sublet.</Text>
+          </View>
 
-          <Text style={styles.label}>City *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., Berlin"
-            placeholderTextColor={colors.textLight}
-            value={city}
-            onChangeText={setCity}
-          />
+          {subletType === 'offering' && (
+            <>
+              <Text style={styles.label}>Title *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Cozy 2-bedroom apartment"
+                placeholderTextColor={colors.textLight}
+                value={title}
+                onChangeText={setTitle}
+              />
 
-          <Text style={styles.label}>Monthly Rent (€)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., 800"
-            placeholderTextColor={colors.textLight}
-            value={rent}
-            onChangeText={setRent}
-            keyboardType="numeric"
-          />
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Describe your sublet..."
+                placeholderTextColor={colors.textLight}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={4}
+              />
 
-          <Text style={styles.label}>Available From</Text>
-          <TouchableOpacity 
-            style={styles.dateButton}
-            onPress={() => setShowFromPicker(true)}
-          >
-            <Text style={styles.dateButtonText}>{formatDate(availableFrom)}</Text>
-          </TouchableOpacity>
-          {showFromPicker && (
-            <DateTimePicker
-              value={availableFrom}
-              mode="date"
-              display="default"
-              onChange={(event, selectedDate) => {
-                setShowFromPicker(false);
-                if (selectedDate) setAvailableFrom(selectedDate);
-              }}
-            />
+              <Text style={styles.label}>City *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Berlin"
+                placeholderTextColor={colors.textLight}
+                value={city}
+                onChangeText={setCity}
+              />
+
+              <Text style={styles.label}>Monthly Rent (€)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., 800"
+                placeholderTextColor={colors.textLight}
+                value={rent}
+                onChangeText={setRent}
+                keyboardType="numeric"
+              />
+
+              <Text style={styles.label}>Available From</Text>
+              <TouchableOpacity 
+                style={styles.dateButton}
+                onPress={() => setShowFromPicker(true)}
+              >
+                <Text style={styles.dateButtonText}>{formatDate(availableFrom)}</Text>
+              </TouchableOpacity>
+              {showFromPicker && (
+                <DateTimePicker
+                  value={availableFrom}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowFromPicker(false);
+                    if (selectedDate) setAvailableFrom(selectedDate);
+                  }}
+                />
+              )}
+
+              <Text style={styles.label}>Available To</Text>
+              <TouchableOpacity 
+                style={styles.dateButton}
+                onPress={() => setShowToPicker(true)}
+              >
+                <Text style={styles.dateButtonText}>{formatDate(availableTo)}</Text>
+              </TouchableOpacity>
+              {showToPicker && (
+                <DateTimePicker
+                  value={availableTo}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowToPicker(false);
+                    if (selectedDate) setAvailableTo(selectedDate);
+                  }}
+                />
+              )}
+            </>
           )}
 
-          <Text style={styles.label}>Available To</Text>
-          <TouchableOpacity 
-            style={styles.dateButton}
-            onPress={() => setShowToPicker(true)}
-          >
-            <Text style={styles.dateButtonText}>{formatDate(availableTo)}</Text>
-          </TouchableOpacity>
-          {showToPicker && (
-            <DateTimePicker
-              value={availableTo}
-              mode="date"
-              display="default"
-              onChange={(event, selectedDate) => {
-                setShowToPicker(false);
-                if (selectedDate) setAvailableTo(selectedDate);
-              }}
-            />
+          {subletType === 'seeking' && (
+            <>
+              <Text style={styles.label}>Title *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Looking for 1-bedroom apartment"
+                placeholderTextColor={colors.textLight}
+                value={title}
+                onChangeText={setTitle}
+              />
+
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Describe what you're looking for..."
+                placeholderTextColor={colors.textLight}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={4}
+              />
+
+              <Text style={styles.label}>City *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Berlin"
+                placeholderTextColor={colors.textLight}
+                value={city}
+                onChangeText={setCity}
+              />
+
+              <Text style={styles.label}>Budget (€/month)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., 800"
+                placeholderTextColor={colors.textLight}
+                value={rent}
+                onChangeText={setRent}
+                keyboardType="numeric"
+              />
+
+              <Text style={styles.label}>Move-in Date</Text>
+              <TouchableOpacity 
+                style={styles.dateButton}
+                onPress={() => setShowFromPicker(true)}
+              >
+                <Text style={styles.dateButtonText}>{formatDate(availableFrom)}</Text>
+              </TouchableOpacity>
+              {showFromPicker && (
+                <DateTimePicker
+                  value={availableFrom}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowFromPicker(false);
+                    if (selectedDate) setAvailableFrom(selectedDate);
+                  }}
+                />
+              )}
+
+              <Text style={styles.label}>Move-out Date</Text>
+              <TouchableOpacity 
+                style={styles.dateButton}
+                onPress={() => setShowToPicker(true)}
+              >
+                <Text style={styles.dateButtonText}>{formatDate(availableTo)}</Text>
+              </TouchableOpacity>
+              {showToPicker && (
+                <DateTimePicker
+                  value={availableTo}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowToPicker(false);
+                    if (selectedDate) setAvailableTo(selectedDate);
+                  }}
+                />
+              )}
+            </>
           )}
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSubmit}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? 'Posting...' : 'Post Sublet'}
-            </Text>
-          </TouchableOpacity>
+          {!fieldsDisabled && (
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? 'Posting...' : 'Post'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
 
       <Modal
-        isVisible={!!error}
+        visible={!!error}
         title="Error"
         message={error}
         onClose={() => setError('')}
         confirmText="OK"
+        type="error"
       />
     </SafeAreaView>
   );
@@ -179,6 +306,57 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
+  },
+  heading: {
+    ...typography.h2,
+    color: colors.text,
+    marginBottom: spacing.lg,
+    fontWeight: '700',
+  },
+  radioContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: spacing.xl,
+  },
+  radioLabel: {
+    ...typography.body,
+    color: colors.text,
+    marginRight: spacing.sm,
+  },
+  radioLabelEnd: {
+    ...typography.body,
+    color: colors.text,
+    marginLeft: spacing.sm,
+  },
+  radioButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: spacing.sm,
+  },
+  radioCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.xs,
+  },
+  radioCircleSelected: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.primary,
+  },
+  radioText: {
+    ...typography.body,
+    color: colors.text,
   },
   label: {
     ...typography.bodySmall,
