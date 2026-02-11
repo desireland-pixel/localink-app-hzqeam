@@ -25,8 +25,8 @@ export default function PostSubletScreen() {
   const [cityRegistration, setCityRegistration] = useState<boolean | null>(null);
   const [rent, setRent] = useState('');
   const [deposit, setDeposit] = useState('');
-  const [availableFrom, setAvailableFrom] = useState(new Date());
-  const [availableTo, setAvailableTo] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+  const [availableFrom, setAvailableFrom] = useState<Date | null>(null);
+  const [availableTo, setAvailableTo] = useState<Date | null>(null);
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -136,6 +136,31 @@ export default function PostSubletScreen() {
       return;
     }
 
+    // Date validation
+    if (!availableFrom || !availableTo) {
+      setError('Please select both Available From and Available To dates');
+      return;
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const fromDate = new Date(availableFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    
+    const toDate = new Date(availableTo);
+    toDate.setHours(0, 0, 0, 0);
+    
+    if (fromDate < today) {
+      setError('Available From date cannot be older than today');
+      return;
+    }
+    
+    if (toDate <= fromDate) {
+      setError('Available To date must be after Available From date');
+      return;
+    }
+
     setLoading(true);
     setError('');
     
@@ -173,8 +198,8 @@ export default function PostSubletScreen() {
 
   const fieldsDisabled = subletType === null;
 
-  const availableFromDisplay = formatDateToDDMMYYYY(availableFrom);
-  const availableToDisplay = formatDateToDDMMYYYY(availableTo);
+  const availableFromDisplay = availableFrom ? formatDateToDDMMYYYY(availableFrom) : 'dd.mm.yyyy';
+  const availableToDisplay = availableTo ? formatDateToDDMMYYYY(availableTo) : 'dd.mm.yyyy';
 
   const consentText = subletType === 'offering' 
     ? "Subletting may require prior landlord consent under § 540 and § 553 BGB. Users are solely responsible for ensuring compliance with their rental agreement and applicable laws."
@@ -267,13 +292,14 @@ export default function PostSubletScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowFromPicker(true)}
               >
-                <Text style={[styles.dateButtonText, styles.dateButtonPlaceholder]}>{availableFromDisplay}</Text>
+                <Text style={[styles.dateButtonText, !availableFrom && styles.dateButtonPlaceholder]}>{availableFromDisplay}</Text>
               </TouchableOpacity>
               {showFromPicker && (
                 <DateTimePicker
-                  value={availableFrom}
+                  value={availableFrom || new Date()}
                   mode="date"
                   display="default"
+                  minimumDate={new Date()}
                   onChange={(event, selectedDate) => {
                     setShowFromPicker(false);
                     if (selectedDate) setAvailableFrom(selectedDate);
@@ -286,13 +312,14 @@ export default function PostSubletScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowToPicker(true)}
               >
-                <Text style={[styles.dateButtonText, styles.dateButtonPlaceholder]}>{availableToDisplay}</Text>
+                <Text style={[styles.dateButtonText, !availableTo && styles.dateButtonPlaceholder]}>{availableToDisplay}</Text>
               </TouchableOpacity>
               {showToPicker && (
                 <DateTimePicker
-                  value={availableTo}
+                  value={availableTo || availableFrom || new Date()}
                   mode="date"
                   display="default"
+                  minimumDate={availableFrom || new Date()}
                   onChange={(event, selectedDate) => {
                     setShowToPicker(false);
                     if (selectedDate) setAvailableTo(selectedDate);
@@ -430,13 +457,14 @@ export default function PostSubletScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowFromPicker(true)}
               >
-                <Text style={[styles.dateButtonText, styles.dateButtonPlaceholder]}>{availableFromDisplay}</Text>
+                <Text style={[styles.dateButtonText, !availableFrom && styles.dateButtonPlaceholder]}>{availableFromDisplay}</Text>
               </TouchableOpacity>
               {showFromPicker && (
                 <DateTimePicker
-                  value={availableFrom}
+                  value={availableFrom || new Date()}
                   mode="date"
                   display="default"
+                  minimumDate={new Date()}
                   onChange={(event, selectedDate) => {
                     setShowFromPicker(false);
                     if (selectedDate) setAvailableFrom(selectedDate);
@@ -449,13 +477,14 @@ export default function PostSubletScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowToPicker(true)}
               >
-                <Text style={[styles.dateButtonText, styles.dateButtonPlaceholder]}>{availableToDisplay}</Text>
+                <Text style={[styles.dateButtonText, !availableTo && styles.dateButtonPlaceholder]}>{availableToDisplay}</Text>
               </TouchableOpacity>
               {showToPicker && (
                 <DateTimePicker
-                  value={availableTo}
+                  value={availableTo || availableFrom || new Date()}
                   mode="date"
                   display="default"
+                  minimumDate={availableFrom || new Date()}
                   onChange={(event, selectedDate) => {
                     setShowToPicker(false);
                     if (selectedDate) setAvailableTo(selectedDate);

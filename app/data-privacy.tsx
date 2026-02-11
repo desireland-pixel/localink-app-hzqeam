@@ -6,7 +6,7 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 
 export default function DataPrivacyScreen() {
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
         <Text style={styles.title}>Data & Privacy</Text>
 

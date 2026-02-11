@@ -291,6 +291,13 @@ export function searchCities(query: string, maxResults: number = 10): string[] {
 export function formatDateToDDMMYYYY(date: Date | string): string {
   if (!date) return '';
   const d = typeof date === 'string' ? new Date(date) : date;
+  
+  // Check if date is invalid
+  if (isNaN(d.getTime())) {
+    console.warn('formatDateToDDMMYYYY: Invalid date', date);
+    return '';
+  }
+  
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();

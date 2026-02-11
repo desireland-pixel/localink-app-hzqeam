@@ -20,7 +20,7 @@ export default function NotificationsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
         <Text style={styles.title}>Notifications</Text>
 

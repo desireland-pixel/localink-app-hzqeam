@@ -35,9 +35,14 @@ export default function SubletFiltersScreen() {
     if (maxRent) params.append('maxRent', maxRent);
     if (cityRegistration !== null) params.append('cityRegistrationRequired', cityRegistration ? 'yes' : 'no');
     
+    const filterString = params.toString();
+    console.log('[SubletFiltersScreen] Filter string:', filterString);
+    
     // Navigate back with filters
-    router.back();
-    router.setParams({ filters: params.toString() });
+    router.push({
+      pathname: '/(tabs)/sublet',
+      params: { filters: filterString }
+    });
   };
 
   const handleReset = () => {

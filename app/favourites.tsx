@@ -33,7 +33,7 @@ export default function FavouritesScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState<'sublet' | 'travel' | 'carry'>('sublet');
+  const [selectedTab, setSelectedTab] = useState<'sublet' | 'travel'>('sublet');
   const [favorites, setFavorites] = useState<FavoritePost[]>([]);
   const [error, setError] = useState('');
 
@@ -110,14 +110,6 @@ export default function FavouritesScreen() {
         >
           <Text style={[styles.tabText, selectedTab === 'travel' && styles.tabTextActive]}>
             Travel
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, selectedTab === 'carry' && styles.tabActive]}
-          onPress={() => setSelectedTab('carry')}
-        >
-          <Text style={[styles.tabText, selectedTab === 'carry' && styles.tabTextActive]}>
-            Carry
           </Text>
         </TouchableOpacity>
       </View>

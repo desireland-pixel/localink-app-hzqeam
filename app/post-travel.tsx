@@ -41,7 +41,7 @@ export default function PostTravelScreen() {
   const [travelMode, setTravelMode] = useState<TravelMode>(null);
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');
-  const [travelDate, setTravelDate] = useState(new Date());
+  const [travelDate, setTravelDate] = useState<Date | null>(null);
   const [travelDateTo, setTravelDateTo] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDateToPicker, setShowDateToPicker] = useState(false);
@@ -81,19 +81,33 @@ export default function PostTravelScreen() {
       return;
     }
 
+    // Date validation
+    if (!travelDate) {
+      setError('Please select a travel date');
+      return;
+    }
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    if (travelDate < today) {
-      setError('Travel date must be in the future');
+    
+    const dateCheck = new Date(travelDate);
+    dateCheck.setHours(0, 0, 0, 0);
+    
+    if (dateCheck < today) {
+      setError('Travel date cannot be older than today');
       return;
     }
 
-    // Validate Date (To) is not before Date (From)
-    if (travelDateTo) {
-      const fromTime = travelDate.getTime();
-      const toTime = travelDateTo.getTime();
-      if (toTime < fromTime) {
-        setError('End date cannot be before start date');
+    // Validate Date (To) is not before Date (From) for seeking companionship
+    if (travelMode === 'seeking-companionship' && travelDateTo) {
+      const fromDate = new Date(travelDate);
+      fromDate.setHours(0, 0, 0, 0);
+      
+      const toDate = new Date(travelDateTo);
+      toDate.setHours(0, 0, 0, 0);
+      
+      if (toDate <= fromDate) {
+        setError('End date must be after start date');
         return;
       }
     }
@@ -139,11 +153,8 @@ export default function PostTravelScreen() {
     }
   };
 
-  const travelDateDisplay = formatDateToDDMMYYYY(travelDate);
-  const travelDateToDisplay = travelDateTo ? formatDateToDDMMYYYY(travelDateTo) : '';
-
-  const minDate = new Date();
-  minDate.setHours(0, 0, 0, 0);
+  const travelDateDisplay = travelDate ? formatDateToDDMMYYYY(travelDate) : 'dd.mm.yyyy';
+  const travelDateToDisplay = travelDateTo ? formatDateToDDMMYYYY(travelDateTo) : 'dd.mm.yyyy';
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -250,14 +261,14 @@ export default function PostTravelScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowDatePicker(true)}
               >
-                <Text style={[styles.dateButtonText, styles.dateButtonPlaceholder]}>{travelDateDisplay}</Text>
+                <Text style={[styles.dateButtonText, !travelDate && styles.dateButtonPlaceholder]}>{travelDateDisplay}</Text>
               </TouchableOpacity>
               {showDatePicker && (
                 <DateTimePicker
-                  value={travelDate}
+                  value={travelDate || new Date()}
                   mode="date"
                   display="default"
-                  minimumDate={minDate}
+                  minimumDate={new Date()}
                   onChange={(event, selectedDate) => {
                     setShowDatePicker(false);
                     if (selectedDate) setTravelDate(selectedDate);
@@ -365,14 +376,14 @@ export default function PostTravelScreen() {
                     style={styles.dateButton}
                     onPress={() => setShowDatePicker(true)}
                   >
-                    <Text style={[styles.dateButtonText, styles.dateButtonPlaceholder]}>{travelDateDisplay}</Text>
+                    <Text style={[styles.dateButtonText, !travelDate && styles.dateButtonPlaceholder]}>{travelDateDisplay}</Text>
                   </TouchableOpacity>
                   {showDatePicker && (
                     <DateTimePicker
-                      value={travelDate}
+                      value={travelDate || new Date()}
                       mode="date"
                       display="default"
-                      minimumDate={minDate}
+                      minimumDate={new Date()}
                       onChange={(event, selectedDate) => {
                         setShowDatePicker(false);
                         if (selectedDate) setTravelDate(selectedDate);
@@ -388,16 +399,16 @@ export default function PostTravelScreen() {
                     style={styles.dateButton}
                     onPress={() => setShowDateToPicker(true)}
                   >
-                    <Text style={[styles.dateButtonText, !travelDateToDisplay && styles.dateButtonPlaceholder]}>
-                      {travelDateToDisplay || 'dd.mm.yyyy'}
+                    <Text style={[styles.dateButtonText, !travelDateTo && styles.dateButtonPlaceholder]}>
+                      {travelDateToDisplay}
                     </Text>
                   </TouchableOpacity>
                   {showDateToPicker && (
                     <DateTimePicker
-                      value={travelDateTo || travelDate}
+                      value={travelDateTo || travelDate || new Date()}
                       mode="date"
                       display="default"
-                      minimumDate={travelDate}
+                      minimumDate={travelDate || new Date()}
                       onChange={(event, selectedDate) => {
                         setShowDateToPicker(false);
                         if (selectedDate) setTravelDateTo(selectedDate);
@@ -511,14 +522,14 @@ export default function PostTravelScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowDatePicker(true)}
               >
-                <Text style={[styles.dateButtonText, styles.dateButtonPlaceholder]}>{travelDateDisplay}</Text>
+                <Text style={[styles.dateButtonText, !travelDate && styles.dateButtonPlaceholder]}>{travelDateDisplay}</Text>
               </TouchableOpacity>
               {showDatePicker && (
                 <DateTimePicker
-                  value={travelDate}
+                  value={travelDate || new Date()}
                   mode="date"
                   display="default"
-                  minimumDate={minDate}
+                  minimumDate={new Date()}
                   onChange={(event, selectedDate) => {
                     setShowDatePicker(false);
                     if (selectedDate) setTravelDate(selectedDate);

@@ -57,7 +57,7 @@ export default function FAQsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
         <Text style={styles.title}>FAQs</Text>
 

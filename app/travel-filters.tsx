@@ -31,9 +31,14 @@ export default function TravelFiltersScreen() {
     if (dateStart) params.append('travelDateFrom', dateStart.toISOString().split('T')[0]);
     if (dateEnd) params.append('travelDateTo', dateEnd.toISOString().split('T')[0]);
     
+    const filterString = params.toString();
+    console.log('[TravelFiltersScreen] Filter string:', filterString);
+    
     // Navigate back with filters
-    router.back();
-    router.setParams({ filters: params.toString() });
+    router.push({
+      pathname: '/(tabs)/travel',
+      params: { filters: filterString }
+    });
   };
 
   const handleReset = () => {

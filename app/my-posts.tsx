@@ -29,7 +29,7 @@ export default function MyPostsScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState<'sublet' | 'travel' | 'carry'>('sublet');
+  const [selectedTab, setSelectedTab] = useState<'sublet' | 'travel'>('sublet');
   const [posts, setPosts] = useState<Post[]>([]);
   const [error, setError] = useState('');
   const [closingPostId, setClosingPostId] = useState<string | null>(null);
@@ -49,8 +49,6 @@ export default function MyPostsScreen() {
         data = await authenticatedGet<Post[]>('/api/my/sublets');
       } else if (selectedTab === 'travel') {
         data = await authenticatedGet<Post[]>('/api/my/travel-posts');
-      } else if (selectedTab === 'carry') {
-        data = await authenticatedGet<Post[]>('/api/my/carry-posts');
       }
       console.log('MyPostsScreen: Fetched posts', data);
       setPosts(data);
@@ -77,8 +75,6 @@ export default function MyPostsScreen() {
         await authenticatedPatch(`/api/sublets/${postId}/close`, {});
       } else if (selectedTab === 'travel') {
         await authenticatedPatch(`/api/travel-posts/${postId}/close`, {});
-      } else if (selectedTab === 'carry') {
-        await authenticatedPatch(`/api/carry-posts/${postId}/close`, {});
       }
       console.log('MyPostsScreen: Post closed successfully');
       await fetchPosts();
@@ -96,8 +92,6 @@ export default function MyPostsScreen() {
       router.push(`/sublet/${postId}`);
     } else if (selectedTab === 'travel') {
       router.push(`/travel/${postId}`);
-    } else if (selectedTab === 'carry') {
-      router.push(`/carry/${postId}`);
     }
   };
 
@@ -107,8 +101,6 @@ export default function MyPostsScreen() {
       router.push(`/edit-sublet/${postId}`);
     } else if (selectedTab === 'travel') {
       router.push(`/edit-travel/${postId}`);
-    } else if (selectedTab === 'carry') {
-      router.push(`/edit-carry/${postId}`);
     }
   };
 
@@ -129,14 +121,6 @@ export default function MyPostsScreen() {
         >
           <Text style={[styles.tabText, selectedTab === 'travel' && styles.tabTextActive]}>
             Travel
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, selectedTab === 'carry' && styles.tabActive]}
-          onPress={() => setSelectedTab('carry')}
-        >
-          <Text style={[styles.tabText, selectedTab === 'carry' && styles.tabTextActive]}>
-            Carry
           </Text>
         </TouchableOpacity>
       </View>

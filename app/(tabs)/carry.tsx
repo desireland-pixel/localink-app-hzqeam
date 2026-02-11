@@ -101,8 +101,7 @@ export default function CommunityScreen() {
           style={styles.iconButton}
           onPress={() => {
             console.log('CommunityScreen: Navigate to post community topic');
-            // For now, show a simple message that this feature is coming soon
-            // TODO: Create /post-community-topic page
+            router.push('/post-community-topic');
           }}
         >
           <IconSymbol
@@ -152,8 +151,7 @@ export default function CommunityScreen() {
             style={styles.requestButton}
             onPress={() => {
               console.log('CommunityScreen: Navigate to post community topic');
-              // For now, show a simple message that this feature is coming soon
-              // TODO: Create /post-community-topic page
+              router.push('/post-community-topic');
             }}
           >
             <Text style={styles.requestButtonText}>Start Discussion</Text>
