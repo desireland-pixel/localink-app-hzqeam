@@ -33,8 +33,9 @@ export default function PostSubletScreen() {
   const [error, setError] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
 
-  console.log('PostSubletScreen: Rendering', { subletType, imageCount: imageUrls.length });
+  console.log('PostSubletScreen: Rendering', { subletType, imageCount: imageUrls.length, consentChecked });
 
   const handlePickImages = async () => {
     console.log('PostSubletScreen: Pick images');
@@ -111,7 +112,7 @@ export default function PostSubletScreen() {
   };
 
   const handleSubmit = async () => {
-    console.log('PostSubletScreen: Submit sublet', { subletType, title, city, availableFrom, availableTo });
+    console.log('PostSubletScreen: Submit sublet', { subletType, title, city, availableFrom, availableTo, consentChecked });
     
     if (!subletType) {
       setError('Please select if you are offering or seeking a sublet');
@@ -124,10 +125,15 @@ export default function PostSubletScreen() {
     }
 
     if (subletType === 'offering') {
-      if (!address.trim() || !pincode.trim() || cityRegistration === null) {
-        setError('Please fill in address, pin code, and city registration');
+      if (!address.trim() || !pincode.trim() || cityRegistration === null || !rent.trim()) {
+        setError('Please fill in all required fields');
         return;
       }
+    }
+
+    if (!consentChecked) {
+      setError('Please accept the consent information');
+      return;
     }
 
     setLoading(true);
@@ -169,6 +175,10 @@ export default function PostSubletScreen() {
 
   const availableFromDisplay = formatDateToDDMMYYYY(availableFrom);
   const availableToDisplay = formatDateToDDMMYYYY(availableTo);
+
+  const consentText = subletType === 'offering' 
+    ? "Subletting may require prior landlord consent under § 540 and § 553 BGB. Users are solely responsible for ensuring compliance with their rental agreement and applicable laws."
+    : "Entering into a subletting arrangement is subject to § 540 and § 553 BGB and the terms of the primary lease. Users are solely responsible for verifying legal permissibility.";
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -252,7 +262,65 @@ export default function PostSubletScreen() {
                 keyboardType="numeric"
               />
 
-              <Text style={styles.label}>City registration *</Text>
+              <Text style={styles.label}>Available From *</Text>
+              <TouchableOpacity 
+                style={styles.dateButton}
+                onPress={() => setShowFromPicker(true)}
+              >
+                <Text style={styles.dateButtonText}>{availableFromDisplay}</Text>
+              </TouchableOpacity>
+              {showFromPicker && (
+                <DateTimePicker
+                  value={availableFrom}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowFromPicker(false);
+                    if (selectedDate) setAvailableFrom(selectedDate);
+                  }}
+                />
+              )}
+
+              <Text style={styles.label}>Available To *</Text>
+              <TouchableOpacity 
+                style={styles.dateButton}
+                onPress={() => setShowToPicker(true)}
+              >
+                <Text style={styles.dateButtonText}>{availableToDisplay}</Text>
+              </TouchableOpacity>
+              {showToPicker && (
+                <DateTimePicker
+                  value={availableTo}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowToPicker(false);
+                    if (selectedDate) setAvailableTo(selectedDate);
+                  }}
+                />
+              )}
+
+              <Text style={styles.label}>Monthly Rent (€) *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., 800"
+                placeholderTextColor={colors.textLight}
+                value={rent}
+                onChangeText={setRent}
+                keyboardType="numeric"
+              />
+
+              <Text style={styles.label}>Deposit (€)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., 1600"
+                placeholderTextColor={colors.textLight}
+                value={deposit}
+                onChangeText={setDeposit}
+                keyboardType="numeric"
+              />
+
+              <Text style={styles.label}>City Registration *</Text>
               <View style={styles.radioButtons}>
                 <TouchableOpacity
                   style={styles.radioOption}
@@ -274,26 +342,6 @@ export default function PostSubletScreen() {
                   <Text style={styles.radioText}>No</Text>
                 </TouchableOpacity>
               </View>
-
-              <Text style={styles.label}>Monthly Rent (€)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., 800"
-                placeholderTextColor={colors.textLight}
-                value={rent}
-                onChangeText={setRent}
-                keyboardType="numeric"
-              />
-
-              <Text style={styles.label}>Deposit (€)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., 1600"
-                placeholderTextColor={colors.textLight}
-                value={deposit}
-                onChangeText={setDeposit}
-                keyboardType="numeric"
-              />
 
               <Text style={styles.label}>Photos (Max 5)</Text>
               <View style={styles.imagesContainer}>
@@ -336,43 +384,15 @@ export default function PostSubletScreen() {
                 )}
               </View>
 
-              <Text style={styles.label}>Available From</Text>
-              <TouchableOpacity 
-                style={styles.dateButton}
-                onPress={() => setShowFromPicker(true)}
+              <TouchableOpacity
+                style={styles.consentContainer}
+                onPress={() => setConsentChecked(!consentChecked)}
               >
-                <Text style={styles.dateButtonText}>{availableFromDisplay}</Text>
+                <View style={styles.consentCheckbox}>
+                  {consentChecked && <View style={styles.consentCheckboxChecked} />}
+                </View>
+                <Text style={styles.consentText}>{consentText}</Text>
               </TouchableOpacity>
-              {showFromPicker && (
-                <DateTimePicker
-                  value={availableFrom}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setShowFromPicker(false);
-                    if (selectedDate) setAvailableFrom(selectedDate);
-                  }}
-                />
-              )}
-
-              <Text style={styles.label}>Available To</Text>
-              <TouchableOpacity 
-                style={styles.dateButton}
-                onPress={() => setShowToPicker(true)}
-              >
-                <Text style={styles.dateButtonText}>{availableToDisplay}</Text>
-              </TouchableOpacity>
-              {showToPicker && (
-                <DateTimePicker
-                  value={availableTo}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setShowToPicker(false);
-                    if (selectedDate) setAvailableTo(selectedDate);
-                  }}
-                />
-              )}
             </>
           )}
 
@@ -405,17 +425,7 @@ export default function PostSubletScreen() {
                 placeholder="Search city..."
               />
 
-              <Text style={styles.label}>Budget (€/month)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., 800"
-                placeholderTextColor={colors.textLight}
-                value={rent}
-                onChangeText={setRent}
-                keyboardType="numeric"
-              />
-
-              <Text style={styles.label}>Move-in Date</Text>
+              <Text style={styles.label}>Move-in Date *</Text>
               <TouchableOpacity 
                 style={styles.dateButton}
                 onPress={() => setShowFromPicker(true)}
@@ -434,7 +444,7 @@ export default function PostSubletScreen() {
                 />
               )}
 
-              <Text style={styles.label}>Move-out Date</Text>
+              <Text style={styles.label}>Move-out Date *</Text>
               <TouchableOpacity 
                 style={styles.dateButton}
                 onPress={() => setShowToPicker(true)}
@@ -452,14 +462,34 @@ export default function PostSubletScreen() {
                   }}
                 />
               )}
+
+              <Text style={styles.label}>Budget (€/month)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., 800"
+                placeholderTextColor={colors.textLight}
+                value={rent}
+                onChangeText={setRent}
+                keyboardType="numeric"
+              />
+
+              <TouchableOpacity
+                style={styles.consentContainer}
+                onPress={() => setConsentChecked(!consentChecked)}
+              >
+                <View style={styles.consentCheckbox}>
+                  {consentChecked && <View style={styles.consentCheckboxChecked} />}
+                </View>
+                <Text style={styles.consentText}>{consentText}</Text>
+              </TouchableOpacity>
             </>
           )}
 
           {!fieldsDisabled && (
             <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
+              style={[styles.button, (loading || !consentChecked) && styles.buttonDisabled]}
               onPress={handleSubmit}
-              disabled={loading}
+              disabled={loading || !consentChecked}
             >
               <Text style={styles.buttonText}>
                 {loading ? 'Posting...' : 'Post'}
@@ -577,16 +607,45 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
   },
+  consentContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: spacing.xl,
+    marginBottom: spacing.md,
+  },
+  consentCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+    marginTop: 2,
+  },
+  consentCheckboxChecked: {
+    width: 14,
+    height: 14,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
+  },
+  consentText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    flex: 1,
+    lineHeight: 20,
+  },
   button: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
-    marginTop: spacing.xl,
+    marginTop: spacing.md,
     marginBottom: spacing.xl,
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.4,
   },
   buttonText: {
     ...typography.button,

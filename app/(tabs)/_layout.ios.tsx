@@ -58,11 +58,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="carry"
         options={{
-          title: 'Carry',
+          title: 'Community',
           tabBarIcon: ({ color }) => (
             <IconSymbol
-              ios_icon_name="cube.box.fill"
-              android_material_icon_name="inventory"
+              ios_icon_name="person.3.fill"
+              android_material_icon_name="group"
               size={26}
               color={color}
             />

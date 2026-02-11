@@ -20,7 +20,7 @@ interface Conversation {
     senderId: string;
     createdAt: string;
   };
-  otherParticipant: {
+  otherParticipant?: {
     id: string;
     name: string;
   };
@@ -69,11 +69,21 @@ export default function InboxScreen() {
     const diffDays = Math.floor(diffMs / 86400000);
 
     if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 60) {
+      const minsText = `${diffMins}m ago`;
+      return minsText;
+    }
+    if (diffHours < 24) {
+      const hoursText = `${diffHours}h ago`;
+      return hoursText;
+    }
+    if (diffDays < 7) {
+      const daysText = `${diffDays}d ago`;
+      return daysText;
+    }
     
-    return date.toLocaleDateString();
+    const dateText = date.toLocaleDateString();
+    return dateText;
   };
 
   return (
@@ -113,6 +123,8 @@ export default function InboxScreen() {
             const lastMessagePreview = conversation.lastMessage?.content || 'No messages yet';
             const isLastMessageFromMe = conversation.lastMessage?.senderId === user?.id;
             const lastMessageTime = conversation.lastMessage?.createdAt || conversation.createdAt;
+            const participantName = conversation.otherParticipant?.name || 'Unknown User';
+            const timeText = timeDisplay(lastMessageTime);
             
             return (
               <TouchableOpacity
@@ -122,10 +134,10 @@ export default function InboxScreen() {
               >
                 <View style={styles.conversationHeader}>
                   <Text style={styles.participantName}>
-                    {conversation.otherParticipant.name}
+                    {participantName}
                   </Text>
                   <Text style={styles.timestamp}>
-                    {timeDisplay(lastMessageTime)}
+                    {timeText}
                   </Text>
                 </View>
                 <Text style={styles.lastMessage} numberOfLines={2}>

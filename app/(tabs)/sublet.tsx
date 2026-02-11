@@ -204,11 +204,6 @@ export default function SubletScreen() {
                         />
                       </View>
                     )}
-                    <View style={styles.typeTagContainer}>
-                      <View style={styles.typeTag}>
-                        <Text style={styles.typeTagText}>{label}</Text>
-                      </View>
-                    </View>
                   </View>
                   <View style={styles.cardTextContent}>
                     <View style={styles.cardHeader}>
@@ -237,6 +232,11 @@ export default function SubletScreen() {
                     {sublet.rent && (
                       <Text style={styles.cardRent}>€{sublet.rent}/month</Text>
                     )}
+                    <View style={styles.typeTagContainer}>
+                      <View style={styles.typeTag}>
+                        <Text style={styles.typeTagText}>{label}</Text>
+                      </View>
+                    </View>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -337,7 +337,6 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: 80,
     height: 80,
-    position: 'relative',
   },
   cardImage: {
     width: 80,
@@ -351,25 +350,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  typeTagContainer: {
-    position: 'absolute',
-    bottom: 4,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  typeTag: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-  },
-  typeTagText: {
-    ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '600',
   },
   cardTextContent: {
     flex: 1,
@@ -411,6 +391,23 @@ const styles = StyleSheet.create({
   cardRent: {
     ...typography.body,
     color: colors.primary,
+    fontWeight: '600',
+    marginBottom: spacing.sm,
+  },
+  typeTagContainer: {
+    flexDirection: 'row',
+    marginTop: spacing.xs,
+  },
+  typeTag: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  typeTagText: {
+    ...typography.bodySmall,
+    color: '#FFFFFF',
+    fontSize: 10,
     fontWeight: '600',
   },
 });

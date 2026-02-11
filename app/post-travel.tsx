@@ -9,7 +9,7 @@ import Modal from '@/components/ui/Modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDateToDDMMYYYY, dateToISOString } from '@/utils/cities';
 
-type TravelMode = 'offering-companionship' | 'seeking-companionship' | 'seeking-ally' | null;
+type TravelMode = 'offering' | 'seeking-companionship' | 'seeking-ally' | null;
 
 const TRAVEL_CITIES = [
   'Germany',
@@ -109,7 +109,7 @@ export default function PostTravelScreen() {
         travelDate: dateToISOString(travelDate),
       };
 
-      if (travelMode === 'offering-companionship') {
+      if (travelMode === 'offering') {
         postData.type = 'offering';
         postData.canOfferCompanionship = canOfferCompanionship;
         postData.canCarryItems = canCarryItems;
@@ -157,10 +157,10 @@ export default function PostTravelScreen() {
             <View style={styles.radioButtons}>
               <TouchableOpacity
                 style={styles.radioOption}
-                onPress={() => setTravelMode('offering-companionship')}
+                onPress={() => setTravelMode('offering')}
               >
                 <View style={styles.radioCircle}>
-                  {travelMode === 'offering-companionship' && <View style={styles.radioCircleSelected} />}
+                  {travelMode === 'offering' && <View style={styles.radioCircleSelected} />}
                 </View>
                 <Text style={styles.radioText}>offering a travel companionship/ an ally</Text>
               </TouchableOpacity>
@@ -192,7 +192,7 @@ export default function PostTravelScreen() {
             </View>
           </View>
 
-          {travelMode === 'offering-companionship' && (
+          {travelMode === 'offering' && (
             <>
               <Text style={styles.label}>From *</Text>
               <TouchableOpacity 
