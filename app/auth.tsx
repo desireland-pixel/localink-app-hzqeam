@@ -154,7 +154,7 @@ export default function AuthScreen() {
           <View style={styles.content}>
             <View style={styles.header}>
               <Image
-                source={require('@/assets/images/3bb1fe19-9c66-4234-b9b2-a8f7aeb399e6.png')}
+                source={require('@/assets/images/b0a5391b-ff09-4075-b22c-2e47d926ebe2.png')}
                 style={styles.logo}
                 resizeMode="contain"
               />
@@ -298,13 +298,11 @@ export default function AuthScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.socialButton, styles.appleButton]}
+                  style={styles.socialButton}
                   onPress={() => handleSocialAuth("apple")}
                   disabled={loading}
                 >
-                  <Text style={[styles.socialButtonText, styles.appleButtonText]}>
-                    Continue with Apple
-                  </Text>
+                  <Text style={styles.socialButtonText}>Continue with Apple</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -455,12 +453,5 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
     fontWeight: "500",
-  },
-  appleButton: {
-    backgroundColor: "#000",
-    borderColor: "#000",
-  },
-  appleButtonText: {
-    color: "#fff",
   },
 });

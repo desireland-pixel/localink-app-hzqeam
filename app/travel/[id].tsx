@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -12,6 +12,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 
 interface TravelPost {
   id: string;
+  shortId?: string;
   userId: string;
   title?: string;
   description?: string;
@@ -114,6 +115,7 @@ export default function TravelDetailsScreen() {
   const title = travelPost.title || `${getTypeLabel(travelPost.type)} from ${travelPost.fromCity} to ${travelPost.toCity}`;
   const travelDateDisplay = formatDateToDDMMYYYY(travelPost.travelDate);
   const travelDateToDisplay = travelPost.travelDateTo ? formatDateToDDMMYYYY(travelPost.travelDateTo) : null;
+  const displayId = travelPost.shortId || travelPost.id.substring(0, 8);
 
   const handleEdit = () => {
     console.log('TravelDetailsScreen: Edit post', id);
@@ -141,6 +143,11 @@ export default function TravelDetailsScreen() {
           
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{getTypeLabel(travelPost.type)}</Text>
+          </View>
+
+          <View style={styles.postIdContainer}>
+            <Text style={styles.postIdLabel}>Post ID:</Text>
+            <Text style={styles.postIdValue}>{displayId}</Text>
           </View>
 
           <View style={styles.routeContainer}>
@@ -274,6 +281,23 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  postIdContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  postIdLabel: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  postIdValue: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontSize: 14,
   },
   routeContainer: {
     marginBottom: spacing.md,

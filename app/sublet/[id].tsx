@@ -12,6 +12,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 
 interface Sublet {
   id: string;
+  shortId?: string;
   userId: string;
   title: string;
   description?: string;
@@ -111,8 +112,13 @@ export default function SubletDetailsScreen() {
 
   const handleEdit = () => {
     console.log('SubletDetailsScreen: Edit post', id);
-    // TODO: Navigate to edit screen
-    router.push(`/edit-sublet/${id}`);
+    router.push({
+      pathname: '/post-sublet',
+      params: {
+        editId: id,
+        editData: JSON.stringify(sublet),
+      },
+    });
   };
 
   if (loading) {
@@ -140,6 +146,7 @@ export default function SubletDetailsScreen() {
   const isOwnPost = user?.id === sublet.userId;
   const hasImage = sublet.imageUrls && sublet.imageUrls.length > 0;
   const typeLabel = sublet.type === 'offering' ? 'Offering' : 'Seeking';
+  const displayId = sublet.shortId || sublet.id.substring(0, 8);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -190,7 +197,7 @@ export default function SubletDetailsScreen() {
         
         <View style={styles.postIdContainer}>
           <Text style={styles.postIdLabel}>Post ID:</Text>
-          <Text style={styles.postIdValue}>{sublet.id}</Text>
+          <Text style={styles.postIdValue}>{displayId}</Text>
         </View>
         
         {sublet.description && (
@@ -228,10 +235,10 @@ export default function SubletDetailsScreen() {
           )}
 
           {sublet.cityRegistrationRequired !== undefined && (
-            <View style={styles.infoRow}>
+            <View style={[styles.infoRow, styles.infoRowLast]}>
               <Text style={styles.infoLabel}>City Registration</Text>
               <Text style={styles.infoValue}>
-                {sublet.cityRegistrationRequired ? 'Required' : 'Not Required'}
+                {sublet.cityRegistrationRequired ? 'Yes' : 'No'}
               </Text>
             </View>
           )}
@@ -373,6 +380,7 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textLight,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontSize: 14,
   },
   description: {
     ...typography.body,
@@ -397,6 +405,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  infoRowLast: {
+    borderBottomWidth: 0,
   },
   infoLabel: {
     ...typography.body,

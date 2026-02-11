@@ -107,7 +107,9 @@ export default function SubletFiltersScreen() {
               />
             )}
           </View>
-          <View style={styles.separator} />
+          <View style={styles.separatorContainer}>
+            <Text style={styles.separatorText}>-</Text>
+          </View>
           <View style={styles.halfWidth}>
             <TouchableOpacity 
               style={styles.dateButton}
@@ -143,7 +145,9 @@ export default function SubletFiltersScreen() {
               keyboardType="numeric"
             />
           </View>
-          <View style={styles.separator} />
+          <View style={styles.separatorContainer}>
+            <Text style={styles.separatorText}>-</Text>
+          </View>
           <View style={styles.halfWidth}>
             <TextInput
               style={styles.input}
@@ -250,8 +254,15 @@ const styles = StyleSheet.create({
   halfWidth: {
     flex: 1,
   },
-  separator: {
-    width: spacing.md,
+  separatorContainer: {
+    width: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  separatorText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontWeight: '600',
   },
   dateButton: {
     backgroundColor: colors.card,
