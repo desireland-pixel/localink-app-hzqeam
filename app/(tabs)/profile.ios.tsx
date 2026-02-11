@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useRouter } from 'expo-router';
@@ -13,17 +13,17 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [showSignOutModal, setShowSignOutModal] = useState(false);
 
-  console.log('[ProfileScreen iOS] Rendering, user:', user?.id, 'profile:', profile?.name);
+  console.log('[ProfileScreen] Rendering, user:', user?.id, 'profile:', profile?.name);
 
   const handleSignOut = async () => {
-    console.log('[ProfileScreen iOS] Signing out');
+    console.log('[ProfileScreen] Signing out');
     setShowSignOutModal(false);
     try {
       await signOut();
-      console.log('[ProfileScreen iOS] Sign out successful, redirecting to auth');
+      console.log('[ProfileScreen] Sign out successful, redirecting to auth');
       router.replace('/auth');
     } catch (error) {
-      console.error('[ProfileScreen iOS] Sign out error:', error);
+      console.error('[ProfileScreen] Sign out error:', error);
     }
   };
 
@@ -65,8 +65,8 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              console.log('[ProfileScreen iOS] Navigate to personal details');
-              // TODO: Navigate to personal details screen
+              console.log('[ProfileScreen] Navigate to personal details');
+              router.push('/personal-details');
             }}
           >
             <View style={styles.menuItemLeft}>
@@ -110,7 +110,7 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              console.log('[ProfileScreen iOS] Navigate to favourites');
+              console.log('[ProfileScreen] Navigate to favourites');
               router.push('/favourites');
             }}
           >
@@ -134,8 +134,8 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              console.log('[ProfileScreen iOS] Navigate to notifications');
-              // TODO: Navigate to notifications screen
+              console.log('[ProfileScreen] Navigate to notifications');
+              router.push('/notifications');
             }}
           >
             <View style={styles.menuItemLeft}>
@@ -158,8 +158,8 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              console.log('[ProfileScreen iOS] Navigate to FAQs');
-              // TODO: Navigate to FAQs screen
+              console.log('[ProfileScreen] Navigate to FAQs');
+              router.push('/faqs');
             }}
           >
             <View style={styles.menuItemLeft}>
@@ -182,8 +182,8 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              console.log('[ProfileScreen iOS] Navigate to data & privacy');
-              // TODO: Navigate to data & privacy screen
+              console.log('[ProfileScreen] Navigate to data & privacy');
+              router.push('/data-privacy');
             }}
           >
             <View style={styles.menuItemLeft}>
@@ -246,7 +246,7 @@ export default function ProfileScreen() {
         onClose={() => setShowSignOutModal(false)}
         title="Sign Out"
         message="Are you sure you want to sign out?"
-        type="confirm"
+        type="warning"
         confirmText="Sign Out"
         cancelText="Cancel"
         onConfirm={handleSignOut}

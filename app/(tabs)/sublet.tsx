@@ -36,7 +36,7 @@ export default function SubletScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
-  console.log('SubletScreen: Rendering', { subletsCount: sublets.length, loading });
+  console.log('SubletScreen: Rendering', { subletsCount: sublets.length, loading, filters: params.filters });
 
   useEffect(() => {
     fetchPosts();
@@ -44,10 +44,11 @@ export default function SubletScreen() {
   }, [params.filters]);
 
   const fetchPosts = async () => {
-    console.log('SubletScreen: Fetching sublets');
+    console.log('SubletScreen: Fetching sublets with filters:', params.filters);
     setLoading(true);
     try {
       const filterParams = params.filters ? `?${params.filters}` : '';
+      console.log('SubletScreen: API call with params:', filterParams);
       const data = await authenticatedGet<Sublet[]>(`/api/sublets${filterParams}`);
       console.log('SubletScreen: Fetched sublets', data);
       setSublets(data);
@@ -61,7 +62,6 @@ export default function SubletScreen() {
 
   const fetchFavorites = async () => {
     try {
-      // TODO: Backend Integration - GET /api/favorites → [{ id, postId, postType, createdAt }]
       console.log('SubletScreen: Fetching favorites');
       const data = await authenticatedGet<Array<{ postId: string; postType: string }>>('/api/favorites');
       const subletFavorites = data.filter(f => f.postType === 'sublet').map(f => f.postId);
@@ -86,10 +86,8 @@ export default function SubletScreen() {
 
     try {
       if (isFavorited) {
-        // TODO: Backend Integration - DELETE /api/favorites/:postId?postType=sublet → { success: true }
         await authenticatedDelete(`/api/favorites/${postId}?postType=sublet`, {});
       } else {
-        // TODO: Backend Integration - POST /api/favorites with { postId, postType: 'sublet' } → { success: true, favorite }
         await authenticatedPost('/api/favorites', { postId, postType: 'sublet' });
       }
     } catch (error) {
@@ -206,6 +204,11 @@ export default function SubletScreen() {
                         />
                       </View>
                     )}
+                    <View style={styles.typeTagContainer}>
+                      <View style={styles.typeTag}>
+                        <Text style={styles.typeTagText}>{label}</Text>
+                      </View>
+                    </View>
                   </View>
                   <View style={styles.cardTextContent}>
                     <View style={styles.cardHeader}>
@@ -225,15 +228,11 @@ export default function SubletScreen() {
                         />
                       </TouchableOpacity>
                     </View>
-                    <View style={styles.typeTag}>
-                      <Text style={styles.typeTagText}>{label}</Text>
-                    </View>
-                    <View style={styles.cardInfo}>
-                      <Text style={styles.cardInfoText}>{sublet.city}</Text>
-                      <Text style={styles.cardInfoText}>•</Text>
-                      <Text style={styles.cardInfoText}>{fromDisplay}</Text>
-                      <Text style={styles.cardInfoText}>-</Text>
-                      <Text style={styles.cardInfoText}>{toDisplay}</Text>
+                    <Text style={styles.cardCity}>{sublet.city}</Text>
+                    <View style={styles.cardDateRow}>
+                      <Text style={styles.cardDateText}>{fromDisplay}</Text>
+                      <Text style={styles.cardDateSeparator}>-</Text>
+                      <Text style={styles.cardDateText}>{toDisplay}</Text>
                     </View>
                     {sublet.rent && (
                       <Text style={styles.cardRent}>€{sublet.rent}/month</Text>
@@ -338,6 +337,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: 80,
     height: 80,
+    position: 'relative',
   },
   cardImage: {
     width: 80,
@@ -351,6 +351,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  typeTagContainer: {
+    position: 'absolute',
+    bottom: 4,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  typeTag: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  typeTagText: {
+    ...typography.bodySmall,
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
   },
   cardTextContent: {
     flex: 1,
@@ -370,28 +389,22 @@ const styles = StyleSheet.create({
   likeButton: {
     padding: spacing.xs,
   },
-  typeTag: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-    alignSelf: 'flex-start',
+  cardCity: {
+    ...typography.body,
+    color: colors.text,
     marginBottom: spacing.xs,
   },
-  typeTagText: {
-    ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  cardInfo: {
+  cardDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
     marginBottom: spacing.xs,
-    flexWrap: 'wrap',
   },
-  cardInfoText: {
+  cardDateText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  cardDateSeparator: {
     ...typography.bodySmall,
     color: colors.textSecondary,
   },

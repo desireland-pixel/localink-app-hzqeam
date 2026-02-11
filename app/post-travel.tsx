@@ -9,36 +9,36 @@ import Modal from '@/components/ui/Modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDateToDDMMYYYY, dateToISOString } from '@/utils/cities';
 
-type TravelType = 'offering' | 'seeking' | null;
+type TravelMode = 'offering-companionship' | 'seeking-companionship' | 'seeking-ally' | null;
 
 const TRAVEL_CITIES = [
-  'India',
   'Germany',
-  'Delhi',
-  'Mumbai',
+  'India',
+  'Ahmedabad',
   'Bengaluru',
-  'Hyderabad',
+  'Berlin',
   'Chennai',
+  'Cologne',
+  'Delhi',
+  'Düsseldorf',
+  'Frankfurt',
+  'Goa',
+  'Hamburg',
+  'Hannover',
+  'Hyderabad',
   'Kochi',
   'Kolkata',
-  'Ahmedabad',
-  'Goa',
-  'Thiruvananthapuram',
-  'Frankfurt',
   'Munich',
-  'Berlin',
-  'Düsseldorf',
-  'Hamburg',
+  'Mumbai',
   'Stuttgart',
-  'Cologne',
-  'Hannover',
+  'Thiruvananthapuram',
 ];
 
-const COMPANIONSHIP_FOR_OPTIONS = ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others', 'No selection'];
+const COMPANIONSHIP_FOR_OPTIONS = ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others'];
 
 export default function PostTravelScreen() {
   const router = useRouter();
-  const [travelType, setTravelType] = useState<TravelType>(null);
+  const [travelMode, setTravelMode] = useState<TravelMode>(null);
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');
   const [travelDate, setTravelDate] = useState(new Date());
@@ -47,20 +47,22 @@ export default function PostTravelScreen() {
   const [showDateToPicker, setShowDateToPicker] = useState(false);
   const [companionshipFor, setCompanionshipFor] = useState('');
   const [showCompanionshipDropdown, setShowCompanionshipDropdown] = useState(false);
+  const [canOfferCompanionship, setCanOfferCompanionship] = useState(false);
+  const [canCarryItems, setCanCarryItems] = useState(false);
+  const [item, setItem] = useState('');
   const [description, setDescription] = useState('');
-  const [alsoPostAsAlly, setAlsoPostAsAlly] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showFromCityPicker, setShowFromCityPicker] = useState(false);
   const [showToCityPicker, setShowToCityPicker] = useState(false);
 
-  console.log('PostTravelScreen: Rendering', { travelType, alsoPostAsAlly });
+  console.log('PostTravelScreen: Rendering', { travelMode });
 
   const handleSubmit = async () => {
-    console.log('PostTravelScreen: Submit travel', { travelType, fromCity, toCity, travelDate, alsoPostAsAlly });
+    console.log('PostTravelScreen: Submit travel', { travelMode, fromCity, toCity, travelDate });
     
-    if (!travelType) {
-      setError('Please select if you are offering or seeking travel companionship');
+    if (!travelMode) {
+      setError('Please select a travel option');
       return;
     }
     
@@ -69,13 +71,13 @@ export default function PostTravelScreen() {
       return;
     }
 
-    if (travelType === 'seeking' && !companionshipFor.trim()) {
+    if (travelMode === 'seeking-companionship' && !companionshipFor.trim()) {
       setError('Please select who you need companionship for');
       return;
     }
 
-    if (travelType === 'offering' && alsoPostAsAlly === null) {
-      setError('Please select if you can be an Ally');
+    if (travelMode === 'seeking-ally' && !item.trim()) {
+      setError('Please specify the item you need carried');
       return;
     }
 
@@ -105,22 +107,27 @@ export default function PostTravelScreen() {
         fromCity: fromCity.trim(),
         toCity: toCity.trim(),
         travelDate: dateToISOString(travelDate),
-        type: travelType,
       };
 
-      if (travelType === 'seeking') {
+      if (travelMode === 'offering-companionship') {
+        postData.type = 'offering';
+        postData.canOfferCompanionship = canOfferCompanionship;
+        postData.canCarryItems = canCarryItems;
+        if (canCarryItems) {
+          postData.alsoPostAsAlly = true;
+        }
+      } else if (travelMode === 'seeking-companionship') {
+        postData.type = 'seeking';
         postData.companionshipFor = companionshipFor;
         if (travelDateTo) {
           postData.travelDateTo = dateToISOString(travelDateTo);
         }
-      }
-
-      if (travelType === 'offering' && alsoPostAsAlly) {
-        postData.alsoPostAsAlly = true;
+      } else if (travelMode === 'seeking-ally') {
+        postData.type = 'seeking-ally';
+        postData.item = item.trim();
       }
 
       console.log('PostTravelScreen: Creating travel post with data:', postData);
-      // TODO: Backend Integration - POST /api/travel-posts with alsoPostAsAlly support → { travelPostId, carryPostId? }
       await authenticatedPost('/api/travel-posts', postData);
       console.log('PostTravelScreen: Travel post created successfully');
       router.back();
@@ -131,8 +138,6 @@ export default function PostTravelScreen() {
       setLoading(false);
     }
   };
-
-  const fieldsDisabled = travelType === null;
 
   const travelDateDisplay = formatDateToDDMMYYYY(travelDate);
   const travelDateToDisplay = travelDateTo ? formatDateToDDMMYYYY(travelDateTo) : '';
@@ -152,28 +157,42 @@ export default function PostTravelScreen() {
             <View style={styles.radioButtons}>
               <TouchableOpacity
                 style={styles.radioOption}
-                onPress={() => setTravelType('offering')}
+                onPress={() => setTravelMode('offering-companionship')}
               >
                 <View style={styles.radioCircle}>
-                  {travelType === 'offering' && <View style={styles.radioCircleSelected} />}
+                  {travelMode === 'offering-companionship' && <View style={styles.radioCircleSelected} />}
                 </View>
-                <Text style={styles.radioText}>offering</Text>
+                <Text style={styles.radioText}>offering a travel companionship/ an ally</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.radioContainer}>
+            <Text style={styles.radioLabel}>I am seeking</Text>
+            <View style={styles.radioButtons}>
+              <TouchableOpacity
+                style={styles.radioOption}
+                onPress={() => setTravelMode('seeking-companionship')}
+              >
+                <View style={styles.radioCircle}>
+                  {travelMode === 'seeking-companionship' && <View style={styles.radioCircleSelected} />}
+                </View>
+                <Text style={styles.radioText}>a travel companionship</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
                 style={styles.radioOption}
-                onPress={() => setTravelType('seeking')}
+                onPress={() => setTravelMode('seeking-ally')}
               >
                 <View style={styles.radioCircle}>
-                  {travelType === 'seeking' && <View style={styles.radioCircleSelected} />}
+                  {travelMode === 'seeking-ally' && <View style={styles.radioCircleSelected} />}
                 </View>
-                <Text style={styles.radioText}>seeking</Text>
+                <Text style={styles.radioText}>an ally</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.radioLabelEnd}>travel companionship.</Text>
           </View>
 
-          {travelType === 'offering' && (
+          {travelMode === 'offering-companionship' && (
             <>
               <Text style={styles.label}>From *</Text>
               <TouchableOpacity 
@@ -251,6 +270,28 @@ export default function PostTravelScreen() {
                 />
               )}
 
+              <View style={styles.checkboxContainer}>
+                <TouchableOpacity
+                  style={styles.checkbox}
+                  onPress={() => setCanOfferCompanionship(!canOfferCompanionship)}
+                >
+                  <View style={styles.checkboxBox}>
+                    {canOfferCompanionship && <View style={styles.checkboxChecked} />}
+                  </View>
+                  <Text style={styles.checkboxText}>I can offer companionship</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.checkbox}
+                  onPress={() => setCanCarryItems(!canCarryItems)}
+                >
+                  <View style={styles.checkboxBox}>
+                    {canCarryItems && <View style={styles.checkboxChecked} />}
+                  </View>
+                  <Text style={styles.checkboxText}>I can carry documents/items</Text>
+                </TouchableOpacity>
+              </View>
+
               <Text style={styles.label}>Description</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
@@ -261,60 +302,11 @@ export default function PostTravelScreen() {
                 multiline
                 numberOfLines={4}
               />
-
-              <Text style={styles.label}>I can be an Ally and bring something from the departure country</Text>
-              <Text style={styles.infoText}>(info: Your post will be published on the "Carry" page as well)</Text>
-              <View style={styles.allyButtons}>
-                <TouchableOpacity
-                  style={[styles.allyButton, alsoPostAsAlly === true && styles.allyButtonActive]}
-                  onPress={() => setAlsoPostAsAlly(true)}
-                >
-                  <Text style={[styles.allyButtonText, alsoPostAsAlly === true && styles.allyButtonTextActive]}>
-                    Yes
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.allyButton, alsoPostAsAlly === false && styles.allyButtonActive]}
-                  onPress={() => setAlsoPostAsAlly(false)}
-                >
-                  <Text style={[styles.allyButtonText, alsoPostAsAlly === false && styles.allyButtonTextActive]}>
-                    No
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </>
           )}
 
-          {travelType === 'seeking' && (
+          {travelMode === 'seeking-companionship' && (
             <>
-              <Text style={styles.label}>For *</Text>
-              <TouchableOpacity 
-                style={styles.dropdownButton}
-                onPress={() => setShowCompanionshipDropdown(!showCompanionshipDropdown)}
-              >
-                <Text style={[styles.dropdownButtonText, !companionshipFor && styles.dropdownButtonPlaceholder]}>
-                  {companionshipFor || 'Select...'}
-                </Text>
-              </TouchableOpacity>
-              {showCompanionshipDropdown && (
-                <View style={styles.dropdown}>
-                  <ScrollView style={styles.dropdownScroll}>
-                    {COMPANIONSHIP_FOR_OPTIONS.map((option) => (
-                      <TouchableOpacity
-                        key={option}
-                        style={styles.dropdownOption}
-                        onPress={() => {
-                          setCompanionshipFor(option);
-                          setShowCompanionshipDropdown(false);
-                        }}
-                      >
-                        <Text style={styles.dropdownOptionText}>{option}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-
               <Text style={styles.label}>From *</Text>
               <TouchableOpacity 
                 style={styles.cityButton}
@@ -371,7 +363,155 @@ export default function PostTravelScreen() {
                 </View>
               )}
 
-              <Text style={styles.label}>Date (From) *</Text>
+              <Text style={styles.label}>Date *</Text>
+              <View style={styles.dateRow}>
+                <View style={styles.dateHalf}>
+                  <TouchableOpacity 
+                    style={styles.dateButton}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Text style={styles.dateButtonText}>{travelDateDisplay}</Text>
+                  </TouchableOpacity>
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={travelDate}
+                      mode="date"
+                      display="default"
+                      minimumDate={minDate}
+                      onChange={(event, selectedDate) => {
+                        setShowDatePicker(false);
+                        if (selectedDate) setTravelDate(selectedDate);
+                      }}
+                    />
+                  )}
+                </View>
+                <View style={styles.dateSeparator}>
+                  <Text style={styles.dateSeparatorText}>-</Text>
+                </View>
+                <View style={styles.dateHalf}>
+                  <TouchableOpacity 
+                    style={styles.dateButton}
+                    onPress={() => setShowDateToPicker(true)}
+                  >
+                    <Text style={[styles.dateButtonText, !travelDateToDisplay && styles.dateButtonPlaceholder]}>
+                      {travelDateToDisplay || 'dd.mm.yyyy'}
+                    </Text>
+                  </TouchableOpacity>
+                  {showDateToPicker && (
+                    <DateTimePicker
+                      value={travelDateTo || travelDate}
+                      mode="date"
+                      display="default"
+                      minimumDate={travelDate}
+                      onChange={(event, selectedDate) => {
+                        setShowDateToPicker(false);
+                        if (selectedDate) setTravelDateTo(selectedDate);
+                      }}
+                    />
+                  )}
+                </View>
+              </View>
+
+              <Text style={styles.label}>For *</Text>
+              <TouchableOpacity 
+                style={styles.dropdownButton}
+                onPress={() => setShowCompanionshipDropdown(!showCompanionshipDropdown)}
+              >
+                <Text style={[styles.dropdownButtonText, !companionshipFor && styles.dropdownButtonPlaceholder]}>
+                  {companionshipFor || 'Select...'}
+                </Text>
+              </TouchableOpacity>
+              {showCompanionshipDropdown && (
+                <View style={styles.dropdown}>
+                  <ScrollView style={styles.dropdownScroll}>
+                    {COMPANIONSHIP_FOR_OPTIONS.map((option) => (
+                      <TouchableOpacity
+                        key={option}
+                        style={styles.dropdownOption}
+                        onPress={() => {
+                          setCompanionshipFor(option);
+                          setShowCompanionshipDropdown(false);
+                        }}
+                      >
+                        <Text style={styles.dropdownOptionText}>{option}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Describe your exact travel city, travel need, ..."
+                placeholderTextColor={colors.textLight}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={4}
+              />
+            </>
+          )}
+
+          {travelMode === 'seeking-ally' && (
+            <>
+              <Text style={styles.label}>From *</Text>
+              <TouchableOpacity 
+                style={styles.cityButton}
+                onPress={() => setShowFromCityPicker(!showFromCityPicker)}
+              >
+                <Text style={[styles.cityButtonText, !fromCity && styles.cityButtonPlaceholder]}>
+                  {fromCity || 'Select city...'}
+                </Text>
+              </TouchableOpacity>
+              {showFromCityPicker && (
+                <View style={styles.cityPicker}>
+                  <ScrollView style={styles.cityPickerScroll}>
+                    {TRAVEL_CITIES.map((city) => (
+                      <TouchableOpacity
+                        key={city}
+                        style={styles.cityOption}
+                        onPress={() => {
+                          setFromCity(city);
+                          setShowFromCityPicker(false);
+                        }}
+                      >
+                        <Text style={styles.cityOptionText}>{city}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              <Text style={styles.label}>To *</Text>
+              <TouchableOpacity 
+                style={styles.cityButton}
+                onPress={() => setShowToCityPicker(!showToCityPicker)}
+              >
+                <Text style={[styles.cityButtonText, !toCity && styles.cityButtonPlaceholder]}>
+                  {toCity || 'Select city...'}
+                </Text>
+              </TouchableOpacity>
+              {showToCityPicker && (
+                <View style={styles.cityPicker}>
+                  <ScrollView style={styles.cityPickerScroll}>
+                    {TRAVEL_CITIES.map((city) => (
+                      <TouchableOpacity
+                        key={city}
+                        style={styles.cityOption}
+                        onPress={() => {
+                          setToCity(city);
+                          setShowToCityPicker(false);
+                        }}
+                      >
+                        <Text style={styles.cityOptionText}>{city}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              <Text style={styles.label}>Needed by Date *</Text>
               <TouchableOpacity 
                 style={styles.dateButton}
                 onPress={() => setShowDatePicker(true)}
@@ -391,32 +531,19 @@ export default function PostTravelScreen() {
                 />
               )}
 
-              <Text style={styles.label}>Date (To)</Text>
-              <TouchableOpacity 
-                style={styles.dateButton}
-                onPress={() => setShowDateToPicker(true)}
-              >
-                <Text style={[styles.dateButtonText, !travelDateToDisplay && styles.dateButtonPlaceholder]}>
-                  {travelDateToDisplay || 'dd.mm.yyyy'}
-                </Text>
-              </TouchableOpacity>
-              {showDateToPicker && (
-                <DateTimePicker
-                  value={travelDateTo || travelDate}
-                  mode="date"
-                  display="default"
-                  minimumDate={travelDate}
-                  onChange={(event, selectedDate) => {
-                    setShowDateToPicker(false);
-                    if (selectedDate) setTravelDateTo(selectedDate);
-                  }}
-                />
-              )}
+              <Text style={styles.label}>Item *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Document, Medicine, ..."
+                placeholderTextColor={colors.textLight}
+                value={item}
+                onChangeText={setItem}
+              />
 
               <Text style={styles.label}>Description</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="Describe your exact travel city, travel need, ..."
+                placeholder="e.g., More details like quantity, weight, ...."
                 placeholderTextColor={colors.textLight}
                 value={description}
                 onChangeText={setDescription}
@@ -426,7 +553,7 @@ export default function PostTravelScreen() {
             </>
           )}
 
-          {!fieldsDisabled && (
+          {travelMode && (
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleSubmit}
@@ -465,29 +592,21 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
   },
   radioContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   radioLabel: {
     ...typography.body,
     color: colors.text,
-    marginRight: spacing.sm,
-  },
-  radioLabelEnd: {
-    ...typography.body,
-    color: colors.text,
-    marginLeft: spacing.sm,
+    marginBottom: spacing.sm,
+    fontWeight: '600',
   },
   radioButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    gap: spacing.sm,
   },
   radioOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
   },
   radioCircle: {
     width: 24,
@@ -497,7 +616,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.xs,
+    marginRight: spacing.sm,
   },
   radioCircleSelected: {
     width: 12,
@@ -508,6 +627,7 @@ const styles = StyleSheet.create({
   radioText: {
     ...typography.body,
     color: colors.text,
+    flex: 1,
   },
   label: {
     ...typography.bodySmall,
@@ -515,12 +635,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: spacing.sm,
     marginTop: spacing.md,
-  },
-  infoText: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
-    marginBottom: spacing.sm,
   },
   input: {
     backgroundColor: colors.card,
@@ -535,43 +649,6 @@ const styles = StyleSheet.create({
   textArea: {
     height: 100,
     textAlignVertical: 'top',
-  },
-  dropdownButton: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  dropdownButtonText: {
-    ...typography.body,
-    color: colors.text,
-  },
-  dropdownButtonPlaceholder: {
-    color: colors.textLight,
-  },
-  dropdown: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-    maxHeight: 200,
-  },
-  dropdownScroll: {
-    maxHeight: 200,
-  },
-  dropdownOption: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  dropdownOptionText: {
-    ...typography.body,
-    color: colors.text,
   },
   cityButton: {
     backgroundColor: colors.card,
@@ -610,6 +687,23 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
   },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateHalf: {
+    flex: 1,
+  },
+  dateSeparator: {
+    width: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateSeparatorText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
   dateButton: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
@@ -625,31 +719,72 @@ const styles = StyleSheet.create({
   dateButtonPlaceholder: {
     color: colors.textLight,
   },
-  allyButtons: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  allyButton: {
-    flex: 1,
+  dropdownButton: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
-    alignItems: 'center',
+    paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  allyButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  allyButtonText: {
+  dropdownButtonText: {
     ...typography.body,
     color: colors.text,
-    fontWeight: '600',
   },
-  allyButtonTextActive: {
-    color: '#FFFFFF',
+  dropdownButtonPlaceholder: {
+    color: colors.textLight,
+  },
+  dropdown: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+    maxHeight: 200,
+  },
+  dropdownScroll: {
+    maxHeight: 200,
+  },
+  dropdownOption: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  dropdownOptionText: {
+    ...typography.body,
+    color: colors.text,
+  },
+  checkboxContainer: {
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  checkbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  checkboxBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  checkboxChecked: {
+    width: 14,
+    height: 14,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
+  },
+  checkboxText: {
+    ...typography.body,
+    color: colors.text,
   },
   button: {
     backgroundColor: colors.primary,

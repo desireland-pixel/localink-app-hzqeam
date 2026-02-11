@@ -66,7 +66,7 @@ export default function ProfileScreen() {
             style={styles.menuItem}
             onPress={() => {
               console.log('[ProfileScreen] Navigate to personal details');
-              // TODO: Navigate to personal details screen
+              router.push('/personal-details');
             }}
           >
             <View style={styles.menuItemLeft}>
@@ -111,7 +111,6 @@ export default function ProfileScreen() {
             style={styles.menuItem}
             onPress={() => {
               console.log('[ProfileScreen] Navigate to favourites');
-              // TODO: Navigate to favourites screen
               router.push('/favourites');
             }}
           >
@@ -136,7 +135,7 @@ export default function ProfileScreen() {
             style={styles.menuItem}
             onPress={() => {
               console.log('[ProfileScreen] Navigate to notifications');
-              // TODO: Navigate to notifications screen
+              router.push('/notifications');
             }}
           >
             <View style={styles.menuItemLeft}>
@@ -160,7 +159,7 @@ export default function ProfileScreen() {
             style={styles.menuItem}
             onPress={() => {
               console.log('[ProfileScreen] Navigate to FAQs');
-              // TODO: Navigate to FAQs screen
+              router.push('/faqs');
             }}
           >
             <View style={styles.menuItemLeft}>
@@ -184,7 +183,7 @@ export default function ProfileScreen() {
             style={styles.menuItem}
             onPress={() => {
               console.log('[ProfileScreen] Navigate to data & privacy');
-              // TODO: Navigate to data & privacy screen
+              router.push('/data-privacy');
             }}
           >
             <View style={styles.menuItemLeft}>
@@ -247,7 +246,7 @@ export default function ProfileScreen() {
         onClose={() => setShowSignOutModal(false)}
         title="Sign Out"
         message="Are you sure you want to sign out?"
-        type="confirm"
+        type="warning"
         confirmText="Sign Out"
         cancelText="Cancel"
         onConfirm={handleSignOut}
