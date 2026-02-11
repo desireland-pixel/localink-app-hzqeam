@@ -2,6 +2,12 @@ import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { eq } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
+import { GERMAN_CITIES } from '../cities.js';
+
+// Validation helper for cities
+function validateCity(city: string): boolean {
+  return GERMAN_CITIES.some(c => c.toLowerCase() === city.toLowerCase());
+}
 
 export function registerProfileRoutes(app: App) {
   const requireAuth = app.requireAuth();
@@ -18,6 +24,7 @@ export function registerProfileRoutes(app: App) {
             userId: { type: 'string' },
             name: { type: 'string' },
             city: { type: 'string' },
+            photoUrl: { type: 'string', nullable: true },
             createdAt: { type: 'string' },
             updatedAt: { type: 'string' },
           },
@@ -44,15 +51,16 @@ export function registerProfileRoutes(app: App) {
   });
 
   // Update user profile (or create if not exists)
+  // Note: name is read-only after profile creation and cannot be updated
   app.fastify.put('/api/profile', {
     schema: {
-      description: 'Update or create user profile',
+      description: 'Update or create user profile (name is read-only)',
       tags: ['profile'],
       body: {
         type: 'object',
         properties: {
-          name: { type: 'string' },
           city: { type: 'string' },
+          photoUrl: { type: 'string' },
         },
       },
       response: {
@@ -62,6 +70,7 @@ export function registerProfileRoutes(app: App) {
             userId: { type: 'string' },
             name: { type: 'string' },
             city: { type: 'string' },
+            photoUrl: { type: 'string', nullable: true },
             createdAt: { type: 'string' },
             updatedAt: { type: 'string' },
           },
@@ -72,11 +81,17 @@ export function registerProfileRoutes(app: App) {
     const session = await requireAuth(request, reply);
     if (!session) return;
 
-    const { name, city } = request.body as { name?: string; city?: string };
+    const { city, photoUrl } = request.body as { city?: string; photoUrl?: string };
 
-    app.logger.info({ userId: session.user.id, name, city }, 'Updating user profile');
+    app.logger.info({ userId: session.user.id, city, hasPhoto: !!photoUrl }, 'Updating user profile');
 
     try {
+      // Validate city if provided
+      if (city && !validateCity(city)) {
+        app.logger.warn({ city }, 'Invalid city provided');
+        return reply.status(400).send({ error: 'Invalid city. Must be from predefined list.' });
+      }
+
       // Check if profile exists
       const existingProfile = await app.db.query.profiles.findFirst({
         where: eq(schema.profiles.userId, session.user.id),
@@ -85,8 +100,9 @@ export function registerProfileRoutes(app: App) {
       if (existingProfile) {
         // Update existing profile
         const updateData: any = { updatedAt: new Date() };
-        if (name !== undefined) updateData.name = name;
+        // Name is read-only - never update it
         if (city !== undefined) updateData.city = city;
+        if (photoUrl !== undefined) updateData.photoUrl = photoUrl;
 
         const [updated] = await app.db
           .update(schema.profiles)
@@ -97,18 +113,25 @@ export function registerProfileRoutes(app: App) {
         app.logger.info({ userId: session.user.id }, 'Profile updated successfully');
         return updated;
       } else {
-        // Create new profile
-        if (!name || !city) {
-          app.logger.warn({ userId: session.user.id }, 'Name and city required for profile creation');
-          return reply.status(400).send({ error: 'Name and city are required for first-time profile creation' });
+        // Create new profile - requires city (name comes from auth user)
+        if (!city) {
+          app.logger.warn({ userId: session.user.id }, 'City required for profile creation');
+          return reply.status(400).send({ error: 'City is required for profile creation' });
         }
 
+        if (!validateCity(city)) {
+          app.logger.warn({ city }, 'Invalid city for profile creation');
+          return reply.status(400).send({ error: 'Invalid city. Must be from predefined list.' });
+        }
+
+        // Use name from authenticated user session
         const [newProfile] = await app.db
           .insert(schema.profiles)
           .values({
             userId: session.user.id,
-            name,
+            name: session.user.name || 'User',
             city,
+            photoUrl: photoUrl || null,
           })
           .returning();
 

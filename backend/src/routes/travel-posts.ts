@@ -4,9 +4,10 @@ import { eq, and, gte, lte, between, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { TRAVEL_CITIES } from '../cities.js';
 import { generateShortId } from '../utils/short-id.js';
+import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '../utils/date-format.js';
 
 interface TravelPostFilters {
-  type?: 'offering' | 'seeking';
+  type?: 'offering' | 'seeking' | 'seeking-ally';
   fromCity?: string;
   toCity?: string;
   travelDate?: string;
@@ -17,7 +18,7 @@ interface TravelPostFilters {
 }
 
 interface TravelPostBody {
-  type: 'offering' | 'seeking';
+  type: 'offering' | 'seeking' | 'seeking-ally';
   description?: string;
   fromCity: string;
   toCity: string;
@@ -25,6 +26,11 @@ interface TravelPostBody {
   // Seeking-specific fields
   companionshipFor?: 'Mother' | 'Father' | 'Parents' | 'MIL' | 'FIL' | 'Others';
   travelDateTo?: string;
+  // Seeking-ally specific field (free text)
+  item?: string;
+  // Offering-specific fields
+  canOfferCompanionship?: boolean;
+  canCarryItems?: boolean;
   // Offering-specific field
   alsoPostAsAlly?: boolean;
 }
@@ -37,7 +43,18 @@ function validateCity(city: string): boolean {
 function isFutureDate(dateStr: string): boolean {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const date = new Date(dateStr);
+  // Parse date - could be in YYYY-MM-DD or dd.mm.yyyy format
+  let date: Date;
+  if (dateStr.includes('-')) {
+    // YYYY-MM-DD format
+    date = new Date(dateStr);
+  } else if (dateStr.includes('.')) {
+    // dd.mm.yyyy format
+    const [day, month, year] = dateStr.split('.');
+    date = new Date(`${year}-${month}-${day}`);
+  } else {
+    return false;
+  }
   return date >= today;
 }
 
@@ -52,7 +69,7 @@ export function registerTravelPostRoutes(app: App) {
       querystring: {
         type: 'object',
         properties: {
-          type: { type: 'string', enum: ['offering', 'seeking'] },
+          type: { type: 'string', enum: ['offering', 'seeking', 'seeking-ally'] },
           fromCity: { type: 'string' },
           toCity: { type: 'string' },
           travelDate: { type: 'string' },
@@ -114,6 +131,9 @@ export function registerTravelPostRoutes(app: App) {
           travelDate: schema.travelPosts.travelDate,
           companionshipFor: schema.travelPosts.companionshipFor,
           travelDateTo: schema.travelPosts.travelDateTo,
+          item: schema.travelPosts.item,
+          canOfferCompanionship: schema.travelPosts.canOfferCompanionship,
+          canCarryItems: schema.travelPosts.canCarryItems,
           status: schema.travelPosts.status,
           createdAt: schema.travelPosts.createdAt,
           updatedAt: schema.travelPosts.updatedAt,
@@ -126,9 +146,11 @@ export function registerTravelPostRoutes(app: App) {
         .offset(offset)
         .orderBy(desc(schema.travelPosts.createdAt));
 
-      // Transform to include user object
+      // Transform to include user object and format dates
       const result = posts.map(post => ({
         ...post,
+        travelDate: formatDateToDDMMYYYY(post.travelDate as unknown as string),
+        travelDateTo: post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo as unknown as string) : null,
         user: {
           id: post.userId,
           name: post.userName || 'Unknown User',
@@ -173,6 +195,9 @@ export function registerTravelPostRoutes(app: App) {
           travelDate: schema.travelPosts.travelDate,
           companionshipFor: schema.travelPosts.companionshipFor,
           travelDateTo: schema.travelPosts.travelDateTo,
+          item: schema.travelPosts.item,
+          canOfferCompanionship: schema.travelPosts.canOfferCompanionship,
+          canCarryItems: schema.travelPosts.canCarryItems,
           status: schema.travelPosts.status,
           createdAt: schema.travelPosts.createdAt,
           updatedAt: schema.travelPosts.updatedAt,
@@ -191,6 +216,8 @@ export function registerTravelPostRoutes(app: App) {
       const post = result[0];
       const response = {
         ...post,
+        travelDate: formatDateToDDMMYYYY(post.travelDate as unknown as string),
+        travelDateTo: post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo as unknown as string) : null,
         shortId: generateShortId(post.id),
         user: {
           id: post.userId,
@@ -216,13 +243,16 @@ export function registerTravelPostRoutes(app: App) {
         type: 'object',
         required: ['type', 'fromCity', 'toCity', 'travelDate'],
         properties: {
-          type: { type: 'string', enum: ['offering', 'seeking'] },
+          type: { type: 'string', enum: ['offering', 'seeking', 'seeking-ally'] },
           description: { type: 'string' },
           fromCity: { type: 'string' },
           toCity: { type: 'string' },
           travelDate: { type: 'string' },
           companionshipFor: { type: 'string', enum: ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others'] },
           travelDateTo: { type: 'string' },
+          item: { type: 'string' },
+          canOfferCompanionship: { type: 'boolean' },
+          canCarryItems: { type: 'boolean' },
           alsoPostAsAlly: { type: 'boolean' },
         },
       },
@@ -266,6 +296,28 @@ export function registerTravelPostRoutes(app: App) {
         return reply.status(400).send({ error: 'travelDateTo must be greater than or equal to travelDate' });
       }
 
+      // Validation: seeking-ally type requires item field
+      if (body.type === 'seeking-ally' && !body.item) {
+        app.logger.warn({ type: body.type }, 'seeking-ally type requires item field');
+        return reply.status(400).send({ error: 'Item field is required for seeking-ally posts' });
+      }
+
+      // Convert dates from dd.mm.yyyy to YYYY-MM-DD format
+      const dbTravelDate = parseDateFromDDMMYYYY(body.travelDate);
+      if (!dbTravelDate) {
+        app.logger.warn({ travelDate: body.travelDate }, 'Invalid travelDate format');
+        return reply.status(400).send({ error: 'Invalid travelDate format. Please use dd.mm.yyyy format.' });
+      }
+
+      let dbTravelDateTo: string | null = null;
+      if (body.travelDateTo) {
+        dbTravelDateTo = parseDateFromDDMMYYYY(body.travelDateTo);
+        if (!dbTravelDateTo) {
+          app.logger.warn({ travelDateTo: body.travelDateTo }, 'Invalid travelDateTo format');
+          return reply.status(400).send({ error: 'Invalid travelDateTo format. Please use dd.mm.yyyy format.' });
+        }
+      }
+
       const [post] = await app.db
         .insert(schema.travelPosts)
         .values({
@@ -274,9 +326,12 @@ export function registerTravelPostRoutes(app: App) {
           description: body.description,
           fromCity: body.fromCity,
           toCity: body.toCity,
-          travelDate: body.travelDate,
+          travelDate: dbTravelDate,
           companionshipFor: body.companionshipFor,
-          travelDateTo: body.travelDateTo,
+          travelDateTo: dbTravelDateTo,
+          item: body.item,
+          canOfferCompanionship: body.canOfferCompanionship,
+          canCarryItems: body.canCarryItems,
         })
         .returning();
 
@@ -293,7 +348,7 @@ export function registerTravelPostRoutes(app: App) {
             description: body.description,
             fromCity: body.fromCity,
             toCity: body.toCity,
-            travelDate: body.travelDate,
+            travelDate: dbTravelDate,
             type: 'traveler',
           })
           .returning();
@@ -327,13 +382,16 @@ export function registerTravelPostRoutes(app: App) {
       body: {
         type: 'object',
         properties: {
-          type: { type: 'string', enum: ['offering', 'seeking'] },
+          type: { type: 'string', enum: ['offering', 'seeking', 'seeking-ally'] },
           description: { type: 'string' },
           fromCity: { type: 'string' },
           toCity: { type: 'string' },
           travelDate: { type: 'string' },
           companionshipFor: { type: 'string', enum: ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others'] },
           travelDateTo: { type: 'string' },
+          item: { type: 'string' },
+          canOfferCompanionship: { type: 'boolean' },
+          canCarryItems: { type: 'boolean' },
         },
       },
     },
@@ -382,9 +440,31 @@ export function registerTravelPostRoutes(app: App) {
       if (body.description !== undefined) updateData.description = body.description;
       if (body.fromCity !== undefined) updateData.fromCity = body.fromCity;
       if (body.toCity !== undefined) updateData.toCity = body.toCity;
-      if (body.travelDate !== undefined) updateData.travelDate = body.travelDate;
+
+      // Convert dates from dd.mm.yyyy to YYYY-MM-DD format if provided
+      if (body.travelDate !== undefined) {
+        const dbDate = parseDateFromDDMMYYYY(body.travelDate);
+        if (!dbDate) {
+          app.logger.warn({ travelDate: body.travelDate }, 'Invalid travelDate format');
+          return reply.status(400).send({ error: 'Invalid travelDate format. Please use dd.mm.yyyy format.' });
+        }
+        updateData.travelDate = dbDate;
+      }
+
       if (body.companionshipFor !== undefined) updateData.companionshipFor = body.companionshipFor;
-      if (body.travelDateTo !== undefined) updateData.travelDateTo = body.travelDateTo;
+
+      if (body.travelDateTo !== undefined) {
+        const dbDate = parseDateFromDDMMYYYY(body.travelDateTo);
+        if (!dbDate) {
+          app.logger.warn({ travelDateTo: body.travelDateTo }, 'Invalid travelDateTo format');
+          return reply.status(400).send({ error: 'Invalid travelDateTo format. Please use dd.mm.yyyy format.' });
+        }
+        updateData.travelDateTo = dbDate;
+      }
+
+      if (body.item !== undefined) updateData.item = body.item;
+      if (body.canOfferCompanionship !== undefined) updateData.canOfferCompanionship = body.canOfferCompanionship;
+      if (body.canCarryItems !== undefined) updateData.canCarryItems = body.canCarryItems;
 
       const [updated] = await app.db
         .update(schema.travelPosts)
@@ -393,7 +473,12 @@ export function registerTravelPostRoutes(app: App) {
         .returning();
 
       app.logger.info({ travelPostId: id, userId: session.user.id }, 'Travel post updated successfully');
-      return updated;
+      // Format dates in response
+      return {
+        ...updated,
+        travelDate: formatDateToDDMMYYYY(updated.travelDate as unknown as string),
+        travelDateTo: updated.travelDateTo ? formatDateToDDMMYYYY(updated.travelDateTo as unknown as string) : null,
+      };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, travelPostId: id }, 'Failed to update travel post');
       return reply.status(500).send({ error: 'Failed to update travel post' });

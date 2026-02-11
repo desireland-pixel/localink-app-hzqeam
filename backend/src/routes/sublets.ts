@@ -3,6 +3,7 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 import { eq, and, gte, lte, isNull, isNotNull, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { generateShortId } from '../utils/short-id.js';
+import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '../utils/date-format.js';
 
 interface SubletFilters {
   type?: 'offering' | 'seeking';
@@ -123,9 +124,11 @@ export function registerSubletRoutes(app: App) {
         .offset(offset)
         .orderBy(desc(schema.sublets.createdAt));
 
-      // Transform to include user object
+      // Transform to include user object and format dates
       const result = sublets.map(sublet => ({
         ...sublet,
+        availableFrom: formatDateToDDMMYYYY(sublet.availableFrom as unknown as string),
+        availableTo: formatDateToDDMMYYYY(sublet.availableTo as unknown as string),
         user: {
           id: sublet.userId,
           name: sublet.userName || 'Unknown User',
@@ -193,6 +196,8 @@ export function registerSubletRoutes(app: App) {
       const sublet = result[0];
       const response = {
         ...sublet,
+        availableFrom: formatDateToDDMMYYYY(sublet.availableFrom as unknown as string),
+        availableTo: formatDateToDDMMYYYY(sublet.availableTo as unknown as string),
         shortId: generateShortId(sublet.id),
         user: {
           id: sublet.userId,
@@ -241,6 +246,15 @@ export function registerSubletRoutes(app: App) {
     app.logger.info({ userId: session.user.id, body }, 'Creating sublet');
 
     try {
+      // Convert dates from dd.mm.yyyy to YYYY-MM-DD format
+      const dbAvailableFrom = parseDateFromDDMMYYYY(body.availableFrom);
+      const dbAvailableTo = parseDateFromDDMMYYYY(body.availableTo);
+
+      if (!dbAvailableFrom || !dbAvailableTo) {
+        app.logger.warn({ availableFrom: body.availableFrom, availableTo: body.availableTo }, 'Invalid date format');
+        return reply.status(400).send({ error: 'Invalid date format. Please use dd.mm.yyyy format.' });
+      }
+
       const [sublet] = await app.db
         .insert(schema.sublets)
         .values({
@@ -249,8 +263,8 @@ export function registerSubletRoutes(app: App) {
           title: body.title,
           description: body.description,
           city: body.city,
-          availableFrom: body.availableFrom,
-          availableTo: body.availableTo,
+          availableFrom: dbAvailableFrom,
+          availableTo: dbAvailableTo,
           rent: body.rent,
           imageUrls: body.imageUrls,
           address: body.address,
@@ -261,7 +275,12 @@ export function registerSubletRoutes(app: App) {
         .returning();
 
       app.logger.info({ subletId: sublet.id, userId: session.user.id }, 'Sublet created successfully');
-      return sublet;
+      // Format dates in response
+      return {
+        ...sublet,
+        availableFrom: formatDateToDDMMYYYY(sublet.availableFrom as unknown as string),
+        availableTo: formatDateToDDMMYYYY(sublet.availableTo as unknown as string),
+      };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id }, 'Failed to create sublet');
       return reply.status(500).send({ error: 'Failed to create sublet' });
@@ -327,8 +346,26 @@ export function registerSubletRoutes(app: App) {
       if (body.title !== undefined) updateData.title = body.title;
       if (body.description !== undefined) updateData.description = body.description;
       if (body.city !== undefined) updateData.city = body.city;
-      if (body.availableFrom !== undefined) updateData.availableFrom = body.availableFrom;
-      if (body.availableTo !== undefined) updateData.availableTo = body.availableTo;
+
+      // Convert dates from dd.mm.yyyy to YYYY-MM-DD format if provided
+      if (body.availableFrom !== undefined) {
+        const dbDate = parseDateFromDDMMYYYY(body.availableFrom);
+        if (!dbDate) {
+          app.logger.warn({ availableFrom: body.availableFrom }, 'Invalid availableFrom date format');
+          return reply.status(400).send({ error: 'Invalid availableFrom format. Please use dd.mm.yyyy format.' });
+        }
+        updateData.availableFrom = dbDate;
+      }
+
+      if (body.availableTo !== undefined) {
+        const dbDate = parseDateFromDDMMYYYY(body.availableTo);
+        if (!dbDate) {
+          app.logger.warn({ availableTo: body.availableTo }, 'Invalid availableTo date format');
+          return reply.status(400).send({ error: 'Invalid availableTo format. Please use dd.mm.yyyy format.' });
+        }
+        updateData.availableTo = dbDate;
+      }
+
       if (body.rent !== undefined) updateData.rent = body.rent;
       if (body.imageUrls !== undefined) updateData.imageUrls = body.imageUrls;
       if (body.address !== undefined) updateData.address = body.address;
@@ -343,7 +380,12 @@ export function registerSubletRoutes(app: App) {
         .returning();
 
       app.logger.info({ subletId: id, userId: session.user.id }, 'Sublet updated successfully');
-      return updated;
+      // Format dates in response
+      return {
+        ...updated,
+        availableFrom: formatDateToDDMMYYYY(updated.availableFrom as unknown as string),
+        availableTo: formatDateToDDMMYYYY(updated.availableTo as unknown as string),
+      };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, subletId: id }, 'Failed to update sublet');
       return reply.status(500).send({ error: 'Failed to update sublet' });

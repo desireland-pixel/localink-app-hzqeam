@@ -7,6 +7,7 @@ export const profiles = pgTable('profiles', {
   userId: text('user_id').primaryKey().references(() => user.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   city: text('city').notNull(),
+  photoUrl: text('photo_url'), // Profile photo URL
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 });
@@ -37,7 +38,7 @@ export const sublets = pgTable('sublets', {
 export const travelPosts = pgTable('travel_posts', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
-  type: text('type', { enum: ['offering', 'seeking'] }).notNull(),
+  type: text('type', { enum: ['offering', 'seeking', 'seeking-ally'] }).notNull(),
   description: text('description'),
   fromCity: text('from_city').notNull(),
   toCity: text('to_city').notNull(),
@@ -45,6 +46,11 @@ export const travelPosts = pgTable('travel_posts', {
   // Seeking-specific fields
   companionshipFor: text('companionship_for', { enum: ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others'] }),
   travelDateTo: date('travel_date_to'),
+  // Seeking-ally specific field (free text for items)
+  item: text('item'),
+  // Offering-specific fields
+  canOfferCompanionship: boolean('can_offer_companionship'),
+  canCarryItems: boolean('can_carry_items'),
   status: text('status', { enum: ['active', 'closed'] }).default('active').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
@@ -153,6 +159,49 @@ export const messagesRelations = relations(messages, ({ one }) => ({
 export const favoritesRelations = relations(favorites, ({ one }) => ({
   user: one(user, {
     fields: [favorites.userId],
+    references: [user.id],
+  }),
+}));
+
+// Community discussion topics
+export const discussionTopics = pgTable('discussion_topics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  category: text('category').notNull(), // e.g., "Visa", "Travel Insurance", "Health", etc.
+  title: text('title').notNull(),
+  description: text('description'),
+  status: text('status', { enum: ['open', 'closed'] }).default('open').notNull(),
+  repliesCount: numeric('replies_count').default('0').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
+});
+
+// Community discussion replies
+export const discussionReplies = pgTable('discussion_replies', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  topicId: uuid('topic_id').notNull().references(() => discussionTopics.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
+});
+
+// Relations for community
+export const discussionTopicsRelations = relations(discussionTopics, ({ one, many }) => ({
+  user: one(user, {
+    fields: [discussionTopics.userId],
+    references: [user.id],
+  }),
+  replies: many(discussionReplies),
+}));
+
+export const discussionRepliesRelations = relations(discussionReplies, ({ one }) => ({
+  topic: one(discussionTopics, {
+    fields: [discussionReplies.topicId],
+    references: [discussionTopics.id],
+  }),
+  user: one(user, {
+    fields: [discussionReplies.userId],
     references: [user.id],
   }),
 }));
