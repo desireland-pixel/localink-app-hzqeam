@@ -60,7 +60,6 @@ export default function FAQsScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
         <Text style={styles.title}>FAQs</Text>
-        <Text style={styles.subtitle}>Frequently Asked Questions</Text>
 
         {faqs.map((faq, index) => {
           const isExpanded = expandedIndex === index;
@@ -90,7 +89,7 @@ export default function FAQsScreen() {
         <View style={styles.contactSection}>
           <Text style={styles.contactTitle}>Still have questions?</Text>
           <Text style={styles.contactText}>
-            Contact us at support@localink.app and we&apos;ll be happy to help!
+            Contact us at <Text style={styles.contactEmail}>info.localink@gmail.com</Text> and we&apos;ll be happy to help!
           </Text>
         </View>
       </ScrollView>
@@ -111,11 +110,6 @@ const styles = StyleSheet.create({
   title: {
     ...typography.h2,
     color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
     marginBottom: spacing.xl,
   },
   faqCard: {
@@ -162,5 +156,10 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     lineHeight: 22,
+  },
+  contactEmail: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
   },
 });

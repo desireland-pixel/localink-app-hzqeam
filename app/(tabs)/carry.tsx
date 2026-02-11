@@ -5,111 +5,77 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
-import { formatDateToDDMMYYYY } from '@/utils/cities';
+import { authenticatedGet } from '@/utils/api';
 
-interface CarryPost {
+interface CommunityTopic {
   id: string;
   userId: string;
+  category: string;
   title: string;
   description?: string;
-  fromCity: string;
-  toCity: string;
-  travelDate?: string;
-  type: 'request' | 'traveler';
-  itemDescription?: string;
-  status: string;
+  status: 'open' | 'closed';
   createdAt: string;
+  updatedAt: string;
   user?: {
     id: string;
     name: string;
   };
+  replyCount?: number;
 }
 
-export default function CarryScreen() {
+const CATEGORIES = [
+  'All',
+  'Visa',
+  'Travel Insurance',
+  'Housing',
+  'Jobs',
+  'Healthcare',
+  'Banking',
+  'Education',
+  'General',
+];
+
+export default function CommunityScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [posts, setPosts] = useState<CarryPost[]>([]);
+  const [topics, setTopics] = useState<CommunityTopic[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
-  console.log('CarryScreen: Rendering', { postsCount: posts.length, loading });
+  console.log('CommunityScreen: Rendering', { topicsCount: topics.length, loading, selectedCategory });
 
   useEffect(() => {
-    fetchPosts();
-    fetchFavorites();
-  }, [params.filters]);
+    fetchTopics();
+  }, [selectedCategory]);
 
-  const fetchPosts = async () => {
-    console.log('CarryScreen: Fetching carry posts');
+  const fetchTopics = async () => {
+    console.log('CommunityScreen: Fetching community topics');
     setLoading(true);
     try {
-      const filterParams = params.filters ? `?${params.filters}` : '';
-      const data = await authenticatedGet<CarryPost[]>(`/api/carry-posts${filterParams}`);
-      console.log('CarryScreen: Fetched carry posts', data);
-      setPosts(data);
+      const categoryParam = selectedCategory !== 'All' ? `?category=${encodeURIComponent(selectedCategory)}` : '';
+      const data = await authenticatedGet<CommunityTopic[]>(`/api/community/topics${categoryParam}`);
+      console.log('CommunityScreen: Fetched community topics', data);
+      setTopics(data);
     } catch (error) {
-      console.error('CarryScreen: Error fetching carry posts', error);
+      console.error('CommunityScreen: Error fetching community topics', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  const fetchFavorites = async () => {
-    try {
-      // TODO: Backend Integration - GET /api/favorites → [{ id, postId, postType, createdAt }]
-      console.log('CarryScreen: Fetching favorites');
-      const data = await authenticatedGet<Array<{ postId: string; postType: string }>>('/api/favorites');
-      const carryFavorites = data.filter(f => f.postType === 'carry').map(f => f.postId);
-      setFavorites(new Set(carryFavorites));
-    } catch (error) {
-      console.error('CarryScreen: Error fetching favorites', error);
-    }
-  };
-
-  const toggleFavorite = async (postId: string) => {
-    console.log('CarryScreen: Toggle favorite', postId);
-    const isFavorited = favorites.has(postId);
-    
-    // Optimistic update
-    const newFavorites = new Set(favorites);
-    if (isFavorited) {
-      newFavorites.delete(postId);
-    } else {
-      newFavorites.add(postId);
-    }
-    setFavorites(newFavorites);
-
-    try {
-      if (isFavorited) {
-        // TODO: Backend Integration - DELETE /api/favorites/:postId?postType=carry → { success: true }
-        await authenticatedDelete(`/api/favorites/${postId}?postType=carry`, {});
-      } else {
-        // TODO: Backend Integration - POST /api/favorites with { postId, postType: 'carry' } → { success: true, favorite }
-        await authenticatedPost('/api/favorites', { postId, postType: 'carry' });
-      }
-    } catch (error) {
-      console.error('CarryScreen: Error toggling favorite', error);
-      // Revert on error
-      setFavorites(favorites);
-    }
-  };
-
   const onRefresh = () => {
-    console.log('CarryScreen: Refreshing');
+    console.log('CommunityScreen: Refreshing');
     setRefreshing(true);
-    fetchPosts();
-    fetchFavorites();
+    fetchTopics();
   };
 
-  const filteredPosts = posts.filter(post =>
-    post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.fromCity.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.toCity.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (post.description && post.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredTopics = topics.filter(topic =>
+    topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (topic.description && topic.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    topic.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -124,7 +90,7 @@ export default function CarryScreen() {
           />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search carry posts..."
+            placeholder="Search discussions..."
             placeholderTextColor={colors.textLight}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -133,18 +99,11 @@ export default function CarryScreen() {
         </View>
         <TouchableOpacity
           style={styles.iconButton}
-          onPress={() => router.push('/carry-filters')}
-        >
-          <IconSymbol
-            ios_icon_name="line.3.horizontal.decrease.circle"
-            android_material_icon_name="filter-list"
-            size={24}
-            color={colors.text}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() => router.push('/post-carry')}
+          onPress={() => {
+            console.log('CommunityScreen: Navigate to post community topic');
+            // For now, show a simple message that this feature is coming soon
+            // TODO: Create /post-community-topic page
+          }}
         >
           <IconSymbol
             ios_icon_name="plus.circle.fill"
@@ -155,20 +114,49 @@ export default function CarryScreen() {
         </TouchableOpacity>
       </View>
 
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoriesContainer}
+        contentContainerStyle={styles.categoriesContent}
+      >
+        {CATEGORIES.map((category) => (
+          <TouchableOpacity
+            key={category}
+            style={[
+              styles.categoryChip,
+              selectedCategory === category && styles.categoryChipActive
+            ]}
+            onPress={() => setSelectedCategory(category)}
+          >
+            <Text style={[
+              styles.categoryChipText,
+              selectedCategory === category && styles.categoryChipTextActive
+            ]}>
+              {category}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : filteredPosts.length === 0 ? (
+      ) : filteredTopics.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyEmoji}>📦</Text>
-          <Text style={styles.emptyTitle}>No ally matches found</Text>
-          <Text style={styles.emptySubtitle}>Post a request to find the right fit!</Text>
+          <Text style={styles.emptyEmoji}>💬</Text>
+          <Text style={styles.emptyTitle}>No discussions yet</Text>
+          <Text style={styles.emptySubtitle}>Start a conversation about Visa, Travel Insurance, or other topics!</Text>
           <TouchableOpacity
             style={styles.requestButton}
-            onPress={() => router.push('/post-carry')}
+            onPress={() => {
+              console.log('CommunityScreen: Navigate to post community topic');
+              // For now, show a simple message that this feature is coming soon
+              // TODO: Create /post-community-topic page
+            }}
           >
-            <Text style={styles.requestButtonText}>Request</Text>
+            <Text style={styles.requestButtonText}>Start Discussion</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -178,55 +166,48 @@ export default function CarryScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
           }
         >
-          {filteredPosts.map((post) => {
-            const dateDisplay = post.travelDate ? formatDateToDDMMYYYY(post.travelDate) : '';
-            const label = post.type === 'request' ? 'Request' : 'Traveler';
-            const authorName = post.user?.name || 'Unknown';
-            const isFavorited = favorites.has(post.id);
+          {filteredTopics.map((topic) => {
+            const authorName = topic.user?.name || 'Unknown';
+            const statusColor = topic.status === 'open' ? colors.success : colors.textLight;
             
             return (
               <TouchableOpacity
-                key={post.id}
+                key={topic.id}
                 style={styles.card}
-                onPress={() => router.push(`/carry/${post.id}`)}
+                onPress={() => {
+                  console.log('CommunityScreen: View topic', topic.id);
+                  // For now, show a simple message that this feature is coming soon
+                  // TODO: Create /community/[id] page
+                }}
               >
                 <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle} numberOfLines={1}>{post.title}</Text>
-                  <TouchableOpacity 
-                    style={styles.likeButton}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(post.id);
-                    }}
-                  >
-                    <IconSymbol
-                      ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                      android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                      size={20}
-                      color={isFavorited ? colors.primary : colors.textSecondary}
-                    />
-                  </TouchableOpacity>
+                  <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryBadgeText}>{topic.category}</Text>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+                    <Text style={styles.statusBadgeText}>{topic.status}</Text>
+                  </View>
                 </View>
-                <View style={styles.typeTag}>
-                  <Text style={styles.typeTagText}>{label}</Text>
-                </View>
-                {post.description && (
+                <Text style={styles.cardTitle}>{topic.title}</Text>
+                {topic.description && (
                   <Text style={styles.cardDescription} numberOfLines={2}>
-                    {post.description}
+                    {topic.description}
                   </Text>
                 )}
-                <View style={styles.cardInfo}>
-                  <Text style={styles.cardInfoText}>{post.fromCity}</Text>
-                  <Text style={styles.cardInfoText}>→</Text>
-                  <Text style={styles.cardInfoText}>{post.toCity}</Text>
-                  {dateDisplay && (
-                    <>
-                      <Text style={styles.cardInfoText}>•</Text>
-                      <Text style={styles.cardInfoText}>{dateDisplay}</Text>
-                    </>
+                <View style={styles.cardFooter}>
+                  <Text style={styles.cardAuthor}>by {authorName}</Text>
+                  {topic.replyCount !== undefined && (
+                    <View style={styles.replyCount}>
+                      <IconSymbol
+                        ios_icon_name="bubble.left.fill"
+                        android_material_icon_name="chat-bubble"
+                        size={14}
+                        color={colors.textSecondary}
+                      />
+                      <Text style={styles.replyCountText}>{topic.replyCount}</Text>
+                    </View>
                   )}
                 </View>
-                <Text style={styles.cardAuthor}>Posted by {authorName}</Text>
               </TouchableOpacity>
             );
           })}
@@ -267,6 +248,36 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: spacing.xs,
+  },
+  categoriesContainer: {
+    maxHeight: 50,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  categoriesContent: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  categoryChip: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  categoryChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  categoryChipText: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  categoryChipTextActive: {
+    color: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
@@ -321,50 +332,60 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.xs,
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
-  cardTitle: {
-    ...typography.h3,
-    color: colors.text,
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  likeButton: {
-    padding: spacing.xs,
-  },
-  typeTag: {
+  categoryBadge: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
-    alignSelf: 'flex-start',
-    marginBottom: spacing.xs,
   },
-  typeTagText: {
+  categoryBadgeText: {
     ...typography.bodySmall,
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '600',
   },
+  statusBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  statusBadgeText: {
+    ...typography.bodySmall,
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  cardTitle: {
+    ...typography.h3,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
   cardDescription: {
     ...typography.body,
     color: colors.textSecondary,
     marginBottom: spacing.sm,
+    lineHeight: 20,
   },
-  cardInfo: {
+  cardFooter: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-    flexWrap: 'wrap',
-  },
-  cardInfoText: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
   },
   cardAuthor: {
     ...typography.bodySmall,
     color: colors.textLight,
+  },
+  replyCount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  replyCountText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
   },
 });

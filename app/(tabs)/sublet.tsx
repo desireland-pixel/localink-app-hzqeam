@@ -191,38 +191,29 @@ export default function SubletScreen() {
                 onPress={() => router.push(`/sublet/${sublet.id}`)}
               >
                 <View style={styles.cardContent}>
-                  <View style={styles.imageContainer}>
-                    {hasImage ? (
-                      <Image source={{ uri: sublet.imageUrls![0] }} style={styles.cardImage} />
-                    ) : (
-                      <View style={styles.imagePlaceholder}>
-                        <IconSymbol
-                          ios_icon_name="photo"
-                          android_material_icon_name="image"
-                          size={32}
-                          color={colors.textLight}
-                        />
+                  <View style={styles.leftColumn}>
+                    <View style={styles.imageContainer}>
+                      {hasImage ? (
+                        <Image source={{ uri: sublet.imageUrls![0] }} style={styles.cardImage} />
+                      ) : (
+                        <View style={styles.imagePlaceholder}>
+                          <IconSymbol
+                            ios_icon_name="photo"
+                            android_material_icon_name="image"
+                            size={32}
+                            color={colors.textLight}
+                          />
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.typeTagContainer}>
+                      <View style={styles.typeTag}>
+                        <Text style={styles.typeTagText}>{label}</Text>
                       </View>
-                    )}
+                    </View>
                   </View>
                   <View style={styles.cardTextContent}>
-                    <View style={styles.cardHeader}>
-                      <Text style={styles.cardTitle} numberOfLines={1}>{sublet.title}</Text>
-                      <TouchableOpacity 
-                        style={styles.likeButton}
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(sublet.id);
-                        }}
-                      >
-                        <IconSymbol
-                          ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                          android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                          size={20}
-                          color={isFavorited ? colors.primary : colors.textSecondary}
-                        />
-                      </TouchableOpacity>
-                    </View>
+                    <Text style={styles.cardTitle} numberOfLines={1}>{sublet.title}</Text>
                     <Text style={styles.cardCity}>{sublet.city}</Text>
                     <View style={styles.cardDateRow}>
                       <Text style={styles.cardDateText}>{fromDisplay}</Text>
@@ -232,12 +223,21 @@ export default function SubletScreen() {
                     {sublet.rent && (
                       <Text style={styles.cardRent}>€{sublet.rent}/month</Text>
                     )}
-                    <View style={styles.typeTagContainer}>
-                      <View style={styles.typeTag}>
-                        <Text style={styles.typeTagText}>{label}</Text>
-                      </View>
-                    </View>
                   </View>
+                  <TouchableOpacity 
+                    style={styles.likeButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(sublet.id);
+                    }}
+                  >
+                    <IconSymbol
+                      ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                      android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                      size={20}
+                      color={isFavorited ? colors.primary : colors.textSecondary}
+                    />
+                  </TouchableOpacity>
                 </View>
               </TouchableOpacity>
             );
@@ -334,9 +334,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.md,
   },
+  leftColumn: {
+    alignItems: 'center',
+  },
   imageContainer: {
     width: 80,
     height: 80,
+    marginBottom: spacing.xs,
   },
   cardImage: {
     width: 80,
@@ -351,23 +355,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  typeTagContainer: {
+    alignItems: 'center',
+  },
+  typeTag: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  typeTagText: {
+    ...typography.bodySmall,
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
   cardTextContent: {
     flex: 1,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.xs,
   },
   cardTitle: {
     ...typography.h3,
     color: colors.text,
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  likeButton: {
-    padding: spacing.xs,
+    marginBottom: spacing.xs,
   },
   cardCity: {
     ...typography.body,
@@ -392,22 +401,8 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.primary,
     fontWeight: '600',
-    marginBottom: spacing.sm,
   },
-  typeTagContainer: {
-    flexDirection: 'row',
-    marginTop: spacing.xs,
-  },
-  typeTag: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-  },
-  typeTagText: {
-    ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '600',
+  likeButton: {
+    padding: spacing.xs,
   },
 });

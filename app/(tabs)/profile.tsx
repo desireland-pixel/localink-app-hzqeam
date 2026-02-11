@@ -40,7 +40,13 @@ export default function ProfileScreen() {
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
-            <TouchableOpacity style={styles.editAvatarButton}>
+            <TouchableOpacity 
+              style={styles.editAvatarButton}
+              onPress={() => {
+                console.log('[ProfileScreen] Navigate to personal details for photo edit');
+                router.push('/personal-details');
+              }}
+            >
               <IconSymbol 
                 ios_icon_name="pencil.circle.fill" 
                 android_material_icon_name="edit" 

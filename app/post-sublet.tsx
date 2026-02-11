@@ -267,7 +267,7 @@ export default function PostSubletScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowFromPicker(true)}
               >
-                <Text style={styles.dateButtonText}>{availableFromDisplay}</Text>
+                <Text style={[styles.dateButtonText, styles.dateButtonPlaceholder]}>{availableFromDisplay}</Text>
               </TouchableOpacity>
               {showFromPicker && (
                 <DateTimePicker
@@ -286,7 +286,7 @@ export default function PostSubletScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowToPicker(true)}
               >
-                <Text style={styles.dateButtonText}>{availableToDisplay}</Text>
+                <Text style={[styles.dateButtonText, styles.dateButtonPlaceholder]}>{availableToDisplay}</Text>
               </TouchableOpacity>
               {showToPicker && (
                 <DateTimePicker
@@ -430,7 +430,7 @@ export default function PostSubletScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowFromPicker(true)}
               >
-                <Text style={styles.dateButtonText}>{availableFromDisplay}</Text>
+                <Text style={[styles.dateButtonText, styles.dateButtonPlaceholder]}>{availableFromDisplay}</Text>
               </TouchableOpacity>
               {showFromPicker && (
                 <DateTimePicker
@@ -449,7 +449,7 @@ export default function PostSubletScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowToPicker(true)}
               >
-                <Text style={styles.dateButtonText}>{availableToDisplay}</Text>
+                <Text style={[styles.dateButtonText, styles.dateButtonPlaceholder]}>{availableToDisplay}</Text>
               </TouchableOpacity>
               {showToPicker && (
                 <DateTimePicker
@@ -606,6 +606,9 @@ const styles = StyleSheet.create({
   dateButtonText: {
     ...typography.body,
     color: colors.text,
+  },
+  dateButtonPlaceholder: {
+    color: colors.textLight,
   },
   consentContainer: {
     flexDirection: 'row',

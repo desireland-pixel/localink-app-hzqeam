@@ -23,7 +23,6 @@ export default function NotificationsScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
         <Text style={styles.title}>Notifications</Text>
-        <Text style={styles.subtitle}>Manage your notification preferences</Text>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Communication</Text>
@@ -86,11 +85,6 @@ const styles = StyleSheet.create({
   title: {
     ...typography.h2,
     color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
     marginBottom: spacing.xl,
   },
   section: {

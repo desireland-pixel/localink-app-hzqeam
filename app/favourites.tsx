@@ -47,7 +47,6 @@ export default function FavouritesScreen() {
     console.log('FavouritesScreen: Fetching favorites');
     setLoading(true);
     try {
-      // TODO: Backend Integration - GET /api/favorites → [{ id, postId, postType, createdAt, post: {...} }]
       const data = await authenticatedGet<FavoritePost[]>('/api/favorites');
       console.log('FavouritesScreen: Fetched favorites', data);
       setFavorites(data);
@@ -73,7 +72,6 @@ export default function FavouritesScreen() {
     setFavorites(favorites.filter(f => f.postId !== postId));
     
     try {
-      // TODO: Backend Integration - DELETE /api/favorites/:postId?postType=... → { success: true }
       await authenticatedDelete(`/api/favorites/${postId}?postType=${postType}`, {});
     } catch (error: any) {
       console.error('FavouritesScreen: Error removing favorite', error);

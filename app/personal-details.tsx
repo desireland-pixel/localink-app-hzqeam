@@ -4,7 +4,8 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
-import { authenticatedGet, authenticatedPatch } from '@/utils/api';
+import { authenticatedGet, authenticatedPut } from '@/utils/api';
+import { CitySearchInput } from '@/components/CitySearchInput';
 import Modal from '@/components/ui/Modal';
 
 export default function PersonalDetailsScreen() {
@@ -33,8 +34,7 @@ export default function PersonalDetailsScreen() {
     setSuccess('');
 
     try {
-      await authenticatedPatch('/api/profile', {
-        name: name.trim(),
+      await authenticatedPut('/api/profile', {
         city: city.trim(),
       });
       setSuccess('Personal details updated successfully');
@@ -50,15 +50,14 @@ export default function PersonalDetailsScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
         <Text style={styles.title}>Personal Details</Text>
-        <Text style={styles.subtitle}>Manage your account information</Text>
 
         <Text style={styles.label}>Full Name</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, styles.inputDisabled]}
           placeholder="Enter your full name"
           placeholderTextColor={colors.textLight}
           value={name}
-          onChangeText={setName}
+          editable={false}
         />
 
         <Text style={styles.label}>Email</Text>
@@ -69,15 +68,12 @@ export default function PersonalDetailsScreen() {
           value={email}
           editable={false}
         />
-        <Text style={styles.helperText}>Email cannot be changed</Text>
 
         <Text style={styles.label}>City</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your city"
-          placeholderTextColor={colors.textLight}
+        <CitySearchInput
           value={city}
           onChangeText={setCity}
+          placeholder="Search city..."
         />
 
         <TouchableOpacity
@@ -125,11 +121,6 @@ const styles = StyleSheet.create({
   title: {
     ...typography.h2,
     color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
     marginBottom: spacing.xl,
   },
   label: {
@@ -152,12 +143,6 @@ const styles = StyleSheet.create({
   inputDisabled: {
     opacity: 0.6,
     backgroundColor: colors.border,
-  },
-  helperText: {
-    ...typography.bodySmall,
-    color: colors.textLight,
-    marginTop: spacing.xs,
-    fontStyle: 'italic',
   },
   button: {
     backgroundColor: colors.primary,

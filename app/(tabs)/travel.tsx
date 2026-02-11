@@ -16,9 +16,12 @@ interface TravelPost {
   fromCity: string;
   toCity: string;
   travelDate: string;
-  type: 'seeking' | 'offering';
+  type: 'seeking' | 'offering' | 'seeking-ally';
   companionshipFor?: string;
   travelDateTo?: string;
+  canOfferCompanionship?: boolean;
+  canCarryItems?: boolean;
+  item?: string;
   status: string;
   createdAt: string;
   user?: {
@@ -61,7 +64,6 @@ export default function TravelScreen() {
 
   const fetchFavorites = async () => {
     try {
-      // TODO: Backend Integration - GET /api/favorites → [{ id, postId, postType, createdAt }]
       console.log('TravelScreen: Fetching favorites');
       const data = await authenticatedGet<Array<{ postId: string; postType: string }>>('/api/favorites');
       const travelFavorites = data.filter(f => f.postType === 'travel').map(f => f.postId);
@@ -86,10 +88,8 @@ export default function TravelScreen() {
 
     try {
       if (isFavorited) {
-        // TODO: Backend Integration - DELETE /api/favorites/:postId?postType=travel → { success: true }
         await authenticatedDelete(`/api/favorites/${postId}?postType=travel`, {});
       } else {
-        // TODO: Backend Integration - POST /api/favorites with { postId, postType: 'travel' } → { success: true, favorite }
         await authenticatedPost('/api/favorites', { postId, postType: 'travel' });
       }
     } catch (error) {
@@ -181,7 +181,31 @@ export default function TravelScreen() {
           {filteredPosts.map((post) => {
             const dateDisplay = formatDateToDDMMYYYY(post.travelDate);
             const dateToDisplay = post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo) : null;
-            const label = post.type === 'seeking' ? 'Seeking' : 'Offering';
+            
+            // Determine label and icons
+            let label = '';
+            let icons = '';
+            
+            if (post.type === 'offering') {
+              label = 'Offering';
+              const hasCompanionship = post.canOfferCompanionship;
+              const hasCarry = post.canCarryItems;
+              
+              if (hasCompanionship && hasCarry) {
+                icons = '👥, 📦';
+              } else if (hasCompanionship) {
+                icons = '👥';
+              } else if (hasCarry) {
+                icons = '📦';
+              }
+            } else if (post.type === 'seeking') {
+              label = 'Seeking';
+              icons = '👥';
+            } else if (post.type === 'seeking-ally') {
+              label = 'Seeking';
+              icons = '📦';
+            }
+            
             const authorName = post.user?.name || 'Unknown';
             const isFavorited = favorites.has(post.id);
             
@@ -192,8 +216,13 @@ export default function TravelScreen() {
                 onPress={() => router.push(`/travel/${post.id}`)}
               >
                 <View style={styles.cardHeader}>
-                  <View style={styles.typeTag}>
-                    <Text style={styles.typeTagText}>{label}</Text>
+                  <View style={styles.tagRow}>
+                    <View style={styles.typeTag}>
+                      <Text style={styles.typeTagText}>{label}</Text>
+                    </View>
+                    {icons && (
+                      <Text style={styles.iconText}>{icons}</Text>
+                    )}
                   </View>
                   <TouchableOpacity 
                     style={styles.likeButton}
@@ -327,6 +356,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
+  tagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   typeTag: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.sm,
@@ -338,6 +372,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '600',
+  },
+  iconText: {
+    fontSize: 14,
   },
   likeButton: {
     padding: spacing.xs,

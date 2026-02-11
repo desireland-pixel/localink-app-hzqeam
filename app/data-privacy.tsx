@@ -9,7 +9,6 @@ export default function DataPrivacyScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
         <Text style={styles.title}>Data & Privacy</Text>
-        <Text style={styles.subtitle}>How we protect your information</Text>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Information We Collect</Text>
@@ -68,9 +67,9 @@ export default function DataPrivacyScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Contact Us</Text>
           <Text style={styles.paragraph}>
-            For privacy-related questions or to exercise your rights, contact us at:
+            For privacy-related questions or to exercise your rights, contact us at{' '}
+            <Text style={styles.contactEmail}>info.localink@gmail.com</Text>
           </Text>
-          <Text style={styles.contactEmail}>privacy@localink.app</Text>
         </View>
 
         <Text style={styles.lastUpdated}>Last updated: January 2024</Text>
@@ -92,11 +91,6 @@ const styles = StyleSheet.create({
   title: {
     ...typography.h2,
     color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
     marginBottom: spacing.xl,
   },
   section: {

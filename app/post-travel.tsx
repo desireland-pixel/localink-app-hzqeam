@@ -164,12 +164,7 @@ export default function PostTravelScreen() {
                 </View>
                 <Text style={styles.radioText}>offering a travel companionship/ an ally</Text>
               </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.radioContainer}>
-            <Text style={styles.radioLabel}>I am seeking</Text>
-            <View style={styles.radioButtons}>
+              
               <TouchableOpacity
                 style={styles.radioOption}
                 onPress={() => setTravelMode('seeking-companionship')}
@@ -177,7 +172,7 @@ export default function PostTravelScreen() {
                 <View style={styles.radioCircle}>
                   {travelMode === 'seeking-companionship' && <View style={styles.radioCircleSelected} />}
                 </View>
-                <Text style={styles.radioText}>a travel companionship</Text>
+                <Text style={styles.radioText}>seeking a travel companionship</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
@@ -187,7 +182,7 @@ export default function PostTravelScreen() {
                 <View style={styles.radioCircle}>
                   {travelMode === 'seeking-ally' && <View style={styles.radioCircleSelected} />}
                 </View>
-                <Text style={styles.radioText}>an ally</Text>
+                <Text style={styles.radioText}>seeking an ally</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -255,7 +250,7 @@ export default function PostTravelScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowDatePicker(true)}
               >
-                <Text style={styles.dateButtonText}>{travelDateDisplay}</Text>
+                <Text style={[styles.dateButtonText, styles.dateButtonPlaceholder]}>{travelDateDisplay}</Text>
               </TouchableOpacity>
               {showDatePicker && (
                 <DateTimePicker
@@ -370,7 +365,7 @@ export default function PostTravelScreen() {
                     style={styles.dateButton}
                     onPress={() => setShowDatePicker(true)}
                   >
-                    <Text style={styles.dateButtonText}>{travelDateDisplay}</Text>
+                    <Text style={[styles.dateButtonText, styles.dateButtonPlaceholder]}>{travelDateDisplay}</Text>
                   </TouchableOpacity>
                   {showDatePicker && (
                     <DateTimePicker
@@ -516,7 +511,7 @@ export default function PostTravelScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowDatePicker(true)}
               >
-                <Text style={styles.dateButtonText}>{travelDateDisplay}</Text>
+                <Text style={[styles.dateButtonText, styles.dateButtonPlaceholder]}>{travelDateDisplay}</Text>
               </TouchableOpacity>
               {showDatePicker && (
                 <DateTimePicker
