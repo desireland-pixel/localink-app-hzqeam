@@ -2,6 +2,7 @@ import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { eq, and, gte, lte, isNull, isNotNull, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
+import { generateShortId } from '../utils/short-id.js';
 
 interface SubletFilters {
   type?: 'offering' | 'seeking';
@@ -192,6 +193,7 @@ export function registerSubletRoutes(app: App) {
       const sublet = result[0];
       const response = {
         ...sublet,
+        shortId: generateShortId(sublet.id),
         user: {
           id: sublet.userId,
           name: sublet.userName || 'Unknown User',
@@ -199,7 +201,7 @@ export function registerSubletRoutes(app: App) {
         userName: undefined,
       };
 
-      app.logger.info({ subletId: id }, 'Sublet details fetched successfully');
+      app.logger.info({ subletId: id, shortId: response.shortId }, 'Sublet details fetched successfully');
       return response;
     } catch (error) {
       app.logger.error({ err: error, subletId: id }, 'Failed to fetch sublet');

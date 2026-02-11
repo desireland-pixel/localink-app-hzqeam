@@ -3,6 +3,7 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 import { eq, and, gte, lte, between, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { TRAVEL_CITIES } from '../cities.js';
+import { generateShortId } from '../utils/short-id.js';
 
 interface TravelPostFilters {
   type?: 'offering' | 'seeking';
@@ -190,6 +191,7 @@ export function registerTravelPostRoutes(app: App) {
       const post = result[0];
       const response = {
         ...post,
+        shortId: generateShortId(post.id),
         user: {
           id: post.userId,
           name: post.userName || 'Unknown User',
@@ -197,7 +199,7 @@ export function registerTravelPostRoutes(app: App) {
         userName: undefined,
       };
 
-      app.logger.info({ travelPostId: id }, 'Travel post details fetched successfully');
+      app.logger.info({ travelPostId: id, shortId: response.shortId }, 'Travel post details fetched successfully');
       return response;
     } catch (error) {
       app.logger.error({ err: error, travelPostId: id }, 'Failed to fetch travel post');

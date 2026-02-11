@@ -2,6 +2,7 @@ import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { eq, and, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
+import { generateShortId } from '../utils/short-id.js';
 
 interface CarryPostFilters {
   fromCity?: string;
@@ -156,6 +157,7 @@ export function registerCarryPostRoutes(app: App) {
       const post = result[0];
       const response = {
         ...post,
+        shortId: generateShortId(post.id),
         user: {
           id: post.userId,
           name: post.userName || 'Unknown User',
@@ -163,7 +165,7 @@ export function registerCarryPostRoutes(app: App) {
         userName: undefined,
       };
 
-      app.logger.info({ carryPostId: id }, 'Carry post details fetched successfully');
+      app.logger.info({ carryPostId: id, shortId: response.shortId }, 'Carry post details fetched successfully');
       return response;
     } catch (error) {
       app.logger.error({ err: error, carryPostId: id }, 'Failed to fetch carry post');
