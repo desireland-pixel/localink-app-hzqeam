@@ -77,16 +77,21 @@ export function registerCommunityRoutes(app: App) {
         .offset(offset)
         .orderBy(desc(schema.discussionTopics.createdAt));
 
-      // Transform to include user object
-      const result = topics.map(topic => ({
-        ...topic,
-        shortId: generateShortId(topic.id),
-        user: {
-          id: topic.userId,
-          name: topic.userName || 'Unknown User',
-        },
-        userName: undefined,
-      }));
+      // Transform to include user object and formatted metadata
+      const result = topics.map(topic => {
+        const date = new Date(topic.createdAt);
+        const formattedDate = date.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
+        return {
+          ...topic,
+          shortId: generateShortId(topic.id),
+          user: {
+            id: topic.userId,
+            name: topic.userName || 'Unknown User',
+          },
+          userName: undefined,
+          byline: `by ${topic.userName || 'Unknown User'} on ${formattedDate}`,
+        };
+      });
 
       app.logger.info({ count: result.length }, 'Discussion topics listed successfully');
       return result;
@@ -467,6 +472,120 @@ export function registerCommunityRoutes(app: App) {
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, replyId }, 'Failed to delete discussion reply');
       return reply.status(500).send({ error: 'Failed to delete discussion reply' });
+    }
+  });
+
+  // Get comments for a community post (alias for GET /api/community/topics/:id/replies)
+  app.fastify.get('/api/community/:postId/comments', {
+    schema: {
+      description: 'Get comments for a community post',
+      tags: ['community'],
+      params: {
+        type: 'object',
+        properties: {
+          postId: { type: 'string', format: 'uuid' },
+        },
+        required: ['postId'],
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { postId } = request.params as { postId: string };
+    app.logger.info({ postId }, 'Fetching comments for community post');
+
+    try {
+      const replies = await app.db
+        .select({
+          id: schema.discussionReplies.id,
+          topicId: schema.discussionReplies.topicId,
+          userId: schema.discussionReplies.userId,
+          content: schema.discussionReplies.content,
+          createdAt: schema.discussionReplies.createdAt,
+          updatedAt: schema.discussionReplies.updatedAt,
+          userName: schema.profiles.name,
+        })
+        .from(schema.discussionReplies)
+        .leftJoin(schema.profiles, eq(schema.discussionReplies.userId, schema.profiles.userId))
+        .where(eq(schema.discussionReplies.topicId, postId))
+        .orderBy(desc(schema.discussionReplies.createdAt));
+
+      // Transform to include user object
+      const transformedReplies = replies.map(reply => ({
+        ...reply,
+        user: {
+          id: reply.userId,
+          name: reply.userName || 'Unknown User',
+        },
+        userName: undefined,
+      }));
+
+      app.logger.info({ postId, count: transformedReplies.length }, 'Comments fetched successfully');
+      return transformedReplies;
+    } catch (error) {
+      app.logger.error({ err: error, postId }, 'Failed to fetch comments');
+      return reply.status(500).send({ error: 'Failed to fetch comments' });
+    }
+  });
+
+  // Add comment to a community post (alias for POST /api/community/topics/:id/replies)
+  app.fastify.post('/api/community/:postId/comments', {
+    schema: {
+      description: 'Add a comment to a community post',
+      tags: ['community'],
+      params: {
+        type: 'object',
+        properties: {
+          postId: { type: 'string', format: 'uuid' },
+        },
+        required: ['postId'],
+      },
+      body: {
+        type: 'object',
+        required: ['text'],
+        properties: {
+          text: { type: 'string' },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    const { postId } = request.params as { postId: string };
+    const { text } = request.body as { text: string };
+    app.logger.info({ userId: session.user.id, postId, textLength: text.length }, 'Adding comment to community post');
+
+    try {
+      // Check if post exists
+      const topic = await app.db.query.discussionTopics.findFirst({
+        where: eq(schema.discussionTopics.id, postId),
+      });
+
+      if (!topic) {
+        app.logger.warn({ postId }, 'Community post not found');
+        return reply.status(404).send({ error: 'Community post not found.' });
+      }
+
+      const [newReply] = await app.db
+        .insert(schema.discussionReplies)
+        .values({
+          topicId: postId,
+          userId: session.user.id,
+          content: text,
+        })
+        .returning();
+
+      // Increment repliesCount on topic
+      const newCount = (parseInt(topic.repliesCount.toString()) || 0) + 1;
+      await app.db
+        .update(schema.discussionTopics)
+        .set({ repliesCount: newCount.toString() })
+        .where(eq(schema.discussionTopics.id, postId));
+
+      app.logger.info({ replyId: newReply.id, postId, userId: session.user.id }, 'Comment added successfully');
+      return newReply;
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id, postId }, 'Failed to add comment');
+      return reply.status(500).send({ error: 'Failed to add comment' });
     }
   });
 

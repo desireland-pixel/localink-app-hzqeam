@@ -53,6 +53,7 @@ export function registerProfileRoutes(app: App) {
       ...profile,
       userId: profile.userId,
       email: session.user.email,
+      isProfileComplete: !!(profile.username && profile.city),
     };
   });
 
@@ -196,9 +197,19 @@ export function registerProfileRoutes(app: App) {
     app.logger.info({ userId: session.user.id }, 'Changing password');
 
     try {
-      // Use Better Auth's change password endpoint
-      // Note: This is a proxy call to Better Auth's built-in change-password endpoint
-      // Better Auth handles password verification internally
+      // Get user account to verify old password
+      const account = await app.db.query.account.findFirst({
+        where: (field) => eq(field.userId, session.user.id),
+      });
+
+      if (!account || !account.password) {
+        app.logger.warn({ userId: session.user.id }, 'User account not found or password not set');
+        return reply.status(400).send({ error: 'Password not set for this account' });
+      }
+
+      // Verify old password using Better Auth's password verification
+      // Since we can't access bcrypt directly, we'll use the auth change-password endpoint
+      // by proxying through it
       const response = await fetch(`${request.url.split('/api/')[0]}/api/auth/change-password`, {
         method: 'POST',
         headers: {
@@ -212,8 +223,12 @@ export function registerProfileRoutes(app: App) {
       });
 
       if (!response.ok) {
-        app.logger.warn({ userId: session.user.id }, 'Password change failed');
-        return reply.status(400).send({ error: 'Invalid old password or password change failed' });
+        const errorText = await response.text();
+        app.logger.warn({ userId: session.user.id, error: errorText }, 'Password change failed');
+        if (response.status === 400) {
+          return reply.status(400).send({ error: 'Incorrect old password' });
+        }
+        return reply.status(400).send({ error: 'Failed to change password' });
       }
 
       app.logger.info({ userId: session.user.id }, 'Password changed successfully');

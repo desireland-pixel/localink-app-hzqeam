@@ -246,6 +246,12 @@ export function registerSubletRoutes(app: App) {
     app.logger.info({ userId: session.user.id, body }, 'Creating sublet');
 
     try {
+      // Validate required fields
+      if (!body.type || !body.title || !body.city || !body.availableFrom || !body.availableTo) {
+        app.logger.warn({ body }, 'Missing required fields');
+        return reply.status(400).send({ error: 'Please fill all mandatory fields' });
+      }
+
       // Convert dates from dd.mm.yyyy to YYYY-MM-DD format
       const dbAvailableFrom = parseDateFromDDMMYYYY(body.availableFrom);
       const dbAvailableTo = parseDateFromDDMMYYYY(body.availableTo);
@@ -253,6 +259,21 @@ export function registerSubletRoutes(app: App) {
       if (!dbAvailableFrom || !dbAvailableTo) {
         app.logger.warn({ availableFrom: body.availableFrom, availableTo: body.availableTo }, 'Invalid date format');
         return reply.status(400).send({ error: 'Invalid date format. Please use dd.mm.yyyy format.' });
+      }
+
+      // Validate dates: availableTo must be after availableFrom
+      if (dbAvailableTo <= dbAvailableFrom) {
+        app.logger.warn({ availableFrom: dbAvailableFrom, availableTo: dbAvailableTo }, 'Move-out date must be after move-in date');
+        return reply.status(400).send({ error: 'Move-out date must be after Move-in date' });
+      }
+
+      // Validate that availableFrom is not in the past
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const fromDate = new Date(dbAvailableFrom);
+      if (fromDate < today) {
+        app.logger.warn({ availableFrom: dbAvailableFrom }, 'Start date cannot be in the past');
+        return reply.status(400).send({ error: 'Start date cannot be in the past' });
       }
 
       const [sublet] = await app.db
@@ -459,7 +480,7 @@ export function registerSubletRoutes(app: App) {
         .select()
         .from(schema.sublets)
         .where(eq(schema.sublets.userId, session.user.id))
-        .orderBy(schema.sublets.createdAt);
+        .orderBy(desc(schema.sublets.createdAt));
 
       app.logger.info({ userId: session.user.id, count: sublets.length }, 'User sublets fetched successfully');
       return sublets;

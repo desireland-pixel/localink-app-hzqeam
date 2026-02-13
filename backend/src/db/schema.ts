@@ -13,6 +13,24 @@ export const profiles = pgTable('profiles', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 });
 
+// OTP verifications for email verification
+export const otpVerifications = pgTable('otp_verifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull(),
+  otp: text('otp').notNull(), // 6-digit OTP code
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Password reset tokens
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  token: uuid('token').defaultRandom().notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Sublet posts
 export const sublets = pgTable('sublets', {
   id: uuid('id').primaryKey().defaultRandom(),

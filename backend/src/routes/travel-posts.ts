@@ -1,13 +1,15 @@
 import type { App} from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, gte, lte, between, desc } from 'drizzle-orm';
+import { eq, and, or, gte, lte, between, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { TRAVEL_CITIES } from '../cities.js';
 import { generateShortId } from '../utils/short-id.js';
 import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '../utils/date-format.js';
+import { formatTravelPostTitle, getTravelPostTypeEmojis } from '../utils/travel-post-formatter.js';
 
 interface TravelPostFilters {
-  type?: 'offering' | 'seeking' | 'seeking-ally';
+  role?: 'offering' | 'seeking'; // Single role filter
+  type?: string; // Multi-select: 'companionship' or 'ally' (can be comma-separated)
   fromCity?: string;
   toCity?: string;
   travelDate?: string;
@@ -69,7 +71,8 @@ export function registerTravelPostRoutes(app: App) {
       querystring: {
         type: 'object',
         properties: {
-          type: { type: 'string', enum: ['offering', 'seeking', 'seeking-ally'] },
+          role: { type: 'string', enum: ['offering', 'seeking'] },
+          type: { type: 'string' }, // 'companionship,ally' for multi-select
           fromCity: { type: 'string' },
           toCity: { type: 'string' },
           travelDate: { type: 'string' },
@@ -87,8 +90,51 @@ export function registerTravelPostRoutes(app: App) {
     try {
       const conditions: any[] = [eq(schema.travelPosts.status, 'active')];
 
+      // Filter by role (offering/seeking)
+      if (filters.role) {
+        conditions.push(eq(schema.travelPosts.type, filters.role));
+      }
+
+      // Filter by type (companionship/ally)
+      // 'companionship' = offering with canOfferCompanionship OR seeking (default)
+      // 'ally' = offering with canCarryItems OR seeking-ally
       if (filters.type) {
-        conditions.push(eq(schema.travelPosts.type, filters.type));
+        const types = filters.type.split(',').map(t => t.trim());
+        const typeConditions: any[] = [];
+
+        for (const t of types) {
+          if (t === 'companionship') {
+            // seeking posts are companionship, or offering with canOfferCompanionship
+            typeConditions.push(eq(schema.travelPosts.type, 'seeking'));
+            typeConditions.push(
+              and(
+                eq(schema.travelPosts.type, 'offering'),
+                eq(schema.travelPosts.canOfferCompanionship, true)
+              )!
+            );
+          } else if (t === 'ally') {
+            // seeking-ally posts, or offering with canCarryItems
+            typeConditions.push(eq(schema.travelPosts.type, 'seeking-ally'));
+            typeConditions.push(
+              and(
+                eq(schema.travelPosts.type, 'offering'),
+                eq(schema.travelPosts.canCarryItems, true)
+              )!
+            );
+          }
+        }
+
+        if (typeConditions.length > 0) {
+          // Combine with OR if multiple types selected
+          conditions.push(
+            or(
+              ...typeConditions.map((cond, idx) => {
+                // Group by type (companionship conditions, then ally conditions)
+                return cond;
+              })
+            )!
+          );
+        }
       }
 
       if (filters.fromCity) {
@@ -146,17 +192,35 @@ export function registerTravelPostRoutes(app: App) {
         .offset(offset)
         .orderBy(desc(schema.travelPosts.createdAt));
 
-      // Transform to include user object and format dates
-      const result = posts.map(post => ({
-        ...post,
-        travelDate: formatDateToDDMMYYYY(post.travelDate as unknown as string),
-        travelDateTo: post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo as unknown as string) : null,
-        user: {
-          id: post.userId,
-          name: post.userName || 'Unknown User',
-        },
-        userName: undefined,
-      }));
+      // Transform to include user object, format dates, and add formatted title
+      const result = posts.map(post => {
+        const { title, tag } = formatTravelPostTitle(
+          post.type as 'offering' | 'seeking' | 'seeking-ally',
+          post.fromCity,
+          post.toCity,
+          post.canOfferCompanionship,
+          post.canCarryItems
+        );
+        const typeEmojis = getTravelPostTypeEmojis(
+          post.type as 'offering' | 'seeking' | 'seeking-ally',
+          post.canOfferCompanionship,
+          post.canCarryItems
+        );
+
+        return {
+          ...post,
+          travelDate: formatDateToDDMMYYYY(post.travelDate as unknown as string),
+          travelDateTo: post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo as unknown as string) : null,
+          formattedTitle: title,
+          tag: tag,
+          typeEmojis: typeEmojis,
+          user: {
+            id: post.userId,
+            name: post.userName || 'Unknown User',
+          },
+          userName: undefined,
+        };
+      });
 
       app.logger.info({ count: result.length }, 'Travel posts listed successfully');
       return result;
@@ -214,10 +278,26 @@ export function registerTravelPostRoutes(app: App) {
       }
 
       const post = result[0];
+      const { title, tag } = formatTravelPostTitle(
+        post.type as 'offering' | 'seeking' | 'seeking-ally',
+        post.fromCity,
+        post.toCity,
+        post.canOfferCompanionship,
+        post.canCarryItems
+      );
+      const typeEmojis = getTravelPostTypeEmojis(
+        post.type as 'offering' | 'seeking' | 'seeking-ally',
+        post.canOfferCompanionship,
+        post.canCarryItems
+      );
+
       const response = {
         ...post,
         travelDate: formatDateToDDMMYYYY(post.travelDate as unknown as string),
         travelDateTo: post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo as unknown as string) : null,
+        formattedTitle: title,
+        tag: tag,
+        typeEmojis: typeEmojis,
         shortId: generateShortId(post.id),
         user: {
           id: post.userId,
@@ -273,6 +353,12 @@ export function registerTravelPostRoutes(app: App) {
     app.logger.info({ userId: session.user.id, body }, 'Creating travel post');
 
     try {
+      // Validation: check all required fields are provided
+      if (!body.type || !body.fromCity || !body.toCity || !body.travelDate) {
+        app.logger.warn({ body }, 'Missing required fields');
+        return reply.status(400).send({ error: 'Please fill all mandatory fields' });
+      }
+
       // Validation: cities must be from predefined list
       if (!validateCity(body.fromCity)) {
         app.logger.warn({ fromCity: body.fromCity }, 'Invalid fromCity');
