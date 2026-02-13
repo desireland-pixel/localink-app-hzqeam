@@ -62,7 +62,14 @@ export default function EditPasswordScreen() {
       }, 1500);
     } catch (err: any) {
       console.error('[EditPassword] Password update failed:', err);
-      setError(err.message || 'Failed to update password');
+      const errorMsg = err.message || err.toString();
+      if (errorMsg.includes('500') || errorMsg.includes('Failed to change password')) {
+        setError('Current password is incorrect. Please try again.');
+      } else if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
+        setError('Session expired. Please sign in again.');
+      } else {
+        setError('Failed to update password. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform, TextInput, KeyboardAvoidingView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -10,84 +10,84 @@ import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
 
-interface CarryPost {
+interface CommunityTopic {
   id: string;
   shortId?: string;
   userId: string;
+  category: string;
   title: string;
   description?: string;
-  fromCity: string;
-  toCity: string;
-  travelDate?: string;
-  type: 'request' | 'traveler';
-  itemDescription?: string;
-  status: string;
+  status: 'open' | 'closed';
   createdAt: string;
+  updatedAt: string;
   user: {
     id: string;
     name: string;
   };
+  replies?: Array<{
+    id: string;
+    userId: string;
+    content: string;
+    createdAt: string;
+    user: {
+      id: string;
+      name: string;
+    };
+  }>;
 }
 
-export default function CarryDetailsScreen() {
+export default function CommunityDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
-  const [carryPost, setCarryPost] = useState<CarryPost | null>(null);
+  const [topic, setTopic] = useState<CommunityTopic | null>(null);
   const [loading, setLoading] = useState(true);
-  const [contacting, setContacting] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  console.log('CarryDetailsScreen: Viewing carry item', { id });
+  console.log('CommunityDetailsScreen: Viewing topic', { id });
 
   useEffect(() => {
-    fetchCarryPost();
+    fetchTopic();
   }, [id]);
 
-  const fetchCarryPost = async () => {
+  const fetchTopic = async () => {
     try {
-      console.log('[CarryDetails] Fetching carry post:', id);
-      const data = await authenticatedGet<CarryPost>(`/api/carry-posts/${id}`);
-      console.log('[CarryDetails] Carry post fetched:', data);
-      setCarryPost(data);
+      console.log('[CommunityDetails] Fetching topic:', id);
+      const data = await authenticatedGet<CommunityTopic>(`/api/community/topics/${id}`);
+      console.log('[CommunityDetails] Topic fetched:', data);
+      setTopic(data);
     } catch (err) {
-      console.error('[CarryDetails] Error fetching carry post:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load carry post');
+      console.error('[CommunityDetails] Error fetching topic:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load topic');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleContact = async () => {
-    if (!carryPost || contacting) return;
+  const handleSubmitReply = async () => {
+    if (!topic || !replyText.trim() || submitting) return;
     
-    console.log('CarryDetailsScreen: Contact user');
-    setContacting(true);
+    console.log('CommunityDetailsScreen: Submitting reply');
+    setSubmitting(true);
 
     try {
-      console.log('[CarryDetails] Creating conversation with:', carryPost.user.id);
-      const response = await authenticatedPost<{ conversationId: string; conversation: any }>(
-        '/api/conversations',
-        {
-          postId: id,
-          postType: 'carry',
-          recipientId: carryPost.user.id,
-        }
-      );
-      console.log('[CarryDetails] Conversation created:', response);
+      console.log('[CommunityDetails] Posting reply to topic:', id);
+      await authenticatedPost(`/api/community/topics/${id}/replies`, {
+        content: replyText.trim(),
+      });
+      console.log('[CommunityDetails] Reply posted successfully');
       
-      // Navigate to the chat
-      router.push(`/chat/${response.conversationId}`);
+      // Clear input and refresh
+      setReplyText('');
+      await fetchTopic();
     } catch (err) {
-      console.error('[CarryDetails] Error creating conversation:', err);
-      setError(err instanceof Error ? err.message : 'Failed to start conversation');
+      console.error('[CommunityDetails] Error posting reply:', err);
+      setError(err instanceof Error ? err.message : 'Failed to post reply');
     } finally {
-      setContacting(false);
+      setSubmitting(false);
     }
-  };
-
-  const getTypeLabel = (type: string) => {
-    return type === 'request' ? 'Request' : 'Traveler';
   };
 
   if (loading) {
@@ -100,31 +100,36 @@ export default function CarryDetailsScreen() {
     );
   }
 
-  if (!carryPost) {
+  if (!topic) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Carry post not found</Text>
+          <Text style={styles.errorText}>Discussion not found</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  const isOwnPost = carryPost.userId === user?.id;
-  const displayId = carryPost.shortId || carryPost.id.substring(0, 8);
+  const isOwnPost = topic.userId === user?.id;
+  const displayId = topic.shortId || topic.id.substring(0, 8);
+  const createdDate = formatDateToDDMMYYYY(topic.createdAt);
 
   const handleEdit = () => {
-    console.log('CarryDetailsScreen: Edit post', id);
-    // TODO: Navigate to edit screen
-    router.push(`/edit-carry/${id}`);
+    console.log('CommunityDetailsScreen: Edit topic', id);
+    router.push(`/edit-community/${id}`);
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView style={styles.content}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <ScrollView style={styles.content}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>{carryPost.title}</Text>
+            <Text style={styles.title}>{topic.title}</Text>
             {isOwnPost && (
               <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
                 <IconSymbol
@@ -138,7 +143,7 @@ export default function CarryDetailsScreen() {
           </View>
           
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{getTypeLabel(carryPost.type)}</Text>
+            <Text style={styles.badgeText}>{topic.category}</Text>
           </View>
 
           <View style={styles.postIdContainer}>
@@ -146,59 +151,66 @@ export default function CarryDetailsScreen() {
             <Text style={styles.postIdValue}>{displayId}</Text>
           </View>
 
-          <View style={styles.routeContainer}>
-            <Text style={styles.routeText}>
-              {carryPost.fromCity} 📦 {carryPost.toCity}
-            </Text>
-          </View>
-
-          {carryPost.travelDate && (
-            <View style={styles.dateContainer}>
-              <Text style={styles.dateLabel}>Travel Date:</Text>
-              <Text style={styles.dateText}>{formatDateToDDMMYYYY(carryPost.travelDate)}</Text>
-            </View>
-          )}
-
-          {carryPost.itemDescription && (
-            <View style={styles.itemContainer}>
-              <Text style={styles.itemLabel}>Item:</Text>
-              <Text style={styles.itemText}>{carryPost.itemDescription}</Text>
-            </View>
-          )}
-
-          {carryPost.description && (
+          {topic.description && (
             <View style={styles.descriptionContainer}>
               <Text style={styles.descriptionLabel}>Description:</Text>
-              <Text style={styles.description}>{carryPost.description}</Text>
+              <Text style={styles.description}>{topic.description}</Text>
             </View>
           )}
 
           <View style={styles.userContainer}>
             <Text style={styles.userLabel}>Posted by:</Text>
-            <Text style={styles.userName}>{carryPost.user.name}</Text>
+            <Text style={styles.userName}>{topic.user.name} on {createdDate}</Text>
           </View>
         </View>
 
-        {!isOwnPost && (
+        {/* Replies Section */}
+        <View style={styles.repliesSection}>
+          <Text style={styles.repliesTitle}>Replies ({topic.replies?.length || 0})</Text>
+          
+          {topic.replies && topic.replies.length > 0 ? (
+            topic.replies.map((reply) => {
+              const replyDate = formatDateToDDMMYYYY(reply.createdAt);
+              return (
+                <View key={reply.id} style={styles.replyCard}>
+                  <Text style={styles.replyAuthor}>{reply.user.name}</Text>
+                  <Text style={styles.replyDate}>{replyDate}</Text>
+                  <Text style={styles.replyContent}>{reply.content}</Text>
+                </View>
+              );
+            })
+          ) : (
+            <Text style={styles.noRepliesText}>No replies yet. Be the first to comment!</Text>
+          )}
+        </View>
+
+        {/* Reply Input */}
+        <View style={styles.replyInputSection}>
+          <Text style={styles.replyInputLabel}>Add a comment</Text>
+          <TextInput
+            style={styles.replyInput}
+            placeholder="Write your comment..."
+            placeholderTextColor={colors.textLight}
+            value={replyText}
+            onChangeText={setReplyText}
+            multiline
+            numberOfLines={4}
+            editable={!submitting}
+          />
           <TouchableOpacity 
-            style={[styles.contactButton, contacting && styles.contactButtonDisabled]} 
-            onPress={handleContact}
-            disabled={contacting}
+            style={[styles.submitButton, (!replyText.trim() || submitting) && styles.submitButtonDisabled]} 
+            onPress={handleSubmitReply}
+            disabled={!replyText.trim() || submitting}
           >
-            {contacting ? (
+            {submitting ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={styles.contactButtonText}>Contact User</Text>
+              <Text style={styles.submitButtonText}>Post Comment</Text>
             )}
           </TouchableOpacity>
-        )}
-
-        {isOwnPost && (
-          <View style={styles.ownPostNotice}>
-            <Text style={styles.ownPostText}>This is your post</Text>
-          </View>
-        )}
+        </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <Modal
         visible={!!error}
@@ -215,6 +227,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  keyboardView: {
+    flex: 1,
   },
   content: {
     flex: 1,
@@ -375,5 +390,82 @@ const styles = StyleSheet.create({
   ownPostText: {
     ...typography.body,
     color: colors.textSecondary,
+  },
+  repliesSection: {
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  repliesTitle: {
+    ...typography.h3,
+    color: colors.text,
+    marginBottom: spacing.md,
+  },
+  replyCard: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  replyAuthor: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+  },
+  replyDate: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 11,
+    marginBottom: spacing.sm,
+  },
+  replyContent: {
+    ...typography.body,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  noRepliesText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: spacing.xl,
+  },
+  replyInputSection: {
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  replyInputLabel: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontWeight: '600',
+    marginBottom: spacing.sm,
+  },
+  replyInput: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...typography.body,
+    color: colors.text,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    marginBottom: spacing.md,
+  },
+  submitButton: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
+  },
+  submitButtonText: {
+    ...typography.button,
+    color: '#FFFFFF',
   },
 });

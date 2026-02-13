@@ -120,13 +120,13 @@ export default function PostSubletScreen() {
     }
     
     if (!title.trim() || !city.trim()) {
-      setError('Please fill in title and city');
+      setError('Please fill all mandatory fields');
       return;
     }
 
     if (subletType === 'offering') {
       if (!address.trim() || !pincode.trim() || cityRegistration === null || !rent.trim()) {
-        setError('Please fill in all required fields');
+        setError('Please fill all mandatory fields');
         return;
       }
     }
@@ -138,7 +138,7 @@ export default function PostSubletScreen() {
 
     // Date validation
     if (!availableFrom || !availableTo) {
-      setError('Please select both Available From and Available To dates');
+      setError('Please select both Move-in and Move-out dates');
       return;
     }
     
@@ -152,12 +152,12 @@ export default function PostSubletScreen() {
     toDate.setHours(0, 0, 0, 0);
     
     if (fromDate < today) {
-      setError('Available From date cannot be older than today');
+      setError('Move-in date cannot be older than today');
       return;
     }
     
     if (toDate <= fromDate) {
-      setError('Available To date must be after Available From date');
+      setError('Move-out date must be after Move-in date');
       return;
     }
 

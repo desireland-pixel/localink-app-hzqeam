@@ -141,8 +141,8 @@ export default function SubletDetailsScreen() {
     );
   }
 
-  const fromDateDisplay = formatDateToDDMMYYYY(sublet.availableFrom);
-  const toDateDisplay = formatDateToDDMMYYYY(sublet.availableTo);
+  const fromDateDisplay = formatDateToDDMMYYYY(sublet.availableFrom) || 'Date not set';
+  const toDateDisplay = formatDateToDDMMYYYY(sublet.availableTo) || 'Date not set';
   const isOwnPost = user?.id === sublet.userId;
   const hasImage = sublet.imageUrls && sublet.imageUrls.length > 0;
   const typeLabel = sublet.type === 'offering' ? 'Offering' : 'Seeking';
@@ -210,15 +210,19 @@ export default function SubletDetailsScreen() {
             <Text style={styles.infoValue}>{sublet.city}</Text>
           </View>
           
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Available From</Text>
-            <Text style={styles.infoValue}>{fromDateDisplay}</Text>
-          </View>
+          {fromDateDisplay && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Available From</Text>
+              <Text style={styles.infoValue}>{fromDateDisplay}</Text>
+            </View>
+          )}
           
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Available To</Text>
-            <Text style={styles.infoValue}>{toDateDisplay}</Text>
-          </View>
+          {toDateDisplay && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Available To</Text>
+              <Text style={styles.infoValue}>{toDateDisplay}</Text>
+            </View>
+          )}
           
           {sublet.rent && (
             <View style={styles.infoRow}>

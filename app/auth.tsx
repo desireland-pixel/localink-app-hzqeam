@@ -44,7 +44,7 @@ export default function AuthScreen() {
 
     if (user) {
       console.log('[AuthScreen] User authenticated, checking profile...');
-      if (profile && profile.name && profile.city) {
+      if (profile && profile.username && profile.city) {
         console.log('[AuthScreen] Profile complete, redirecting to main app');
         router.replace('/(tabs)/sublet');
       } else {
@@ -90,19 +90,25 @@ export default function AuthScreen() {
         } catch (signInErr: any) {
           // Check for specific error messages from backend
           const errorMsg = signInErr.message || signInErr.toString();
-          if (errorMsg.includes('not verified') || errorMsg.includes('OTP')) {
-            setError('Email not verified. Please check your email for OTP.');
-          } else if (errorMsg.includes('Invalid') || errorMsg.includes('password')) {
-            setError('Invalid email or password');
+          console.log('[AuthScreen] Sign in error message:', errorMsg);
+          
+          if (errorMsg.includes('not verified') || errorMsg.includes('verify') || errorMsg.includes('OTP')) {
+            setError('Email not verified. Please check your email for the verification code.');
+            // Redirect to OTP verification
+            setTimeout(() => {
+              router.push({ pathname: '/verify-otp', params: { email } });
+            }, 2000);
+          } else if (errorMsg.includes('Invalid') || errorMsg.includes('password') || errorMsg.includes('credentials') || errorMsg.includes('401')) {
+            setError('Invalid email or password. Please try again.');
           } else {
-            setError(errorMsg || 'Sign in failed');
+            setError('Sign in failed. Please check your credentials and try again.');
           }
           throw signInErr;
         }
       } else {
         console.log('[AuthScreen] Signing up with email');
         // Call backend signup API directly to get OTP flow
-        await apiPost('/api/auth/signup', { email, password, name });
+        const result = await apiPost('/api/auth/signup', { email, password, name });
         console.log('[AuthScreen] Sign up successful, redirecting to OTP verification');
         router.push({ pathname: '/verify-otp', params: { email } });
       }
@@ -110,7 +116,12 @@ export default function AuthScreen() {
       console.error('[AuthScreen] Auth error:', err);
       // Error already set in signin block, only set if not already set
       if (!error) {
-        setError(err.message || "Authentication failed");
+        const errorMsg = err.message || err.toString();
+        if (errorMsg.includes('already exists') || errorMsg.includes('duplicate')) {
+          setError('An account with this email already exists. Please sign in instead.');
+        } else {
+          setError(errorMsg || "Authentication failed. Please try again.");
+        }
       }
     } finally {
       setLoading(false);
@@ -139,7 +150,12 @@ export default function AuthScreen() {
       }, 2000);
     } catch (err: any) {
       console.error('[AuthScreen] Forgot password error:', err);
-      setError(err.message || "Failed to send reset email");
+      const errorMsg = err.message || err.toString();
+      if (errorMsg.includes('404') || errorMsg.includes('not found')) {
+        setError("No account found with this email address.");
+      } else {
+        setError("Failed to send reset email. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

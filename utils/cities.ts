@@ -288,20 +288,29 @@ export function searchCities(query: string, maxResults: number = 10): string[] {
  * @param date - Date object or ISO string
  * @returns Formatted date string in dd.mm.yyyy format
  */
-export function formatDateToDDMMYYYY(date: Date | string): string {
-  if (!date) return '';
-  const d = typeof date === 'string' ? new Date(date) : date;
-  
-  // Check if date is invalid
-  if (isNaN(d.getTime())) {
-    console.warn('formatDateToDDMMYYYY: Invalid date', date);
+export function formatDateToDDMMYYYY(date: Date | string | null | undefined): string {
+  if (!date) {
+    console.warn('formatDateToDDMMYYYY: No date provided');
     return '';
   }
   
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${day}.${month}.${year}`;
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    
+    // Check if date is invalid
+    if (isNaN(d.getTime())) {
+      console.warn('formatDateToDDMMYYYY: Invalid date', date);
+      return '';
+    }
+    
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}.${month}.${year}`;
+  } catch (error) {
+    console.error('formatDateToDDMMYYYY: Error formatting date', date, error);
+    return '';
+  }
 }
 
 /**

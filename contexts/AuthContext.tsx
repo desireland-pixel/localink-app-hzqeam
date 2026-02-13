@@ -20,6 +20,7 @@ interface Profile {
   photoUrl?: string;
   createdAt: string;
   updatedAt: string;
+  isProfileComplete?: boolean;
 }
 
 interface AuthContextType {

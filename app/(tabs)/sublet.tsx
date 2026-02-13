@@ -51,7 +51,9 @@ export default function SubletScreen() {
       console.log('SubletScreen: API call with params:', filterParams);
       const data = await authenticatedGet<Sublet[]>(`/api/sublets${filterParams}`);
       console.log('SubletScreen: Fetched sublets', data);
-      setSublets(data);
+      // Sort by createdAt descending (newest first)
+      const sortedData = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setSublets(sortedData);
     } catch (error) {
       console.error('SubletScreen: Error fetching sublets', error);
     } finally {
@@ -113,6 +115,9 @@ export default function SubletScreen() {
     console.log('SubletScreen: Navigate to filters');
     router.push('/sublet-filters');
   };
+  
+  // Check if filters are active
+  const hasActiveFilters = params.filters && params.filters.toString().length > 0;
 
   const filteredSublets = sublets.filter(sublet =>
     sublet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -139,12 +144,12 @@ export default function SubletScreen() {
             returnKeyType="search"
           />
         </View>
-        <TouchableOpacity style={styles.iconButton} onPress={handleFilters}>
+        <TouchableOpacity style={[styles.iconButton, hasActiveFilters && styles.iconButtonActive]} onPress={handleFilters}>
           <IconSymbol
             ios_icon_name="line.3.horizontal.decrease.circle"
             android_material_icon_name="filter-list"
             size={24}
-            color={colors.text}
+            color={hasActiveFilters ? colors.primary : colors.text}
           />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton} onPress={handlePostSublet}>
@@ -178,8 +183,8 @@ export default function SubletScreen() {
           }
         >
           {filteredSublets.map((sublet) => {
-            const fromDisplay = formatDateToDDMMYYYY(sublet.availableFrom);
-            const toDisplay = formatDateToDDMMYYYY(sublet.availableTo);
+            const fromDisplay = formatDateToDDMMYYYY(sublet.availableFrom) || 'Date not set';
+            const toDisplay = formatDateToDDMMYYYY(sublet.availableTo) || 'Date not set';
             const label = sublet.type === 'offering' ? 'Offering' : 'Seeking';
             const hasImage = sublet.imageUrls && sublet.imageUrls.length > 0;
             const isFavorited = favorites.has(sublet.id);
@@ -215,11 +220,13 @@ export default function SubletScreen() {
                   <View style={styles.cardTextContent}>
                     <Text style={styles.cardTitle} numberOfLines={1}>{sublet.title}</Text>
                     <Text style={styles.cardCity}>{sublet.city}</Text>
-                    <View style={styles.cardDateRow}>
-                      <Text style={styles.cardDateText}>{fromDisplay}</Text>
-                      <Text style={styles.cardDateSeparator}>-</Text>
-                      <Text style={styles.cardDateText}>{toDisplay}</Text>
-                    </View>
+                    {(fromDisplay || toDisplay) && (
+                      <View style={styles.cardDateRow}>
+                        <Text style={styles.cardDateText}>{fromDisplay}</Text>
+                        <Text style={styles.cardDateSeparator}>-</Text>
+                        <Text style={styles.cardDateText}>{toDisplay}</Text>
+                      </View>
+                    )}
                     {sublet.rent && (
                       <Text style={styles.cardRent}>€{sublet.rent}/month</Text>
                     )}
@@ -230,6 +237,7 @@ export default function SubletScreen() {
                       e.stopPropagation();
                       toggleFavorite(sublet.id);
                     }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
                     <IconSymbol
                       ios_icon_name={isFavorited ? "heart.fill" : "heart"}
@@ -279,6 +287,12 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: spacing.xs,
+  },
+  iconButtonActive: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
   },
   loadingContainer: {
     flex: 1,

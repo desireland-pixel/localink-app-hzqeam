@@ -27,8 +27,9 @@ export default function ProfileScreen() {
     }
   };
 
-  const userName = profile?.name || user?.name || 'User';
+  const userName = profile?.username || profile?.name || user?.name || 'User';
   const userCity = profile?.city || 'Not set';
+  const displayName = profile?.name || user?.name || 'User';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -39,8 +40,14 @@ export default function ProfileScreen() {
       <ScrollView style={styles.content}>
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
-            <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
-            <TouchableOpacity style={styles.editAvatarButton}>
+            <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
+            <TouchableOpacity 
+              style={styles.editAvatarButton}
+              onPress={() => {
+                console.log('[ProfileScreen] Navigate to personal details for photo edit');
+                router.push('/personal-details');
+              }}
+            >
               <IconSymbol 
                 ios_icon_name="pencil.circle.fill" 
                 android_material_icon_name="edit" 
@@ -49,7 +56,10 @@ export default function ProfileScreen() {
               />
             </TouchableOpacity>
           </View>
-          <Text style={styles.profileName}>{userName}</Text>
+          <Text style={styles.profileName}>{displayName}</Text>
+          {userName !== displayName && (
+            <Text style={styles.profileUsername}>@{userName}</Text>
+          )}
           <View style={styles.locationContainer}>
             <IconSymbol 
               ios_icon_name="location.fill" 
@@ -306,6 +316,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '600',
     color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  profileUsername: {
+    fontSize: 16,
+    color: colors.textSecondary,
     marginBottom: spacing.xs,
   },
   locationContainer: {

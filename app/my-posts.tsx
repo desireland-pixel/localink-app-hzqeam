@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, A
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedGet, authenticatedPatch } from '@/utils/api';
+import { authenticatedGet, authenticatedPatch, authenticatedPut } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import Modal from '@/components/ui/Modal';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -29,7 +29,7 @@ export default function MyPostsScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState<'sublet' | 'travel'>('sublet');
+  const [selectedTab, setSelectedTab] = useState<'sublet' | 'travel' | 'community'>('sublet');
   const [posts, setPosts] = useState<Post[]>([]);
   const [error, setError] = useState('');
   const [closingPostId, setClosingPostId] = useState<string | null>(null);
@@ -49,9 +49,13 @@ export default function MyPostsScreen() {
         data = await authenticatedGet<Post[]>('/api/my/sublets');
       } else if (selectedTab === 'travel') {
         data = await authenticatedGet<Post[]>('/api/my/travel-posts');
+      } else if (selectedTab === 'community') {
+        data = await authenticatedGet<Post[]>('/api/my/community/topics');
       }
       console.log('MyPostsScreen: Fetched posts', data);
-      setPosts(data);
+      // Sort by createdAt descending (newest first)
+      const sortedData = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setPosts(sortedData);
     } catch (error: any) {
       console.error('MyPostsScreen: Error fetching posts', error);
       setError(error.message || 'Failed to load posts');
@@ -75,6 +79,9 @@ export default function MyPostsScreen() {
         await authenticatedPatch(`/api/sublets/${postId}/close`, {});
       } else if (selectedTab === 'travel') {
         await authenticatedPatch(`/api/travel-posts/${postId}/close`, {});
+      } else if (selectedTab === 'community') {
+        // Update status to closed
+        await authenticatedPut(`/api/community/topics/${postId}`, { status: 'closed' });
       }
       console.log('MyPostsScreen: Post closed successfully');
       await fetchPosts();
@@ -92,6 +99,8 @@ export default function MyPostsScreen() {
       router.push(`/sublet/${postId}`);
     } else if (selectedTab === 'travel') {
       router.push(`/travel/${postId}`);
+    } else if (selectedTab === 'community') {
+      router.push(`/carry/${postId}`);
     }
   };
 
@@ -101,6 +110,8 @@ export default function MyPostsScreen() {
       router.push(`/edit-sublet/${postId}`);
     } else if (selectedTab === 'travel') {
       router.push(`/edit-travel/${postId}`);
+    } else if (selectedTab === 'community') {
+      router.push(`/edit-community/${postId}`);
     }
   };
 
@@ -121,6 +132,14 @@ export default function MyPostsScreen() {
         >
           <Text style={[styles.tabText, selectedTab === 'travel' && styles.tabTextActive]}>
             Travel
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'community' && styles.tabActive]}
+          onPress={() => setSelectedTab('community')}
+        >
+          <Text style={[styles.tabText, selectedTab === 'community' && styles.tabTextActive]}>
+            Community
           </Text>
         </TouchableOpacity>
       </View>
@@ -200,7 +219,7 @@ export default function MyPostsScreen() {
                     </>
                   )}
                   
-                  {selectedTab === 'carry' && (
+                  {selectedTab === 'community' && (
                     <>
                       <Text style={styles.postTitle}>{post.title}</Text>
                       {post.description && (
@@ -209,17 +228,9 @@ export default function MyPostsScreen() {
                         </Text>
                       )}
                       <View style={styles.postInfo}>
-                        <Text style={styles.postInfoText}>{post.fromCity}</Text>
-                        <Text style={styles.postInfoText}>→</Text>
-                        <Text style={styles.postInfoText}>{post.toCity}</Text>
-                        {post.travelDate && (
-                          <>
-                            <Text style={styles.postInfoText}>•</Text>
-                            <Text style={styles.postInfoText}>
-                              {formatDateToDDMMYYYY(post.travelDate)}
-                            </Text>
-                          </>
-                        )}
+                        <Text style={styles.postInfoText}>
+                          {post.createdAt && formatDateToDDMMYYYY(post.createdAt)}
+                        </Text>
                       </View>
                     </>
                   )}

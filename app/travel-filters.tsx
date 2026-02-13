@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { CitySearchInput } from '@/components/CitySearchInput';
@@ -10,6 +10,7 @@ import { formatDateToDDMMYYYY } from '@/utils/cities';
 
 export default function TravelFiltersScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [role, setRole] = useState<'offering' | 'seeking' | null>(null);
   const [types, setTypes] = useState<Set<'companionship' | 'ally'>>(new Set());
   const [fromCity, setFromCity] = useState('');
@@ -20,6 +21,45 @@ export default function TravelFiltersScreen() {
   const [showEndPicker, setShowEndPicker] = useState(false);
 
   console.log('[TravelFiltersScreen] Rendering', { role, types, fromCity, toCity });
+  
+  // Load existing filters from params
+  useEffect(() => {
+    if (params.filters) {
+      const filterString = params.filters as string;
+      const urlParams = new URLSearchParams(filterString);
+      
+      const type = urlParams.get('type');
+      if (type === 'offering') {
+        setRole('offering');
+        // Check for companionship and carry flags
+        if (urlParams.get('canOfferCompanionship') === 'true') {
+          setTypes(prev => new Set(prev).add('companionship'));
+        }
+        if (urlParams.get('canCarryItems') === 'true') {
+          setTypes(prev => new Set(prev).add('ally'));
+        }
+      } else if (type === 'seeking' || type === 'seeking-ally') {
+        setRole('seeking');
+        if (type === 'seeking') {
+          setTypes(new Set(['companionship']));
+        } else if (type === 'seeking-ally') {
+          setTypes(new Set(['ally']));
+        }
+      }
+      
+      const from = urlParams.get('fromCity');
+      if (from) setFromCity(from);
+      
+      const to = urlParams.get('toCity');
+      if (to) setToCity(to);
+      
+      const fromDate = urlParams.get('travelDateFrom');
+      if (fromDate) setDateStart(new Date(fromDate));
+      
+      const toDate = urlParams.get('travelDateTo');
+      if (toDate) setDateEnd(new Date(toDate));
+    }
+  }, []);
 
   const toggleType = (type: 'companionship' | 'ally') => {
     const newTypes = new Set(types);
@@ -38,12 +78,36 @@ export default function TravelFiltersScreen() {
     const params = new URLSearchParams();
     
     // Map role and types to backend API format
-    if (role === 'seeking' && types.has('companionship')) {
-      params.append('type', 'seeking');
-    } else if (role === 'seeking' && types.has('ally')) {
-      params.append('type', 'seeking-ally');
-    } else if (role === 'offering') {
-      params.append('type', 'offering');
+    if (role && types.size > 0) {
+      if (role === 'seeking') {
+        if (types.has('companionship') && types.has('ally')) {
+          // Both selected - need to handle multiple types
+          params.append('type', 'seeking');
+          params.append('type', 'seeking-ally');
+        } else if (types.has('companionship')) {
+          params.append('type', 'seeking');
+        } else if (types.has('ally')) {
+          params.append('type', 'seeking-ally');
+        }
+      } else if (role === 'offering') {
+        params.append('type', 'offering');
+        // For offering, we filter by canOfferCompanionship and canCarryItems on backend
+        if (types.has('companionship')) {
+          params.append('canOfferCompanionship', 'true');
+        }
+        if (types.has('ally')) {
+          params.append('canCarryItems', 'true');
+        }
+      }
+    } else if (role) {
+      // Just role, no type specified
+      if (role === 'offering') {
+        params.append('type', 'offering');
+      } else if (role === 'seeking') {
+        // Include both seeking types
+        params.append('type', 'seeking');
+        params.append('type', 'seeking-ally');
+      }
     }
     
     if (fromCity) params.append('fromCity', fromCity);
@@ -73,6 +137,9 @@ export default function TravelFiltersScreen() {
 
   const dateStartDisplay = dateStart ? formatDateToDDMMYYYY(dateStart) : '';
   const dateEndDisplay = dateEnd ? formatDateToDDMMYYYY(dateEnd) : '';
+  
+  // Check if any filters are active
+  const hasActiveFilters = role !== null || types.size > 0 || fromCity !== '' || toCity !== '' || dateStart !== null || dateEnd !== null;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -147,6 +214,7 @@ export default function TravelFiltersScreen() {
                 value={dateStart || new Date()}
                 mode="date"
                 display="default"
+                minimumDate={new Date()}
                 onChange={(event, selectedDate) => {
                   setShowStartPicker(false);
                   if (selectedDate) setDateStart(selectedDate);
@@ -168,9 +236,10 @@ export default function TravelFiltersScreen() {
             </TouchableOpacity>
             {showEndPicker && (
               <DateTimePicker
-                value={dateEnd || new Date()}
+                value={dateEnd || dateStart || new Date()}
                 mode="date"
                 display="default"
+                minimumDate={dateStart || new Date()}
                 onChange={(event, selectedDate) => {
                   setShowEndPicker(false);
                   if (selectedDate) setDateEnd(selectedDate);
@@ -204,10 +273,12 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   sectionTitle: {
-    ...typography.h3,
+    ...typography.body,
+    fontSize: 14,
     color: colors.text,
     marginBottom: spacing.sm,
     marginTop: spacing.md,
+    fontWeight: '600',
   },
   radioButtons: {
     flexDirection: 'row',

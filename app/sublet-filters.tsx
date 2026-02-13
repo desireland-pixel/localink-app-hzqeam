@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { CitySearchInput } from '@/components/CitySearchInput';
@@ -10,6 +10,7 @@ import { formatDateToDDMMYYYY } from '@/utils/cities';
 
 export default function SubletFiltersScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [subletType, setSubletType] = useState<'offering' | 'seeking' | null>(null);
   const [city, setCity] = useState('');
   const [dateStart, setDateStart] = useState<Date | null>(null);
@@ -21,9 +22,68 @@ export default function SubletFiltersScreen() {
   const [cityRegistration, setCityRegistration] = useState<boolean | null>(null);
 
   console.log('[SubletFiltersScreen] Rendering', { subletType, city, minRent, maxRent });
+  
+  // Load existing filters from params
+  useEffect(() => {
+    if (params.filters) {
+      const filterString = params.filters as string;
+      const urlParams = new URLSearchParams(filterString);
+      
+      const type = urlParams.get('type');
+      if (type === 'offering' || type === 'seeking') {
+        setSubletType(type);
+      }
+      
+      const cityParam = urlParams.get('city');
+      if (cityParam) setCity(cityParam);
+      
+      const fromDate = urlParams.get('availableFrom');
+      if (fromDate) setDateStart(new Date(fromDate));
+      
+      const toDate = urlParams.get('availableTo');
+      if (toDate) setDateEnd(new Date(toDate));
+      
+      const minRentParam = urlParams.get('minRent');
+      if (minRentParam) setMinRent(minRentParam);
+      
+      const maxRentParam = urlParams.get('maxRent');
+      if (maxRentParam) setMaxRent(maxRentParam);
+      
+      const cityReg = urlParams.get('cityRegistrationRequired');
+      if (cityReg === 'yes') setCityRegistration(true);
+      else if (cityReg === 'no') setCityRegistration(false);
+    }
+  }, []);
 
   const handleApply = () => {
     console.log('[SubletFiltersScreen] Applying filters', { subletType, city, dateStart, dateEnd, minRent, maxRent, cityRegistration });
+    
+    // Validate dates
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (dateStart) {
+      const startDate = new Date(dateStart);
+      startDate.setHours(0, 0, 0, 0);
+      
+      if (startDate < today) {
+        alert('Start date cannot be older than today');
+        return;
+      }
+    }
+    
+    if (dateStart && dateEnd) {
+      const startDate = new Date(dateStart);
+      startDate.setHours(0, 0, 0, 0);
+      
+      const endDate = new Date(dateEnd);
+      endDate.setHours(0, 0, 0, 0);
+      
+      if (endDate <= startDate) {
+        alert('End date must be after start date');
+        return;
+      }
+    }
     
     // Build query params
     const params = new URLSearchParams();
@@ -58,6 +118,9 @@ export default function SubletFiltersScreen() {
 
   const dateStartDisplay = dateStart ? formatDateToDDMMYYYY(dateStart) : '';
   const dateEndDisplay = dateEnd ? formatDateToDDMMYYYY(dateEnd) : '';
+  
+  // Check if any filters are active
+  const hasActiveFilters = subletType !== null || city !== '' || dateStart !== null || dateEnd !== null || minRent !== '' || maxRent !== '' || cityRegistration !== null;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -105,6 +168,7 @@ export default function SubletFiltersScreen() {
                 value={dateStart || new Date()}
                 mode="date"
                 display="default"
+                minimumDate={new Date()}
                 onChange={(event, selectedDate) => {
                   setShowStartPicker(false);
                   if (selectedDate) setDateStart(selectedDate);
@@ -126,9 +190,10 @@ export default function SubletFiltersScreen() {
             </TouchableOpacity>
             {showEndPicker && (
               <DateTimePicker
-                value={dateEnd || new Date()}
+                value={dateEnd || dateStart || new Date()}
                 mode="date"
                 display="default"
+                minimumDate={dateStart || new Date()}
                 onChange={(event, selectedDate) => {
                   setShowEndPicker(false);
                   if (selectedDate) setDateEnd(selectedDate);
@@ -209,10 +274,12 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   sectionTitle: {
-    ...typography.h3,
+    ...typography.body,
+    fontSize: 14,
     color: colors.text,
     marginBottom: spacing.sm,
     marginTop: spacing.md,
+    fontWeight: '600',
   },
   radioButtons: {
     flexDirection: 'row',

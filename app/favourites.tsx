@@ -11,7 +11,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 interface FavoritePost {
   id: string;
   postId: string;
-  postType: 'sublet' | 'travel' | 'carry';
+  postType: 'sublet' | 'travel' | 'community';
   createdAt: string;
   post: {
     id: string;
@@ -26,6 +26,7 @@ interface FavoritePost {
     rent?: string;
     type?: string;
     imageUrls?: string[];
+    category?: string;
   };
 }
 
@@ -33,7 +34,7 @@ export default function FavouritesScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState<'sublet' | 'travel'>('sublet');
+  const [selectedTab, setSelectedTab] = useState<'sublet' | 'travel' | 'community'>('sublet');
   const [favorites, setFavorites] = useState<FavoritePost[]>([]);
   const [error, setError] = useState('');
 
@@ -86,7 +87,7 @@ export default function FavouritesScreen() {
       router.push(`/sublet/${postId}`);
     } else if (postType === 'travel') {
       router.push(`/travel/${postId}`);
-    } else if (postType === 'carry') {
+    } else if (postType === 'community' || postType === 'carry') {
       router.push(`/carry/${postId}`);
     }
   };
@@ -110,6 +111,14 @@ export default function FavouritesScreen() {
         >
           <Text style={[styles.tabText, selectedTab === 'travel' && styles.tabTextActive]}>
             Travel
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'community' && styles.tabActive]}
+          onPress={() => setSelectedTab('community')}
+        >
+          <Text style={[styles.tabText, selectedTab === 'community' && styles.tabTextActive]}>
+            Community
           </Text>
         </TouchableOpacity>
       </View>
@@ -225,7 +234,7 @@ export default function FavouritesScreen() {
                     </>
                   )}
                   
-                  {selectedTab === 'carry' && (
+                  {selectedTab === 'community' && (
                     <>
                       <View style={styles.cardHeader}>
                         <Text style={styles.postTitle} numberOfLines={1}>{post.title}</Text>
@@ -249,11 +258,6 @@ export default function FavouritesScreen() {
                           {post.description}
                         </Text>
                       )}
-                      <View style={styles.postInfo}>
-                        <Text style={styles.postInfoText}>{post.fromCity}</Text>
-                        <Text style={styles.postInfoText}>→</Text>
-                        <Text style={styles.postInfoText}>{post.toCity}</Text>
-                      </View>
                     </>
                   )}
                 </TouchableOpacity>

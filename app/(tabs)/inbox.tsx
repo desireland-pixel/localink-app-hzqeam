@@ -46,7 +46,13 @@ export default function InboxScreen() {
     try {
       const data = await authenticatedGet<Conversation[]>('/api/conversations');
       console.log('[InboxScreen] Fetched conversations', data);
-      setConversations(data);
+      // Sort by last message time descending (newest first)
+      const sortedData = data.sort((a, b) => {
+        const aTime = a.lastMessage?.createdAt || a.createdAt;
+        const bTime = b.lastMessage?.createdAt || b.createdAt;
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      });
+      setConversations(sortedData);
     } catch (error) {
       console.error('[InboxScreen] Error fetching conversations', error);
     } finally {

@@ -53,7 +53,9 @@ export default function TravelScreen() {
       const filterParams = params.filters ? `?${params.filters}` : '';
       const data = await authenticatedGet<TravelPost[]>(`/api/travel-posts${filterParams}`);
       console.log('TravelScreen: Fetched travel posts', data);
-      setPosts(data);
+      // Sort by createdAt descending (newest first)
+      const sortedData = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setPosts(sortedData);
     } catch (error) {
       console.error('TravelScreen: Error fetching travel posts', error);
     } finally {
@@ -111,6 +113,9 @@ export default function TravelScreen() {
     post.toCity.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (post.description && post.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+  
+  // Check if filters are active
+  const hasActiveFilters = params.filters && params.filters.toString().length > 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -132,14 +137,14 @@ export default function TravelScreen() {
           />
         </View>
         <TouchableOpacity
-          style={styles.iconButton}
+          style={[styles.iconButton, hasActiveFilters && styles.iconButtonActive]}
           onPress={() => router.push('/travel-filters')}
         >
           <IconSymbol
             ios_icon_name="line.3.horizontal.decrease.circle"
             android_material_icon_name="filter-list"
             size={24}
-            color={colors.text}
+            color={hasActiveFilters ? colors.primary : colors.text}
           />
         </TouchableOpacity>
         <TouchableOpacity
@@ -179,7 +184,7 @@ export default function TravelScreen() {
           }
         >
           {filteredPosts.map((post) => {
-            const dateDisplay = formatDateToDDMMYYYY(post.travelDate);
+            const dateDisplay = formatDateToDDMMYYYY(post.travelDate) || 'Date not set';
             const dateToDisplay = post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo) : null;
             
             // Determine label and icons
@@ -197,6 +202,9 @@ export default function TravelScreen() {
                 icons = '👥';
               } else if (hasCarry) {
                 icons = '📦';
+              } else {
+                // If neither flag is set, show both as default
+                icons = '👥, 📦';
               }
             } else if (post.type === 'seeking') {
               label = 'Seeking';
@@ -217,9 +225,11 @@ export default function TravelScreen() {
               >
                 <View style={styles.cardHeader}>
                   <View style={styles.tagRow}>
-                    <View style={styles.typeTag}>
-                      <Text style={styles.typeTagText}>{label}</Text>
-                    </View>
+                    {label && (
+                      <View style={styles.typeTag}>
+                        <Text style={styles.typeTagText}>{label}</Text>
+                      </View>
+                    )}
                     {icons && (
                       <Text style={styles.iconText}>{icons}</Text>
                     )}
@@ -244,15 +254,17 @@ export default function TravelScreen() {
                   <Text style={styles.routeArrow}>→</Text>
                   <Text style={styles.routeText}>{post.toCity}</Text>
                 </View>
-                <View style={styles.dateContainer}>
-                  <Text style={styles.dateText}>{dateDisplay}</Text>
-                  {dateToDisplay && (
-                    <>
-                      <Text style={styles.dateSeparator}>-</Text>
-                      <Text style={styles.dateText}>{dateToDisplay}</Text>
-                    </>
-                  )}
-                </View>
+                {dateDisplay && (
+                  <View style={styles.dateContainer}>
+                    <Text style={styles.dateText}>{dateDisplay}</Text>
+                    {dateToDisplay && (
+                      <>
+                        <Text style={styles.dateSeparator}>-</Text>
+                        <Text style={styles.dateText}>{dateToDisplay}</Text>
+                      </>
+                    )}
+                  </View>
+                )}
                 {post.description && (
                   <Text style={styles.cardDescription} numberOfLines={2}>
                     {post.description}
@@ -299,6 +311,12 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: spacing.xs,
+  },
+  iconButtonActive: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
   },
   loadingContainer: {
     flex: 1,

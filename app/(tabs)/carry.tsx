@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { authenticatedGet } from '@/utils/api';
+import { formatDateToDDMMYYYY } from '@/utils/cities';
 
 interface CommunityTopic {
   id: string;
@@ -57,7 +58,9 @@ export default function CommunityScreen() {
       const categoryParam = selectedCategory !== 'All' ? `?category=${encodeURIComponent(selectedCategory)}` : '';
       const data = await authenticatedGet<CommunityTopic[]>(`/api/community/topics${categoryParam}`);
       console.log('CommunityScreen: Fetched community topics', data);
-      setTopics(data);
+      // Sort by createdAt descending (newest first)
+      const sortedData = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setTopics(sortedData);
     } catch (error) {
       console.error('CommunityScreen: Error fetching community topics', error);
     } finally {
@@ -167,6 +170,9 @@ export default function CommunityScreen() {
           {filteredTopics.map((topic) => {
             const authorName = topic.user?.name || 'Unknown';
             const statusColor = topic.status === 'open' ? colors.success : colors.textLight;
+            const createdDate = formatDateToDDMMYYYY(topic.createdAt);
+            const authorText = `by ${authorName}`;
+            const dateText = `on ${createdDate}`;
             
             return (
               <TouchableOpacity
@@ -174,8 +180,7 @@ export default function CommunityScreen() {
                 style={styles.card}
                 onPress={() => {
                   console.log('CommunityScreen: View topic', topic.id);
-                  // For now, show a simple message that this feature is coming soon
-                  // TODO: Create /community/[id] page
+                  router.push(`/carry/${topic.id}`);
                 }}
               >
                 <View style={styles.cardHeader}>
@@ -193,7 +198,10 @@ export default function CommunityScreen() {
                   </Text>
                 )}
                 <View style={styles.cardFooter}>
-                  <Text style={styles.cardAuthor}>by {authorName}</Text>
+                  <View style={styles.authorDateContainer}>
+                    <Text style={styles.cardAuthor}>{authorText}</Text>
+                    <Text style={styles.cardDate}> {dateText}</Text>
+                  </View>
                   {topic.replyCount !== undefined && (
                     <View style={styles.replyCount}>
                       <IconSymbol
@@ -373,7 +381,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  authorDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
   cardAuthor: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+  },
+  cardDate: {
     ...typography.bodySmall,
     color: colors.textLight,
   },

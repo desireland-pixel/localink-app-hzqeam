@@ -67,17 +67,17 @@ export default function PostTravelScreen() {
     }
     
     if (!fromCity.trim() || !toCity.trim()) {
-      setError('Please fill in from city and to city');
+      setError('Please fill all mandatory fields');
       return;
     }
 
     if (travelMode === 'seeking-companionship' && !companionshipFor.trim()) {
-      setError('Please select who you need companionship for');
+      setError('Please fill all mandatory fields');
       return;
     }
 
     if (travelMode === 'seeking-ally' && !item.trim()) {
-      setError('Please specify the item you need carried');
+      setError('Please fill all mandatory fields');
       return;
     }
 
@@ -107,7 +107,7 @@ export default function PostTravelScreen() {
       toDate.setHours(0, 0, 0, 0);
       
       if (toDate <= fromDate) {
-        setError('End date must be after start date');
+        setError('Move-out date must be after Move-in date');
         return;
       }
     }

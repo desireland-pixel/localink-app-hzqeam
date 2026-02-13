@@ -44,7 +44,7 @@ export default function VerifyOTPScreen() {
     
     try {
       console.log('[VerifyOTP] Calling verify-otp API');
-      const result = await apiPost('/api/auth/verify-otp', { email, otp });
+      const result = await apiPost('/api/verify-otp', { email, otp });
       console.log('[VerifyOTP] OTP verified successfully', result);
       setVerified(true);
       setSuccess('Your account has been created successfully!');
@@ -63,7 +63,7 @@ export default function VerifyOTPScreen() {
     
     try {
       console.log('[VerifyOTP] Calling resend-otp API');
-      await apiPost('/api/auth/resend-otp', { email });
+      await apiPost('/api/resend-otp', { email });
       console.log('[VerifyOTP] OTP resent successfully');
       setSuccess('OTP has been resent to your email');
       setTimeout(() => setSuccess(null), 3000);

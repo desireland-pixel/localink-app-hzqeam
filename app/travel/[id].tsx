@@ -133,7 +133,7 @@ export default function TravelDetailsScreen() {
 
   const isOwnPost = travelPost.userId === user?.id;
   const title = getTypeLabel(travelPost);
-  const travelDateDisplay = formatDateToDDMMYYYY(travelPost.travelDate);
+  const travelDateDisplay = formatDateToDDMMYYYY(travelPost.travelDate) || 'Date not set';
   const travelDateToDisplay = travelPost.travelDateTo ? formatDateToDDMMYYYY(travelPost.travelDateTo) : null;
   const displayId = travelPost.shortId || travelPost.id.substring(0, 8);
   
@@ -197,10 +197,12 @@ export default function TravelDetailsScreen() {
             </Text>
           </View>
 
-          <View style={styles.dateContainer}>
-            <Text style={styles.dateLabel}>Travel Date:</Text>
-            <Text style={styles.dateText}>{travelDateDisplay}</Text>
-          </View>
+          {travelDateDisplay && (
+            <View style={styles.dateContainer}>
+              <Text style={styles.dateLabel}>Travel Date:</Text>
+              <Text style={styles.dateText}>{travelDateDisplay}</Text>
+            </View>
+          )}
 
           {travelDateToDisplay && (
             <View style={styles.dateContainer}>
