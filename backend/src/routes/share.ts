@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 
 interface ShareParams {
-  postType: 'sublet' | 'travel' | 'carry';
+  postType: 'sublet' | 'travel';
   id: string;
 }
 
@@ -16,7 +16,7 @@ export function registerShareRoutes(app: App) {
       params: {
         type: 'object',
         properties: {
-          postType: { type: 'string', enum: ['sublet', 'travel', 'carry'] },
+          postType: { type: 'string', enum: ['sublet', 'travel'] },
           id: { type: 'string', format: 'uuid' },
         },
         required: ['postType', 'id'],
@@ -64,18 +64,6 @@ export function registerShareRoutes(app: App) {
 
         title = `Travel ${post.type} - ${post.fromCity} to ${post.toCity}`;
         description = post.description || `Travel companion ${post.type}`;
-      } else if (postType === 'carry') {
-        const post = await app.db.query.carryPosts.findFirst({
-          where: eq(schema.carryPosts.id, id),
-        });
-
-        if (!post) {
-          app.logger.warn({ postType, postId: id }, 'Post not found');
-          return reply.status(404).send({ error: 'Post not found' });
-        }
-
-        title = post.title;
-        description = post.description || `Carry & Send from ${post.fromCity} to ${post.toCity}`;
       }
 
       // Construct share URL (would be frontend URL in production)

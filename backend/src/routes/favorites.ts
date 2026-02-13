@@ -5,11 +5,11 @@ import * as schema from '../db/schema.js';
 
 interface CreateFavoriteBody {
   postId: string;
-  postType: 'sublet' | 'travel' | 'carry';
+  postType: 'sublet' | 'travel';
 }
 
 interface FavoriteCheckQuery {
-  postType: 'sublet' | 'travel' | 'carry';
+  postType: 'sublet' | 'travel';
 }
 
 export function registerFavoriteRoutes(app: App) {
@@ -25,7 +25,7 @@ export function registerFavoriteRoutes(app: App) {
         required: ['postId', 'postType'],
         properties: {
           postId: { type: 'string', format: 'uuid' },
-          postType: { type: 'string', enum: ['sublet', 'travel', 'carry'] },
+          postType: { type: 'string', enum: ['sublet', 'travel'] },
         },
       },
       response: {
@@ -94,7 +94,7 @@ export function registerFavoriteRoutes(app: App) {
       querystring: {
         type: 'object',
         properties: {
-          postType: { type: 'string', enum: ['sublet', 'travel', 'carry'] },
+          postType: { type: 'string', enum: ['sublet', 'travel'] },
         },
         required: ['postType'],
       },
@@ -157,7 +157,7 @@ export function registerFavoriteRoutes(app: App) {
       querystring: {
         type: 'object',
         properties: {
-          postType: { type: 'string', enum: ['sublet', 'travel', 'carry'] },
+          postType: { type: 'string', enum: ['sublet', 'travel'] },
         },
         required: ['postType'],
       },
@@ -236,10 +236,6 @@ export function registerFavoriteRoutes(app: App) {
           } else if (fav.postType === 'travel') {
             post = await app.db.query.travelPosts.findFirst({
               where: eq(schema.travelPosts.id, fav.postId),
-            });
-          } else if (fav.postType === 'carry') {
-            post = await app.db.query.carryPosts.findFirst({
-              where: eq(schema.carryPosts.id, fav.postId),
             });
           }
 

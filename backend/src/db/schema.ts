@@ -6,6 +6,7 @@ import { relations } from 'drizzle-orm';
 export const profiles = pgTable('profiles', {
   userId: text('user_id').primaryKey().references(() => user.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  username: text('username').unique(), // Unique username, nullable initially
   city: text('city').notNull(),
   photoUrl: text('photo_url'), // Profile photo URL
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -56,29 +57,13 @@ export const travelPosts = pgTable('travel_posts', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 });
 
-// Carry & Send posts
-export const carryPosts = pgTable('carry_posts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
-  title: text('title').notNull(),
-  description: text('description'),
-  fromCity: text('from_city').notNull(),
-  toCity: text('to_city').notNull(),
-  travelDate: date('travel_date'),
-  type: text('type', { enum: ['request', 'traveler'] }).notNull(),
-  itemDescription: text('item_description'),
-  status: text('status', { enum: ['active', 'closed'] }).default('active').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
-});
-
 // Conversations (1:1 chats)
 export const conversations = pgTable('conversations', {
   id: uuid('id').primaryKey().defaultRandom(),
   participant1Id: text('participant1_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   participant2Id: text('participant2_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   postId: uuid('post_id'),
-  postType: text('post_type', { enum: ['sublet', 'travel', 'carry'] }),
+  postType: text('post_type', { enum: ['sublet', 'travel'] }),
   lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -98,7 +83,7 @@ export const favorites = pgTable('favorites', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   postId: uuid('post_id').notNull(),
-  postType: text('post_type', { enum: ['sublet', 'travel', 'carry'] }).notNull(),
+  postType: text('post_type', { enum: ['sublet', 'travel'] }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
   uniqueFavorite: uniqueIndex('favorites_user_post_type_idx').on(table.userId, table.postId, table.postType),
@@ -122,13 +107,6 @@ export const subletsRelations = relations(sublets, ({ one }) => ({
 export const travelPostsRelations = relations(travelPosts, ({ one }) => ({
   user: one(user, {
     fields: [travelPosts.userId],
-    references: [user.id],
-  }),
-}));
-
-export const carryPostsRelations = relations(carryPosts, ({ one }) => ({
-  user: one(user, {
-    fields: [carryPosts.userId],
     references: [user.id],
   }),
 }));

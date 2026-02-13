@@ -1,12 +1,12 @@
 import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, or, desc } from 'drizzle-orm';
+import { eq, and, or, desc, inArray } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { wsManager } from '../websocket-manager.js';
 
 interface CreateConversationBody {
   postId: string;
-  postType: 'sublet' | 'travel' | 'carry';
+  postType: 'sublet' | 'travel';
   recipientId: string;
 }
 
@@ -47,20 +47,47 @@ export function registerConversationRoutes(app: App) {
             limit: 1,
             orderBy: desc(schema.messages.createdAt),
           },
+          participant1: true,
+          participant2: true,
         },
       });
 
-      // Format response with last message
-      const formatted = conversations.map(conv => ({
-        id: conv.id,
-        participant1Id: conv.participant1Id,
-        participant2Id: conv.participant2Id,
-        postId: conv.postId,
-        postType: conv.postType,
-        lastMessageAt: conv.lastMessageAt,
-        createdAt: conv.createdAt,
-        lastMessage: conv.messages[0] || null,
-      }));
+      // Get other participant profiles to include username
+      const otherParticipantIds = new Set<string>();
+      conversations.forEach(conv => {
+        const otherParticipantId = conv.participant1Id === session.user.id ? conv.participant2Id : conv.participant1Id;
+        otherParticipantIds.add(otherParticipantId);
+      });
+
+      const ids = Array.from(otherParticipantIds);
+      const profiles = ids.length > 0 ? await app.db.query.profiles.findMany({
+        where: inArray(schema.profiles.userId, ids),
+      }) : [];
+
+      const profileMap = new Map(profiles.map(p => [p.userId, p]));
+
+      // Format response with last message and other participant info
+      const formatted = conversations.map(conv => {
+        const otherParticipantId = conv.participant1Id === session.user.id ? conv.participant2Id : conv.participant1Id;
+        const otherParticipant = conv.participant1Id === session.user.id ? conv.participant2 : conv.participant1;
+        const profile = profileMap.get(otherParticipantId);
+
+        return {
+          id: conv.id,
+          participant1Id: conv.participant1Id,
+          participant2Id: conv.participant2Id,
+          postId: conv.postId,
+          postType: conv.postType,
+          lastMessageAt: conv.lastMessageAt,
+          createdAt: conv.createdAt,
+          lastMessage: conv.messages[0] || null,
+          otherParticipant: {
+            id: otherParticipantId,
+            name: otherParticipant.name,
+            username: profile?.username || null,
+          },
+        };
+      });
 
       app.logger.info({ userId: session.user.id, count: formatted.length }, 'Conversations fetched successfully');
       return formatted;
@@ -80,7 +107,7 @@ export function registerConversationRoutes(app: App) {
         required: ['postId', 'postType', 'recipientId'],
         properties: {
           postId: { type: 'string', format: 'uuid' },
-          postType: { type: 'string', enum: ['sublet', 'travel', 'carry'] },
+          postType: { type: 'string', enum: ['sublet', 'travel'] },
           recipientId: { type: 'string' },
         },
       },

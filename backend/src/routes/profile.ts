@@ -23,6 +23,8 @@ export function registerProfileRoutes(app: App) {
           properties: {
             userId: { type: 'string' },
             name: { type: 'string' },
+            username: { type: 'string', nullable: true },
+            email: { type: 'string' },
             city: { type: 'string' },
             photoUrl: { type: 'string', nullable: true },
             createdAt: { type: 'string' },
@@ -47,7 +49,11 @@ export function registerProfileRoutes(app: App) {
     }
 
     app.logger.info({ userId: session.user.id }, 'Profile fetched successfully');
-    return profile;
+    return {
+      ...profile,
+      userId: profile.userId,
+      email: session.user.email,
+    };
   });
 
   // Update user profile (or create if not exists)
@@ -59,6 +65,8 @@ export function registerProfileRoutes(app: App) {
       body: {
         type: 'object',
         properties: {
+          name: { type: 'string' },
+          username: { type: 'string' },
           city: { type: 'string' },
           photoUrl: { type: 'string' },
         },
@@ -69,6 +77,8 @@ export function registerProfileRoutes(app: App) {
           properties: {
             userId: { type: 'string' },
             name: { type: 'string' },
+            username: { type: 'string', nullable: true },
+            email: { type: 'string' },
             city: { type: 'string' },
             photoUrl: { type: 'string', nullable: true },
             createdAt: { type: 'string' },
@@ -81,15 +91,26 @@ export function registerProfileRoutes(app: App) {
     const session = await requireAuth(request, reply);
     if (!session) return;
 
-    const { city, photoUrl } = request.body as { city?: string; photoUrl?: string };
+    const { name, username, city, photoUrl } = request.body as { name?: string; username?: string; city?: string; photoUrl?: string };
 
-    app.logger.info({ userId: session.user.id, city, hasPhoto: !!photoUrl }, 'Updating user profile');
+    app.logger.info({ userId: session.user.id, username, city, hasPhoto: !!photoUrl }, 'Updating user profile');
 
     try {
       // Validate city if provided
       if (city && !validateCity(city)) {
         app.logger.warn({ city }, 'Invalid city provided');
         return reply.status(400).send({ error: 'Invalid city. Must be from predefined list.' });
+      }
+
+      // Check if username is already taken (if provided and different from current)
+      if (username) {
+        const existingUsername = await app.db.query.profiles.findFirst({
+          where: eq(schema.profiles.username, username),
+        });
+        if (existingUsername && existingUsername.userId !== session.user.id) {
+          app.logger.warn({ username }, 'Username already taken');
+          return reply.status(400).send({ error: 'Username already taken' });
+        }
       }
 
       // Check if profile exists
@@ -101,6 +122,7 @@ export function registerProfileRoutes(app: App) {
         // Update existing profile
         const updateData: any = { updatedAt: new Date() };
         // Name is read-only - never update it
+        if (username !== undefined) updateData.username = username || null;
         if (city !== undefined) updateData.city = city;
         if (photoUrl !== undefined) updateData.photoUrl = photoUrl;
 
@@ -111,7 +133,10 @@ export function registerProfileRoutes(app: App) {
           .returning();
 
         app.logger.info({ userId: session.user.id }, 'Profile updated successfully');
-        return updated;
+        return {
+          ...updated,
+          email: session.user.email,
+        };
       } else {
         // Create new profile - requires city (name comes from auth user)
         if (!city) {
@@ -130,17 +155,72 @@ export function registerProfileRoutes(app: App) {
           .values({
             userId: session.user.id,
             name: session.user.name || 'User',
+            username: username || null,
             city,
             photoUrl: photoUrl || null,
           })
           .returning();
 
         app.logger.info({ userId: session.user.id }, 'Profile created successfully');
-        return newProfile;
+        return {
+          ...newProfile,
+          email: session.user.email,
+        };
       }
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id }, 'Failed to update profile');
       return reply.status(500).send({ error: 'Failed to update profile' });
+    }
+  });
+
+  // Change password
+  app.fastify.put('/api/profile/change-password', {
+    schema: {
+      description: 'Change user password',
+      tags: ['profile'],
+      body: {
+        type: 'object',
+        required: ['oldPassword', 'newPassword'],
+        properties: {
+          oldPassword: { type: 'string' },
+          newPassword: { type: 'string' },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    const { oldPassword, newPassword } = request.body as { oldPassword: string; newPassword: string };
+
+    app.logger.info({ userId: session.user.id }, 'Changing password');
+
+    try {
+      // Use Better Auth's change password endpoint
+      // Note: This is a proxy call to Better Auth's built-in change-password endpoint
+      // Better Auth handles password verification internally
+      const response = await fetch(`${request.url.split('/api/')[0]}/api/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: request.headers.cookie || '',
+        },
+        body: JSON.stringify({
+          oldPassword,
+          newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        app.logger.warn({ userId: session.user.id }, 'Password change failed');
+        return reply.status(400).send({ error: 'Invalid old password or password change failed' });
+      }
+
+      app.logger.info({ userId: session.user.id }, 'Password changed successfully');
+      return { success: true, message: 'Password changed successfully' };
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id }, 'Failed to change password');
+      return reply.status(500).send({ error: 'Failed to change password' });
     }
   });
 }

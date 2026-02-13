@@ -261,7 +261,6 @@ export function registerTravelPostRoutes(app: App) {
           type: 'object',
           properties: {
             travelPostId: { type: 'string' },
-            carryPostId: { type: 'string' },
           },
         },
       },
@@ -337,29 +336,8 @@ export function registerTravelPostRoutes(app: App) {
 
       app.logger.info({ travelPostId: post.id, userId: session.user.id }, 'Travel post created successfully');
 
-      // If alsoPostAsAlly is true and type is 'offering', create a carry post
-      let carryPostId: string | undefined;
-      if (body.alsoPostAsAlly && body.type === 'offering') {
-        const [carryPost] = await app.db
-          .insert(schema.carryPosts)
-          .values({
-            userId: session.user.id,
-            title: `Carry & Send: ${body.fromCity} to ${body.toCity}`,
-            description: body.description,
-            fromCity: body.fromCity,
-            toCity: body.toCity,
-            travelDate: dbTravelDate,
-            type: 'traveler',
-          })
-          .returning();
-
-        carryPostId = carryPost.id;
-        app.logger.info({ carryPostId, travelPostId: post.id }, 'Associated carry post created');
-      }
-
       return {
         travelPostId: post.id,
-        ...(carryPostId && { carryPostId }),
       };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id }, 'Failed to create travel post');
