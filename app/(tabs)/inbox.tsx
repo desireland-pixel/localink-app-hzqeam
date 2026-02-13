@@ -23,6 +23,7 @@ interface Conversation {
   otherParticipant?: {
     id: string;
     name: string;
+    username?: string;
   };
 }
 
@@ -123,7 +124,8 @@ export default function InboxScreen() {
             const lastMessagePreview = conversation.lastMessage?.content || 'No messages yet';
             const isLastMessageFromMe = conversation.lastMessage?.senderId === user?.id;
             const lastMessageTime = conversation.lastMessage?.createdAt || conversation.createdAt;
-            const participantName = conversation.otherParticipant?.name || 'Unknown User';
+            // Use username if available, fallback to name
+            const participantName = conversation.otherParticipant?.username || conversation.otherParticipant?.name || 'Unknown User';
             const timeText = timeDisplay(lastMessageTime);
             
             return (

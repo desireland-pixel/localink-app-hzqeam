@@ -10,7 +10,8 @@ import { formatDateToDDMMYYYY } from '@/utils/cities';
 
 export default function TravelFiltersScreen() {
   const router = useRouter();
-  const [companionshipType, setCompanionshipType] = useState<'offering' | 'seeking' | null>(null);
+  const [role, setRole] = useState<'offering' | 'seeking' | null>(null);
+  const [types, setTypes] = useState<Set<'companionship' | 'ally'>>(new Set());
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');
   const [dateStart, setDateStart] = useState<Date | null>(null);
@@ -18,14 +19,33 @@ export default function TravelFiltersScreen() {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
 
-  console.log('[TravelFiltersScreen] Rendering', { companionshipType, fromCity, toCity });
+  console.log('[TravelFiltersScreen] Rendering', { role, types, fromCity, toCity });
+
+  const toggleType = (type: 'companionship' | 'ally') => {
+    const newTypes = new Set(types);
+    if (newTypes.has(type)) {
+      newTypes.delete(type);
+    } else {
+      newTypes.add(type);
+    }
+    setTypes(newTypes);
+  };
 
   const handleApply = () => {
-    console.log('[TravelFiltersScreen] Applying filters', { companionshipType, fromCity, toCity, dateStart, dateEnd });
+    console.log('[TravelFiltersScreen] Applying filters', { role, types, fromCity, toCity, dateStart, dateEnd });
     
     // Build query params
     const params = new URLSearchParams();
-    if (companionshipType) params.append('type', companionshipType);
+    
+    // Map role and types to backend API format
+    if (role === 'seeking' && types.has('companionship')) {
+      params.append('type', 'seeking');
+    } else if (role === 'seeking' && types.has('ally')) {
+      params.append('type', 'seeking-ally');
+    } else if (role === 'offering') {
+      params.append('type', 'offering');
+    }
+    
     if (fromCity) params.append('fromCity', fromCity);
     if (toCity) params.append('toCity', toCity);
     if (dateStart) params.append('travelDateFrom', dateStart.toISOString().split('T')[0]);
@@ -43,7 +63,8 @@ export default function TravelFiltersScreen() {
 
   const handleReset = () => {
     console.log('[TravelFiltersScreen] Resetting filters');
-    setCompanionshipType(null);
+    setRole(null);
+    setTypes(new Set());
     setFromCity('');
     setToCity('');
     setDateStart(null);
@@ -56,22 +77,42 @@ export default function TravelFiltersScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
-        <Text style={styles.sectionTitle}>Companionship</Text>
+        <Text style={styles.sectionTitle}>Role</Text>
         <View style={styles.radioButtons}>
           <TouchableOpacity
-            style={[styles.typeOption, companionshipType === 'offering' && styles.typeOptionActive]}
-            onPress={() => setCompanionshipType('offering')}
+            style={[styles.typeOption, role === 'offering' && styles.typeOptionActive]}
+            onPress={() => setRole('offering')}
           >
-            <Text style={[styles.typeText, companionshipType === 'offering' && styles.typeTextActive]}>
+            <Text style={[styles.typeText, role === 'offering' && styles.typeTextActive]}>
               Offering
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.typeOption, companionshipType === 'seeking' && styles.typeOptionActive]}
-            onPress={() => setCompanionshipType('seeking')}
+            style={[styles.typeOption, role === 'seeking' && styles.typeOptionActive]}
+            onPress={() => setRole('seeking')}
           >
-            <Text style={[styles.typeText, companionshipType === 'seeking' && styles.typeTextActive]}>
+            <Text style={[styles.typeText, role === 'seeking' && styles.typeTextActive]}>
               Seeking
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sectionTitle}>Type</Text>
+        <View style={styles.radioButtons}>
+          <TouchableOpacity
+            style={[styles.typeOption, types.has('companionship') && styles.typeOptionActive]}
+            onPress={() => toggleType('companionship')}
+          >
+            <Text style={[styles.typeText, types.has('companionship') && styles.typeTextActive]}>
+              👥 Companionship
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.typeOption, types.has('ally') && styles.typeOptionActive]}
+            onPress={() => toggleType('ally')}
+          >
+            <Text style={[styles.typeText, types.has('ally') && styles.typeTextActive]}>
+              📦 Ally
             </Text>
           </TouchableOpacity>
         </View>

@@ -15,7 +15,9 @@ interface User {
 interface Profile {
   userId: string;
   name: string;
+  username?: string;
   city: string;
+  photoUrl?: string;
   createdAt: string;
   updatedAt: string;
 }

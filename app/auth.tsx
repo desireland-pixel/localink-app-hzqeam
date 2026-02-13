@@ -48,8 +48,8 @@ export default function AuthScreen() {
         console.log('[AuthScreen] Profile complete, redirecting to main app');
         router.replace('/(tabs)/sublet');
       } else {
-        console.log('[AuthScreen] Profile incomplete, redirecting to create-profile');
-        router.replace('/create-profile');
+        console.log('[AuthScreen] Profile incomplete, redirecting to personal-details');
+        router.replace('/personal-details');
       }
     }
   }, [user, profile, authLoading, profileLoading]);
@@ -71,6 +71,11 @@ export default function AuthScreen() {
       return;
     }
 
+    if (mode === "signup" && !name.trim()) {
+      setError("Please enter your full name");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -78,18 +83,35 @@ export default function AuthScreen() {
     try {
       if (mode === "signin") {
         console.log('[AuthScreen] Signing in with email');
-        await signInWithEmail(email, password);
-        console.log('[AuthScreen] Sign in successful');
-        // Navigation will be handled by useEffect
+        try {
+          await signInWithEmail(email, password);
+          console.log('[AuthScreen] Sign in successful');
+          // Navigation will be handled by useEffect
+        } catch (signInErr: any) {
+          // Check for specific error messages from backend
+          const errorMsg = signInErr.message || signInErr.toString();
+          if (errorMsg.includes('not verified') || errorMsg.includes('OTP')) {
+            setError('Email not verified. Please check your email for OTP.');
+          } else if (errorMsg.includes('Invalid') || errorMsg.includes('password')) {
+            setError('Invalid email or password');
+          } else {
+            setError(errorMsg || 'Sign in failed');
+          }
+          throw signInErr;
+        }
       } else {
         console.log('[AuthScreen] Signing up with email');
-        await signUpWithEmail(email, password, name);
-        console.log('[AuthScreen] Sign up successful');
-        setSuccess("Account created! Please check your email to verify your account.");
+        // Call backend signup API directly to get OTP flow
+        await apiPost('/api/auth/signup', { email, password, name });
+        console.log('[AuthScreen] Sign up successful, redirecting to OTP verification');
+        router.push({ pathname: '/verify-otp', params: { email } });
       }
     } catch (err: any) {
       console.error('[AuthScreen] Auth error:', err);
-      setError(err.message || "Authentication failed");
+      // Error already set in signin block, only set if not already set
+      if (!error) {
+        setError(err.message || "Authentication failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -143,6 +165,9 @@ export default function AuthScreen() {
       setLoading(false);
     }
   };
+
+  const isSignUpFormValid = mode === "signup" && name.trim() && email.trim() && password.trim();
+  const isSignInFormValid = mode === "signin" && email.trim() && password.trim();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -205,10 +230,10 @@ export default function AuthScreen() {
               <>
                 {mode === "signup" && (
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Name (optional)</Text>
+                    <Text style={styles.label}>Full Name</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Enter your name"
+                      placeholder="Enter your full name"
                       placeholderTextColor={colors.textLight}
                       value={name}
                       onChangeText={setName}
@@ -258,9 +283,12 @@ export default function AuthScreen() {
                 )}
 
                 <TouchableOpacity
-                  style={[styles.primaryButton, loading && styles.buttonDisabled]}
+                  style={[
+                    styles.primaryButton,
+                    (loading || (mode === "signup" && !isSignUpFormValid) || (mode === "signin" && !isSignInFormValid)) && styles.buttonDisabled
+                  ]}
                   onPress={handleEmailAuth}
-                  disabled={loading}
+                  disabled={loading || (mode === "signup" && !isSignUpFormValid) || (mode === "signin" && !isSignInFormValid)}
                 >
                   {loading ? (
                     <ActivityIndicator color="#fff" />

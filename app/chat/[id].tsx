@@ -18,6 +18,7 @@ interface Message {
   sender: {
     id: string;
     name: string;
+    username?: string;
   };
 }
 
@@ -90,6 +91,8 @@ export default function ChatScreen() {
   const renderMessage = (msg: Message) => {
     const isOwnMessage = msg.senderId === user?.id;
     const time = timeDisplay(msg.createdAt);
+    // Use username if available, fallback to name
+    const senderDisplayName = msg.sender.username || msg.sender.name;
 
     return (
       <View
@@ -100,7 +103,7 @@ export default function ChatScreen() {
         ]}
       >
         {!isOwnMessage && (
-          <Text style={styles.senderName}>{msg.sender.name}</Text>
+          <Text style={styles.senderName}>{senderDisplayName}</Text>
         )}
         <Text style={styles.messageText}>{msg.content}</Text>
         <Text style={styles.messageTime}>{time}</Text>

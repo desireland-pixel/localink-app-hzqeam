@@ -27,7 +27,7 @@ export default function ProfileScreen() {
     }
   };
 
-  const userName = profile?.name || user?.name || 'User';
+  const userName = profile?.username || profile?.name || user?.name || 'User';
   const userCity = profile?.city || 'Not set';
 
   return (

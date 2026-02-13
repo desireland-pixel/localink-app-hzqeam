@@ -19,9 +19,12 @@ interface TravelPost {
   fromCity: string;
   toCity: string;
   travelDate: string;
-  type: 'seeking' | 'offering';
+  type: 'seeking' | 'offering' | 'seeking-ally';
   companionshipFor?: string;
   travelDateTo?: string;
+  canOfferCompanionship?: boolean;
+  canCarryItems?: boolean;
+  item?: string;
   status: string;
   createdAt: string;
   user: {
@@ -87,8 +90,25 @@ export default function TravelDetailsScreen() {
     }
   };
 
-  const getTypeLabel = (type: string) => {
-    return type === 'seeking' ? 'Seeking Travel Buddy' : 'Offering Companionship';
+  const getTypeLabel = (post: TravelPost) => {
+    if (post.type === 'offering') {
+      const hasCompanionship = post.canOfferCompanionship;
+      const hasCarry = post.canCarryItems;
+      
+      if (hasCompanionship && hasCarry) {
+        return `Offering 👥📦 from ${post.fromCity} to ${post.toCity}`;
+      } else if (hasCompanionship) {
+        return `Offering 👥 from ${post.fromCity} to ${post.toCity}`;
+      } else if (hasCarry) {
+        return `Offering 📦 from ${post.fromCity} to ${post.toCity}`;
+      }
+      return `Offering from ${post.fromCity} to ${post.toCity}`;
+    } else if (post.type === 'seeking') {
+      return `Seeking 👥 from ${post.fromCity} to ${post.toCity}`;
+    } else if (post.type === 'seeking-ally') {
+      return `Seeking 📦 from ${post.fromCity} to ${post.toCity}`;
+    }
+    return `${post.fromCity} to ${post.toCity}`;
   };
 
   if (loading) {
@@ -112,10 +132,31 @@ export default function TravelDetailsScreen() {
   }
 
   const isOwnPost = travelPost.userId === user?.id;
-  const title = travelPost.title || `${getTypeLabel(travelPost.type)} from ${travelPost.fromCity} to ${travelPost.toCity}`;
+  const title = getTypeLabel(travelPost);
   const travelDateDisplay = formatDateToDDMMYYYY(travelPost.travelDate);
   const travelDateToDisplay = travelPost.travelDateTo ? formatDateToDDMMYYYY(travelPost.travelDateTo) : null;
   const displayId = travelPost.shortId || travelPost.id.substring(0, 8);
+  
+  // Determine tag label
+  let tagLabel = '';
+  if (travelPost.type === 'offering') {
+    const hasCompanionship = travelPost.canOfferCompanionship;
+    const hasCarry = travelPost.canCarryItems;
+    
+    if (hasCompanionship && hasCarry) {
+      tagLabel = 'Offering 👥📦';
+    } else if (hasCompanionship) {
+      tagLabel = 'Offering 👥';
+    } else if (hasCarry) {
+      tagLabel = 'Offering 📦';
+    } else {
+      tagLabel = 'Offering';
+    }
+  } else if (travelPost.type === 'seeking') {
+    tagLabel = 'Seeking 👥';
+  } else if (travelPost.type === 'seeking-ally') {
+    tagLabel = 'Seeking 📦';
+  }
 
   const handleEdit = () => {
     console.log('TravelDetailsScreen: Edit post', id);
@@ -142,7 +183,7 @@ export default function TravelDetailsScreen() {
           </View>
           
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{getTypeLabel(travelPost.type)}</Text>
+            <Text style={styles.badgeText}>{tagLabel}</Text>
           </View>
 
           <View style={styles.postIdContainer}>
