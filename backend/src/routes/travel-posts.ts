@@ -226,26 +226,8 @@ export function registerTravelPostRoutes(app: App) {
         };
       });
 
-      // Build filter metadata
-      const appliedFilters: Record<string, any> = {};
-      if (filters.role) appliedFilters.role = filters.role;
-      if (filters.type) appliedFilters.type = filters.type;
-      if (filters.fromCity) appliedFilters.fromCity = filters.fromCity;
-      if (filters.toCity) appliedFilters.toCity = filters.toCity;
-      if (filters.travelDate) appliedFilters.travelDate = filters.travelDate;
-      if (filters.travelDateFrom) appliedFilters.travelDateFrom = filters.travelDateFrom;
-      if (filters.travelDateTo) appliedFilters.travelDateTo = filters.travelDateTo;
-
-      app.logger.info({ count: result.length, appliedFilters }, 'Travel posts listed successfully');
-      return {
-        data: result,
-        pagination: {
-          limit,
-          offset,
-          total: result.length,
-        },
-        filters: appliedFilters,
-      };
+      app.logger.info({ count: result.length, filters }, 'Travel posts listed successfully');
+      return result;
     } catch (error) {
       app.logger.error({ err: error }, 'Failed to list travel posts');
       return reply.status(500).send({ error: 'Failed to list travel posts' });

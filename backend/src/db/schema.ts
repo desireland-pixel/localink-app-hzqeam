@@ -2,13 +2,18 @@ import { pgTable, uuid, text, timestamp, numeric, date, boolean, uniqueIndex } f
 import { user } from './auth-schema.js';
 import { relations } from 'drizzle-orm';
 
-// Extended user profile
+// Extended user profile with GDPR compliance
 export const profiles = pgTable('profiles', {
   userId: text('user_id').primaryKey().references(() => user.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   username: text('username').unique(), // Unique username, nullable initially
   city: text('city').notNull(),
   photoUrl: text('photo_url'), // Profile photo URL
+  // GDPR Compliance
+  gdprConsentAccepted: boolean('gdpr_consent_accepted').default(false).notNull(),
+  gdprConsentAcceptedAt: timestamp('gdpr_consent_accepted_at', { withTimezone: true }),
+  dataDeleteRequestedAt: timestamp('data_delete_requested_at', { withTimezone: true }), // Set when user requests deletion
+  dataDeletedAt: timestamp('data_deleted_at', { withTimezone: true }), // Set when deletion is processed
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 });

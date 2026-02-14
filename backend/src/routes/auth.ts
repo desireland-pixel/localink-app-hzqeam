@@ -58,7 +58,7 @@ export function registerAuthRoutes(app: App) {
 
       if (!user) {
         app.logger.warn({ email }, 'Login failed - user not found');
-        return reply.status(401).send({ error: 'Invalid email or password' });
+        return reply.status(401).send({ error: 'Email or Password is incorrect.' });
       }
 
       if (!user.emailVerified) {
@@ -83,7 +83,7 @@ export function registerAuthRoutes(app: App) {
       if (!authResponse.ok) {
         const errorData = await authResponse.json();
         app.logger.warn({ email }, 'Login failed - password verification failed');
-        return reply.status(401).send({ error: 'Invalid email or password' });
+        return reply.status(401).send({ error: 'Email or Password is incorrect.' });
       }
 
       const authData = await authResponse.json();
@@ -112,7 +112,7 @@ export function registerAuthRoutes(app: App) {
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { email, password, name } = request.body as SignupBody;
-    app.logger.info({ email }, 'Signup attempt');
+    app.logger.info({ email, name }, 'Signup attempt');
 
     try {
       // Check if user already exists
@@ -126,7 +126,13 @@ export function registerAuthRoutes(app: App) {
       }
 
       // Proxy the signup request to Better Auth's sign-up endpoint
-      const baseUrl = `${request.protocol}://${request.hostname}`;
+      const port = request.socket.localPort || 3000;
+      const protocol = request.protocol || 'http';
+      const hostname = request.hostname || 'localhost';
+      const baseUrl = `${protocol}://${hostname}${port !== 80 && port !== 443 ? `:${port}` : ''}`;
+
+      app.logger.info({ baseUrl }, 'Calling Better Auth signup endpoint');
+
       const signupResponse = await fetch(`${baseUrl}/api/auth/sign-up/email`, {
         method: 'POST',
         headers: {
@@ -140,13 +146,13 @@ export function registerAuthRoutes(app: App) {
       });
 
       if (!signupResponse.ok) {
-        const errorData = await signupResponse.json() as { message?: string };
-        app.logger.warn({ email }, 'Signup failed via Better Auth');
-        return reply.status(400).send({ error: errorData.message || 'Signup failed' });
+        const errorText = await signupResponse.text();
+        app.logger.warn({ email, status: signupResponse.status, error: errorText }, 'Signup failed via Better Auth');
+        return reply.status(400).send({ error: 'Failed to create account. Please try again.' });
       }
 
       const signupData = await signupResponse.json();
-      app.logger.info({ email }, 'User created successfully');
+      app.logger.info({ email, userId: (signupData as any)?.user?.id }, 'User created successfully');
 
       // Generate OTP for email verification
       const otp = generateOtp();
@@ -161,7 +167,9 @@ export function registerAuthRoutes(app: App) {
           expiresAt,
         });
 
-      // Send OTP email
+      app.logger.info({ email }, 'OTP generated');
+
+      // Send OTP email (fire and forget)
       resend.emails.send({
         from: 'Localink <noreply@localink.app>',
         to: email,
@@ -179,7 +187,7 @@ export function registerAuthRoutes(app: App) {
         `,
       });
 
-      app.logger.info({ email }, 'OTP generated and sent for signup');
+      app.logger.info({ email }, 'OTP email sent for signup');
       return {
         success: true,
         message: 'Account created successfully. Please verify your email using the OTP sent to your email address.',
@@ -188,7 +196,7 @@ export function registerAuthRoutes(app: App) {
       };
     } catch (error) {
       app.logger.error({ err: error, email }, 'Signup error');
-      return reply.status(500).send({ error: 'Signup failed' });
+      return reply.status(500).send({ error: 'Failed to create account. Please try again.' });
     }
   });
 

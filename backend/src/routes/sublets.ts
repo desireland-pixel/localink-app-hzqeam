@@ -142,26 +142,8 @@ export function registerSubletRoutes(app: App) {
         };
       });
 
-      // Build filter metadata
-      const appliedFilters: Record<string, any> = {};
-      if (filters.type) appliedFilters.type = filters.type;
-      if (filters.city) appliedFilters.city = filters.city;
-      if (filters.availableFrom) appliedFilters.availableFrom = filters.availableFrom;
-      if (filters.availableTo) appliedFilters.availableTo = filters.availableTo;
-      if (filters.minRent) appliedFilters.minRent = filters.minRent;
-      if (filters.maxRent) appliedFilters.maxRent = filters.maxRent;
-      if (filters.cityRegistrationRequired) appliedFilters.cityRegistrationRequired = filters.cityRegistrationRequired;
-
-      app.logger.info({ count: result.length, appliedFilters }, 'Sublets listed successfully');
-      return {
-        data: result,
-        pagination: {
-          limit,
-          offset,
-          total: result.length,
-        },
-        filters: appliedFilters,
-      };
+      app.logger.info({ count: result.length, filters }, 'Sublets listed successfully');
+      return result;
     } catch (error) {
       app.logger.error({ err: error }, 'Failed to list sublets');
       return reply.status(500).send({ error: 'Failed to list sublets' });
