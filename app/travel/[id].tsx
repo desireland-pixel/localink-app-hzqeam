@@ -30,6 +30,7 @@ interface TravelPost {
   user: {
     id: string;
     name: string;
+    username?: string;
   };
 }
 
@@ -133,7 +134,7 @@ export default function TravelDetailsScreen() {
 
   const isOwnPost = travelPost.userId === user?.id;
   const title = getTypeLabel(travelPost);
-  const travelDateDisplay = formatDateToDDMMYYYY(travelPost.travelDate) || 'Date not set';
+  const travelDateDisplay = formatDateToDDMMYYYY(travelPost.travelDate);
   const travelDateToDisplay = travelPost.travelDateTo ? formatDateToDDMMYYYY(travelPost.travelDateTo) : null;
   const displayId = travelPost.shortId || travelPost.id.substring(0, 8);
   
@@ -197,12 +198,10 @@ export default function TravelDetailsScreen() {
             </Text>
           </View>
 
-          {travelDateDisplay && (
-            <View style={styles.dateContainer}>
-              <Text style={styles.dateLabel}>Travel Date:</Text>
-              <Text style={styles.dateText}>{travelDateDisplay}</Text>
-            </View>
-          )}
+          <View style={styles.dateContainer}>
+            <Text style={styles.dateLabel}>Travel Date:</Text>
+            <Text style={styles.dateText}>{travelDateDisplay || 'Not specified'}</Text>
+          </View>
 
           {travelDateToDisplay && (
             <View style={styles.dateContainer}>
@@ -227,7 +226,7 @@ export default function TravelDetailsScreen() {
 
           <View style={styles.userContainer}>
             <Text style={styles.userLabel}>Posted by:</Text>
-            <Text style={styles.userName}>{travelPost.user.name}</Text>
+            <Text style={styles.userName}>{travelPost.user.username || travelPost.user.name}</Text>
           </View>
         </View>
 

@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors, typography, spacing } from '@/styles/commonStyles';
@@ -28,9 +28,9 @@ export default function IndexScreen() {
       if (!user) {
         console.log('[IndexScreen] No user, redirecting to auth');
         router.replace('/auth');
-      } else if (!profile || !profile.name || !profile.city) {
-        console.log('[IndexScreen] User authenticated but profile incomplete, redirecting to create-profile');
-        router.replace('/create-profile');
+      } else if (!profile || !profile.username || !profile.city) {
+        console.log('[IndexScreen] User authenticated but profile incomplete, redirecting to personal-details');
+        router.replace('/personal-details');
       } else {
         console.log('[IndexScreen] User authenticated with complete profile, redirecting to tabs');
         router.replace('/(tabs)/sublet');
@@ -46,8 +46,13 @@ export default function IndexScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logo}>🔗</Text>
+          <Image
+            source={require('@/assets/images/e0ef75c7-f2f2-4978-a582-c04be452d5cf.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.title}>Localink</Text>
+          <Text style={styles.tagline}>Living and moving together</Text>
         </View>
         {isLoading && (
           <View style={styles.loadingContainer}>
@@ -75,14 +80,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.lg,
   },
-  logo: {
-    fontSize: 80,
+  logoImage: {
+    width: 120,
+    height: 120,
     marginBottom: spacing.md,
   },
   title: {
     ...typography.h1,
     color: colors.primary,
     fontWeight: '700',
+    marginBottom: spacing.xs,
+  },
+  tagline: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   loadingContainer: {
     marginTop: spacing.xl,

@@ -79,7 +79,71 @@ export default function RootLayout() {
                 <Stack.Screen name="auth" options={{ headerShown: false }} />
                 <Stack.Screen name="auth-popup" options={{ headerShown: false }} />
                 <Stack.Screen name="auth-callback" options={{ headerShown: false }} />
+                <Stack.Screen 
+                  name="verify-otp" 
+                  options={{ 
+                    headerShown: true,
+                    title: 'Verify Email',
+                    headerBackTitle: 'Back'
+                  }} 
+                />
                 <Stack.Screen name="create-profile" options={{ headerShown: false }} />
+                <Stack.Screen 
+                  name="personal-details" 
+                  options={{ 
+                    headerShown: true,
+                    title: 'Personal Details',
+                    headerBackTitle: 'Back'
+                  }} 
+                />
+                <Stack.Screen 
+                  name="edit-password" 
+                  options={{ 
+                    headerShown: true,
+                    title: 'Edit Password',
+                    headerBackTitle: 'Back'
+                  }} 
+                />
+                <Stack.Screen 
+                  name="favourites" 
+                  options={{ 
+                    headerShown: true,
+                    title: 'Favourites',
+                    headerBackTitle: 'Back'
+                  }} 
+                />
+                <Stack.Screen 
+                  name="notifications" 
+                  options={{ 
+                    headerShown: true,
+                    title: 'Notifications',
+                    headerBackTitle: 'Back'
+                  }} 
+                />
+                <Stack.Screen 
+                  name="faqs" 
+                  options={{ 
+                    headerShown: true,
+                    title: 'FAQs',
+                    headerBackTitle: 'Back'
+                  }} 
+                />
+                <Stack.Screen 
+                  name="data-privacy" 
+                  options={{ 
+                    headerShown: true,
+                    title: 'Data & Privacy',
+                    headerBackTitle: 'Back'
+                  }} 
+                />
+                <Stack.Screen 
+                  name="post-community-topic" 
+                  options={{ 
+                    headerShown: true,
+                    title: 'Start Discussion',
+                    headerBackTitle: 'Cancel'
+                  }} 
+                />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen 
                   name="sublet/[id]" 
@@ -101,7 +165,7 @@ export default function RootLayout() {
                   name="carry/[id]" 
                   options={{ 
                     headerShown: true,
-                    title: 'Carry Details',
+                    title: 'Community discussion',
                     headerBackTitle: 'Back'
                   }} 
                 />

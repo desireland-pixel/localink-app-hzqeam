@@ -5,7 +5,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { authenticatedGet } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 
 interface CommunityTopic {
@@ -20,6 +20,7 @@ interface CommunityTopic {
   user?: {
     id: string;
     name: string;
+    username?: string;
   };
   replyCount?: number;
 }
@@ -44,11 +45,13 @@ export default function CommunityScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   console.log('CommunityScreen: Rendering', { topicsCount: topics.length, loading, selectedCategory });
 
   useEffect(() => {
     fetchTopics();
+    fetchFavorites();
   }, [selectedCategory]);
 
   const fetchTopics = async () => {
@@ -69,10 +72,48 @@ export default function CommunityScreen() {
     }
   };
 
+  const fetchFavorites = async () => {
+    try {
+      console.log('CommunityScreen: Fetching favorites');
+      const data = await authenticatedGet<Array<{ postId: string; postType: string }>>('/api/favorites');
+      const communityFavorites = data.filter(f => f.postType === 'community').map(f => f.postId);
+      setFavorites(new Set(communityFavorites));
+    } catch (error) {
+      console.error('CommunityScreen: Error fetching favorites', error);
+    }
+  };
+
+  const toggleFavorite = async (postId: string) => {
+    console.log('CommunityScreen: Toggle favorite', postId);
+    const isFavorited = favorites.has(postId);
+    
+    // Optimistic update
+    const newFavorites = new Set(favorites);
+    if (isFavorited) {
+      newFavorites.delete(postId);
+    } else {
+      newFavorites.add(postId);
+    }
+    setFavorites(newFavorites);
+
+    try {
+      if (isFavorited) {
+        await authenticatedDelete(`/api/favorites/${postId}?postType=community`, {});
+      } else {
+        await authenticatedPost('/api/favorites', { postId, postType: 'community' });
+      }
+    } catch (error) {
+      console.error('CommunityScreen: Error toggling favorite', error);
+      // Revert on error
+      setFavorites(favorites);
+    }
+  };
+
   const onRefresh = () => {
     console.log('CommunityScreen: Refreshing');
     setRefreshing(true);
     fetchTopics();
+    fetchFavorites();
   };
 
   const filteredTopics = topics.filter(topic =>
@@ -168,11 +209,12 @@ export default function CommunityScreen() {
           }
         >
           {filteredTopics.map((topic) => {
-            const authorName = topic.user?.name || 'Unknown';
+            const authorName = topic.user?.username || topic.user?.name || 'Unknown';
             const statusColor = topic.status === 'open' ? colors.success : colors.textLight;
             const createdDate = formatDateToDDMMYYYY(topic.createdAt);
             const authorText = `by ${authorName}`;
             const dateText = `on ${createdDate}`;
+            const isFavorited = favorites.has(topic.id);
             
             return (
               <TouchableOpacity
@@ -184,12 +226,29 @@ export default function CommunityScreen() {
                 }}
               >
                 <View style={styles.cardHeader}>
-                  <View style={styles.categoryBadge}>
-                    <Text style={styles.categoryBadgeText}>{topic.category}</Text>
+                  <View style={styles.headerLeft}>
+                    <View style={styles.categoryBadge}>
+                      <Text style={styles.categoryBadgeText}>{topic.category}</Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+                      <Text style={styles.statusBadgeText}>{topic.status}</Text>
+                    </View>
                   </View>
-                  <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-                    <Text style={styles.statusBadgeText}>{topic.status}</Text>
-                  </View>
+                  <TouchableOpacity 
+                    style={styles.likeButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(topic.id);
+                    }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <IconSymbol
+                      ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                      android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                      size={20}
+                      color={isFavorited ? colors.primary : colors.textSecondary}
+                    />
+                  </TouchableOpacity>
                 </View>
                 <Text style={styles.cardTitle}>{topic.title}</Text>
                 {topic.description && (
@@ -340,6 +399,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.sm,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  likeButton: {
+    padding: spacing.xs,
   },
   categoryBadge: {
     backgroundColor: colors.primary,

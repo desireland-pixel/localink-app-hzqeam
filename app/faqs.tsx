@@ -59,8 +59,6 @@ export default function FAQsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
-        <Text style={styles.title}>FAQs</Text>
-
         {faqs.map((faq, index) => {
           const isExpanded = expandedIndex === index;
           
@@ -105,12 +103,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-  },
-  title: {
-    ...typography.h2,
-    color: colors.text,
-    marginBottom: spacing.xl,
+    paddingTop: spacing.md,
   },
   faqCard: {
     backgroundColor: colors.card,

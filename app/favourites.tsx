@@ -87,7 +87,7 @@ export default function FavouritesScreen() {
       router.push(`/sublet/${postId}`);
     } else if (postType === 'travel') {
       router.push(`/travel/${postId}`);
-    } else if (postType === 'community' || postType === 'carry') {
+    } else if (postType === 'community') {
       router.push(`/carry/${postId}`);
     }
   };
@@ -242,7 +242,7 @@ export default function FavouritesScreen() {
                           style={styles.removeButton}
                           onPress={(e) => {
                             e.stopPropagation();
-                            handleRemoveFavorite(favorite.postId, favorite.postType);
+                            handleRemoveFavorite(favorite.postId, 'community');
                           }}
                         >
                           <IconSymbol
@@ -257,6 +257,11 @@ export default function FavouritesScreen() {
                         <Text style={styles.postDescription} numberOfLines={2}>
                           {post.description}
                         </Text>
+                      )}
+                      {post.category && (
+                        <View style={styles.postInfo}>
+                          <Text style={styles.postInfoText}>{post.category}</Text>
+                        </View>
                       )}
                     </>
                   )}

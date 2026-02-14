@@ -29,6 +29,7 @@ interface Sublet {
   user: {
     id: string;
     name: string;
+    username?: string;
   };
 }
 
@@ -141,8 +142,8 @@ export default function SubletDetailsScreen() {
     );
   }
 
-  const fromDateDisplay = formatDateToDDMMYYYY(sublet.availableFrom) || 'Date not set';
-  const toDateDisplay = formatDateToDDMMYYYY(sublet.availableTo) || 'Date not set';
+  const fromDateDisplay = formatDateToDDMMYYYY(sublet.availableFrom);
+  const toDateDisplay = formatDateToDDMMYYYY(sublet.availableTo);
   const isOwnPost = user?.id === sublet.userId;
   const hasImage = sublet.imageUrls && sublet.imageUrls.length > 0;
   const typeLabel = sublet.type === 'offering' ? 'Offering' : 'Seeking';
@@ -210,19 +211,15 @@ export default function SubletDetailsScreen() {
             <Text style={styles.infoValue}>{sublet.city}</Text>
           </View>
           
-          {fromDateDisplay && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Available From</Text>
-              <Text style={styles.infoValue}>{fromDateDisplay}</Text>
-            </View>
-          )}
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Available From</Text>
+            <Text style={styles.infoValue}>{fromDateDisplay || 'Not specified'}</Text>
+          </View>
           
-          {toDateDisplay && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Available To</Text>
-              <Text style={styles.infoValue}>{toDateDisplay}</Text>
-            </View>
-          )}
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Available To</Text>
+            <Text style={styles.infoValue}>{toDateDisplay || 'Not specified'}</Text>
+          </View>
           
           {sublet.rent && (
             <View style={styles.infoRow}>
@@ -252,7 +249,7 @@ export default function SubletDetailsScreen() {
           <View style={styles.authorHeader}>
             <View>
               <Text style={styles.authorLabel}>Posted by</Text>
-              <Text style={styles.authorName}>{sublet.user.name}</Text>
+              <Text style={styles.authorName}>{sublet.user.username || sublet.user.name}</Text>
             </View>
             {!isOwnPost && (
               <TouchableOpacity style={styles.msgButton} onPress={handleContact}>

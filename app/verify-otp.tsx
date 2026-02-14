@@ -50,7 +50,12 @@ export default function VerifyOTPScreen() {
       setSuccess('Your account has been created successfully!');
     } catch (err: any) {
       console.error('[VerifyOTP] OTP verification failed:', err);
-      setError(err.message || 'Incorrect OTP. Please try again.');
+      const errorMsg = err.message || err.toString();
+      if (errorMsg.includes('Invalid') || errorMsg.includes('expired') || errorMsg.includes('400')) {
+        setError('Incorrect OTP. Please try again.');
+      } else {
+        setError('OTP verification failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

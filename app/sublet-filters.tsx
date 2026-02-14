@@ -302,6 +302,7 @@ const styles = StyleSheet.create({
   },
   typeText: {
     ...typography.body,
+    fontSize: 14,
     color: colors.text,
   },
   typeTextActive: {

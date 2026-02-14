@@ -28,23 +28,21 @@ export default function TravelFiltersScreen() {
       const filterString = params.filters as string;
       const urlParams = new URLSearchParams(filterString);
       
-      const type = urlParams.get('type');
-      if (type === 'offering') {
-        setRole('offering');
-        // Check for companionship and carry flags
-        if (urlParams.get('canOfferCompanionship') === 'true') {
-          setTypes(prev => new Set(prev).add('companionship'));
-        }
-        if (urlParams.get('canCarryItems') === 'true') {
-          setTypes(prev => new Set(prev).add('ally'));
-        }
-      } else if (type === 'seeking' || type === 'seeking-ally') {
-        setRole('seeking');
-        if (type === 'seeking') {
-          setTypes(new Set(['companionship']));
-        } else if (type === 'seeking-ally') {
-          setTypes(new Set(['ally']));
-        }
+      const roleParam = urlParams.get('role');
+      if (roleParam === 'offering' || roleParam === 'seeking') {
+        setRole(roleParam);
+      }
+      
+      // Check for type flags
+      const newTypes = new Set<'companionship' | 'ally'>();
+      if (urlParams.get('canOfferCompanionship') === 'true') {
+        newTypes.add('companionship');
+      }
+      if (urlParams.get('canCarryItems') === 'true') {
+        newTypes.add('ally');
+      }
+      if (newTypes.size > 0) {
+        setTypes(newTypes);
       }
       
       const from = urlParams.get('fromCity');
@@ -78,35 +76,17 @@ export default function TravelFiltersScreen() {
     const params = new URLSearchParams();
     
     // Map role and types to backend API format
-    if (role && types.size > 0) {
-      if (role === 'seeking') {
-        if (types.has('companionship') && types.has('ally')) {
-          // Both selected - need to handle multiple types
-          params.append('type', 'seeking');
-          params.append('type', 'seeking-ally');
-        } else if (types.has('companionship')) {
-          params.append('type', 'seeking');
-        } else if (types.has('ally')) {
-          params.append('type', 'seeking-ally');
-        }
-      } else if (role === 'offering') {
-        params.append('type', 'offering');
-        // For offering, we filter by canOfferCompanionship and canCarryItems on backend
-        if (types.has('companionship')) {
-          params.append('canOfferCompanionship', 'true');
-        }
-        if (types.has('ally')) {
-          params.append('canCarryItems', 'true');
-        }
+    if (role) {
+      params.append('role', role);
+    }
+    
+    // Add type filters
+    if (types.size > 0) {
+      if (types.has('companionship')) {
+        params.append('canOfferCompanionship', 'true');
       }
-    } else if (role) {
-      // Just role, no type specified
-      if (role === 'offering') {
-        params.append('type', 'offering');
-      } else if (role === 'seeking') {
-        // Include both seeking types
-        params.append('type', 'seeking');
-        params.append('type', 'seeking-ally');
+      if (types.has('ally')) {
+        params.append('canCarryItems', 'true');
       }
     }
     
@@ -301,6 +281,7 @@ const styles = StyleSheet.create({
   },
   typeText: {
     ...typography.body,
+    fontSize: 14,
     color: colors.text,
   },
   typeTextActive: {

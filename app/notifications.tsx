@@ -22,8 +22,6 @@ export default function NotificationsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
-        <Text style={styles.title}>Notifications</Text>
-
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Communication</Text>
           
@@ -80,12 +78,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-  },
-  title: {
-    ...typography.h2,
-    color: colors.text,
-    marginBottom: spacing.xl,
+    paddingTop: spacing.md,
   },
   section: {
     marginBottom: spacing.xl,

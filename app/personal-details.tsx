@@ -110,8 +110,6 @@ export default function PersonalDetailsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
-        <Text style={styles.title}>Personal Details</Text>
-
         <Text style={styles.label}>Full Name</Text>
         <TextInput
           style={styles.input}
@@ -215,12 +213,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-  },
-  title: {
-    ...typography.h2,
-    color: colors.text,
-    marginBottom: spacing.xl,
+    paddingTop: spacing.md,
   },
   label: {
     ...typography.bodySmall,

@@ -108,7 +108,7 @@ export default function AuthScreen() {
       } else {
         console.log('[AuthScreen] Signing up with email');
         // Call backend signup API directly to get OTP flow
-        const result = await apiPost('/api/auth/signup', { email, password, name });
+        const result = await apiPost('/api/signup', { email, password, name });
         console.log('[AuthScreen] Sign up successful, redirecting to OTP verification');
         router.push({ pathname: '/verify-otp', params: { email } });
       }

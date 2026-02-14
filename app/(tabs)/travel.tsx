@@ -27,6 +27,7 @@ interface TravelPost {
   user?: {
     id: string;
     name: string;
+    username?: string;
   };
 }
 
@@ -184,7 +185,7 @@ export default function TravelScreen() {
           }
         >
           {filteredPosts.map((post) => {
-            const dateDisplay = formatDateToDDMMYYYY(post.travelDate) || 'Date not set';
+            const dateDisplay = formatDateToDDMMYYYY(post.travelDate);
             const dateToDisplay = post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo) : null;
             
             // Determine label and icons
@@ -214,7 +215,7 @@ export default function TravelScreen() {
               icons = '📦';
             }
             
-            const authorName = post.user?.name || 'Unknown';
+            const authorName = post.user?.username || post.user?.name || 'Unknown';
             const isFavorited = favorites.has(post.id);
             
             return (
@@ -254,15 +255,11 @@ export default function TravelScreen() {
                   <Text style={styles.routeArrow}>→</Text>
                   <Text style={styles.routeText}>{post.toCity}</Text>
                 </View>
-                {dateDisplay && (
+                {(dateDisplay || dateToDisplay) && (
                   <View style={styles.dateContainer}>
-                    <Text style={styles.dateText}>{dateDisplay}</Text>
-                    {dateToDisplay && (
-                      <>
-                        <Text style={styles.dateSeparator}>-</Text>
-                        <Text style={styles.dateText}>{dateToDisplay}</Text>
-                      </>
-                    )}
+                    {dateDisplay && <Text style={styles.dateText}>{dateDisplay}</Text>}
+                    {dateDisplay && dateToDisplay && <Text style={styles.dateSeparator}>-</Text>}
+                    {dateToDisplay && <Text style={styles.dateText}>{dateToDisplay}</Text>}
                   </View>
                 )}
                 {post.description && (

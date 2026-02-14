@@ -157,7 +157,11 @@ export default function PostSubletScreen() {
     }
     
     if (toDate <= fromDate) {
-      setError('Move-out date must be after Move-in date');
+      if (subletType === 'offering') {
+        setError('Available To date must be after Available From date');
+      } else {
+        setError('Move-out date must be after Move-in date');
+      }
       return;
     }
 

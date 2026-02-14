@@ -24,6 +24,7 @@ interface Sublet {
   user?: {
     id: string;
     name: string;
+    username?: string;
   };
 }
 
@@ -183,8 +184,8 @@ export default function SubletScreen() {
           }
         >
           {filteredSublets.map((sublet) => {
-            const fromDisplay = formatDateToDDMMYYYY(sublet.availableFrom) || 'Date not set';
-            const toDisplay = formatDateToDDMMYYYY(sublet.availableTo) || 'Date not set';
+            const fromDisplay = formatDateToDDMMYYYY(sublet.availableFrom);
+            const toDisplay = formatDateToDDMMYYYY(sublet.availableTo);
             const label = sublet.type === 'offering' ? 'Offering' : 'Seeking';
             const hasImage = sublet.imageUrls && sublet.imageUrls.length > 0;
             const isFavorited = favorites.has(sublet.id);
@@ -220,7 +221,7 @@ export default function SubletScreen() {
                   <View style={styles.cardTextContent}>
                     <Text style={styles.cardTitle} numberOfLines={1}>{sublet.title}</Text>
                     <Text style={styles.cardCity}>{sublet.city}</Text>
-                    {(fromDisplay || toDisplay) && (
+                    {fromDisplay && toDisplay && (
                       <View style={styles.cardDateRow}>
                         <Text style={styles.cardDateText}>{fromDisplay}</Text>
                         <Text style={styles.cardDateSeparator}>-</Text>

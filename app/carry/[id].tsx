@@ -23,6 +23,7 @@ interface CommunityTopic {
   user: {
     id: string;
     name: string;
+    username?: string;
   };
   replies?: Array<{
     id: string;
@@ -32,6 +33,7 @@ interface CommunityTopic {
     user: {
       id: string;
       name: string;
+      username?: string;
     };
   }>;
 }
@@ -140,27 +142,29 @@ export default function CommunityDetailsScreen() {
                 />
               </TouchableOpacity>
             )}
-          </View>
-          
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{topic.category}</Text>
-          </View>
-
-          <View style={styles.postIdContainer}>
-            <Text style={styles.postIdLabel}>Post ID:</Text>
-            <Text style={styles.postIdValue}>{displayId}</Text>
+            <TouchableOpacity style={styles.shareButton} onPress={() => {
+              // TODO: Implement share functionality
+              console.log('Share discussion');
+            }}>
+              <IconSymbol
+                ios_icon_name="square.and.arrow.up"
+                android_material_icon_name="share"
+                size={20}
+                color={colors.text}
+              />
+            </TouchableOpacity>
           </View>
 
           {topic.description && (
-            <View style={styles.descriptionContainer}>
-              <Text style={styles.descriptionLabel}>Description:</Text>
-              <Text style={styles.description}>{topic.description}</Text>
-            </View>
+            <Text style={styles.description}>{topic.description}</Text>
           )}
 
-          <View style={styles.userContainer}>
-            <Text style={styles.userLabel}>Posted by:</Text>
-            <Text style={styles.userName}>{topic.user.name} on {createdDate}</Text>
+          <View style={styles.metaContainer}>
+            <Text style={styles.metaText}>Post ID: {displayId}</Text>
+            <Text style={styles.metaSeparator}>•</Text>
+            <Text style={styles.metaText}>{topic.category}</Text>
+            <Text style={styles.metaSeparator}>•</Text>
+            <Text style={styles.metaText}>Posted by {topic.user.username || topic.user.name} on {createdDate}</Text>
           </View>
         </View>
 
@@ -171,11 +175,14 @@ export default function CommunityDetailsScreen() {
           {topic.replies && topic.replies.length > 0 ? (
             topic.replies.map((reply) => {
               const replyDate = formatDateToDDMMYYYY(reply.createdAt);
+              const replyAuthor = reply.user.username || reply.user.name;
               return (
                 <View key={reply.id} style={styles.replyCard}>
-                  <Text style={styles.replyAuthor}>{reply.user.name}</Text>
-                  <Text style={styles.replyDate}>{replyDate}</Text>
                   <Text style={styles.replyContent}>{reply.content}</Text>
+                  <View style={styles.replyFooter}>
+                    <Text style={styles.replyAuthor}>{replyAuthor}</Text>
+                    <Text style={styles.replyDate}>• {replyDate}</Text>
+                  </View>
                 </View>
               );
             })
@@ -184,31 +191,39 @@ export default function CommunityDetailsScreen() {
           )}
         </View>
 
-        {/* Reply Input */}
-        <View style={styles.replyInputSection}>
-          <Text style={styles.replyInputLabel}>Add a comment</Text>
-          <TextInput
-            style={styles.replyInput}
-            placeholder="Write your comment..."
-            placeholderTextColor={colors.textLight}
-            value={replyText}
-            onChangeText={setReplyText}
-            multiline
-            numberOfLines={4}
-            editable={!submitting}
-          />
-          <TouchableOpacity 
-            style={[styles.submitButton, (!replyText.trim() || submitting) && styles.submitButtonDisabled]} 
-            onPress={handleSubmitReply}
-            disabled={!replyText.trim() || submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.submitButtonText}>Post Comment</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        {/* Reply Input - Only show if discussion is open */}
+        {topic.status === 'open' && (
+          <View style={styles.replyInputSection}>
+            <Text style={styles.replyInputLabel}>Add a comment</Text>
+            <TextInput
+              style={styles.replyInput}
+              placeholder="Write your comment..."
+              placeholderTextColor={colors.textLight}
+              value={replyText}
+              onChangeText={setReplyText}
+              multiline
+              numberOfLines={4}
+              editable={!submitting}
+            />
+            <TouchableOpacity 
+              style={[styles.submitButton, (!replyText.trim() || submitting) && styles.submitButtonDisabled]} 
+              onPress={handleSubmitReply}
+              disabled={!replyText.trim() || submitting}
+            >
+              {submitting ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.submitButtonText}>Post Comment</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+        
+        {topic.status === 'closed' && (
+          <View style={styles.closedNotice}>
+            <Text style={styles.closedNoticeText}>This discussion is closed. No new comments can be added.</Text>
+          </View>
+        )}
       </ScrollView>
       </KeyboardAvoidingView>
 
@@ -263,7 +278,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   title: {
-    ...typography.h2,
+    ...typography.h3,
     color: colors.text,
     flex: 1,
     marginRight: spacing.sm,
@@ -274,97 +289,39 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
     borderWidth: 1,
     borderColor: colors.border,
+    marginRight: spacing.xs,
   },
-  badge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+  shareButton: {
+    padding: spacing.xs,
+    backgroundColor: colors.background,
     borderRadius: borderRadius.sm,
-    alignSelf: 'flex-start',
-    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  badgeText: {
-    ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  postIdContainer: {
+  metaContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    marginTop: spacing.md,
-    marginBottom: spacing.md,
-    gap: spacing.xs,
-  },
-  postIdLabel: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-  },
-  postIdValue: {
-    ...typography.bodySmall,
-    color: colors.textLight,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 14,
-  },
-  routeContainer: {
-    marginBottom: spacing.md,
-  },
-  routeText: {
-    ...typography.h3,
-    color: colors.text,
-  },
-  dateContainer: {
-    marginBottom: spacing.md,
-  },
-  dateLabel: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  dateText: {
-    ...typography.body,
-    color: colors.text,
-  },
-  itemContainer: {
-    marginBottom: spacing.md,
-  },
-  itemLabel: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  itemText: {
-    ...typography.body,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  descriptionContainer: {
-    marginBottom: spacing.md,
-  },
-  descriptionLabel: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  description: {
-    ...typography.body,
-    color: colors.text,
-    lineHeight: 22,
-  },
-  userContainer: {
     marginTop: spacing.md,
     paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
-  userLabel: {
+  metaText: {
     ...typography.bodySmall,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
+    color: colors.textLight,
+    fontSize: 12,
   },
-  userName: {
+  metaSeparator: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    marginHorizontal: spacing.xs,
+  },
+  description: {
     ...typography.body,
     color: colors.text,
-    fontWeight: '600',
+    lineHeight: 22,
+    marginBottom: spacing.sm,
   },
   contactButton: {
     backgroundColor: colors.primary,
@@ -408,22 +365,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  replyContent: {
+    ...typography.body,
+    color: colors.text,
+    lineHeight: 20,
+    marginBottom: spacing.sm,
+  },
+  replyFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   replyAuthor: {
     ...typography.bodySmall,
-    color: colors.text,
-    fontWeight: '600',
-    marginBottom: spacing.xs,
+    color: colors.textLight,
+    fontSize: 11,
   },
   replyDate: {
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 11,
-    marginBottom: spacing.sm,
-  },
-  replyContent: {
-    ...typography.body,
-    color: colors.text,
-    lineHeight: 20,
   },
   noRepliesText: {
     ...typography.body,
@@ -467,5 +429,26 @@ const styles = StyleSheet.create({
   submitButtonText: {
     ...typography.button,
     color: '#FFFFFF',
+  },
+  replyFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  closedNotice: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    marginBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  closedNoticeText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
 });
