@@ -65,8 +65,14 @@ export default function ChatScreen() {
     setNewMessage('');
 
     try {
+      // Validate conversation ID is a valid UUID
+      const conversationId = typeof id === 'string' ? id : String(id);
+      if (!conversationId || conversationId === 'undefined') {
+        throw new Error('Invalid conversation ID');
+      }
+
       const response = await authenticatedPost<Message>(
-        `/api/conversations/${id}/messages`,
+        `/api/conversations/${conversationId}/messages`,
         { content: messageText }
       );
       console.log('ChatScreen: Message sent', response);

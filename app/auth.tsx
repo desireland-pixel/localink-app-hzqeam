@@ -18,6 +18,7 @@ import { colors, typography, spacing, borderRadius } from "@/styles/commonStyles
 import { SafeAreaView } from "react-native-safe-area-context";
 import Modal from "@/components/ui/Modal";
 import { apiPost } from "@/utils/api";
+import { IconSymbol } from "@/components/IconSymbol";
 
 type Mode = "signin" | "signup" | "forgot-password";
 
@@ -32,6 +33,7 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   console.log('[AuthScreen] Rendering, mode:', mode, 'user:', user?.id, 'profile:', profile?.name);
 
@@ -270,16 +272,29 @@ export default function AuthScreen() {
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Password</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your password"
-                    placeholderTextColor={colors.textLight}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    editable={!loading}
-                  />
+                  <View style={styles.passwordContainer}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      placeholder="Enter your password"
+                      placeholderTextColor={colors.textLight}
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      editable={!loading}
+                    />
+                    <TouchableOpacity
+                      style={styles.passwordToggle}
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
+                      <IconSymbol
+                        ios_icon_name={showPassword ? "eye.slash" : "eye"}
+                        android_material_icon_name={showPassword ? "visibility-off" : "visibility"}
+                        size={20}
+                        color={colors.textSecondary}
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 {mode === "signin" && (
@@ -432,6 +447,25 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     ...typography.body,
     color: colors.text,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    ...typography.body,
+    color: colors.text,
+  },
+  passwordToggle: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
   forgotPasswordButton: {
     alignSelf: "flex-end",

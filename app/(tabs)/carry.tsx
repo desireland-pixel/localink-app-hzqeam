@@ -214,10 +214,10 @@ export default function CommunityScreen() {
           {filteredTopics.map((topic) => {
             const authorName = topic.user?.username || topic.user?.name || 'Unknown';
             const createdDate = formatDateToDDMMYYYY(topic.createdAt);
-            const authorText = `by ${authorName}`;
-            const dateText = `on ${createdDate}`;
+            const authorText = `${authorName}`;
+            const dateText = ` • ${createdDate}`;
             const statusText = topic.status === 'open' ? 'Open' : 'Closed';
-            const statusColor = topic.status === 'open' ? '#4CAF50' : '#9E9E9E';
+            const statusColor = topic.status === 'open' ? colors.primary : '#9E9E9E';
             const isFavorited = favorites.has(topic.id);
             
             return (

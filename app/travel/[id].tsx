@@ -70,13 +70,18 @@ export default function TravelDetailsScreen() {
     setContacting(true);
 
     try {
-      console.log('[TravelDetails] Creating conversation with:', travelPost.user.id);
+      // Ensure we have valid UUIDs
+      const postId = typeof id === 'string' ? id : String(id);
+      const recipientId = travelPost.userId;
+      
+      console.log('[TravelDetails] Creating conversation with postId:', postId, 'recipientId:', recipientId);
+      
       const response = await authenticatedPost<{ conversationId: string; conversation: any }>(
         '/api/conversations',
         {
-          postId: id,
+          postId: postId,
           postType: 'travel',
-          recipientId: travelPost.user.id,
+          recipientId: recipientId,
         }
       );
       console.log('[TravelDetails] Conversation created:', response);
@@ -85,31 +90,16 @@ export default function TravelDetailsScreen() {
       router.push(`/chat/${response.conversationId}`);
     } catch (err) {
       console.error('[TravelDetails] Error creating conversation:', err);
-      setError(err instanceof Error ? err.message : 'Failed to start conversation');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to start conversation';
+      // Check if it's a UUID validation error
+      if (errorMsg.includes('uuid') || errorMsg.includes('UUID')) {
+        setError('Unable to start conversation. Please try again later.');
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setContacting(false);
     }
-  };
-
-  const getTypeLabel = (post: TravelPost) => {
-    if (post.type === 'offering') {
-      const hasCompanionship = post.canOfferCompanionship;
-      const hasCarry = post.canCarryItems;
-      
-      if (hasCompanionship && hasCarry) {
-        return `Offering 👥📦 from ${post.fromCity} to ${post.toCity}`;
-      } else if (hasCompanionship) {
-        return `Offering 👥 from ${post.fromCity} to ${post.toCity}`;
-      } else if (hasCarry) {
-        return `Offering 📦 from ${post.fromCity} to ${post.toCity}`;
-      }
-      return `Offering from ${post.fromCity} to ${post.toCity}`;
-    } else if (post.type === 'seeking') {
-      return `Seeking 👥 from ${post.fromCity} to ${post.toCity}`;
-    } else if (post.type === 'seeking-ally') {
-      return `Seeking 📦 from ${post.fromCity} to ${post.toCity}`;
-    }
-    return `${post.fromCity} to ${post.toCity}`;
   };
 
   if (loading) {
@@ -133,35 +123,38 @@ export default function TravelDetailsScreen() {
   }
 
   const isOwnPost = travelPost.userId === user?.id;
-  const title = getTypeLabel(travelPost);
   const travelDateDisplay = formatDateToDDMMYYYY(travelPost.travelDate);
   const travelDateToDisplay = travelPost.travelDateTo ? formatDateToDDMMYYYY(travelPost.travelDateTo) : null;
   const displayId = travelPost.shortId || travelPost.id.substring(0, 8);
   
-  // Determine tag label
+  // Determine tag label and icons
   let tagLabel = '';
+  let icons = '';
+  
   if (travelPost.type === 'offering') {
+    tagLabel = 'Offering';
     const hasCompanionship = travelPost.canOfferCompanionship;
     const hasCarry = travelPost.canCarryItems;
     
     if (hasCompanionship && hasCarry) {
-      tagLabel = 'Offering 👥📦';
+      icons = '👥 📦';
     } else if (hasCompanionship) {
-      tagLabel = 'Offering 👥';
+      icons = '👥';
     } else if (hasCarry) {
-      tagLabel = 'Offering 📦';
-    } else {
-      tagLabel = 'Offering';
+      icons = '📦';
     }
   } else if (travelPost.type === 'seeking') {
-    tagLabel = 'Seeking 👥';
+    tagLabel = 'Seeking';
+    icons = '👥';
   } else if (travelPost.type === 'seeking-ally') {
-    tagLabel = 'Seeking 📦';
+    tagLabel = 'Seeking';
+    icons = '📦';
   }
+  
+  const titleText = `${travelPost.fromCity} → ${travelPost.toCity}`;
 
   const handleEdit = () => {
     console.log('TravelDetailsScreen: Edit post', id);
-    // TODO: Navigate to edit screen
     router.push(`/edit-travel/${id}`);
   };
 
@@ -170,7 +163,7 @@ export default function TravelDetailsScreen() {
       <ScrollView style={styles.content}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.title}>{titleText}</Text>
             {isOwnPost && (
               <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
                 <IconSymbol
@@ -183,19 +176,20 @@ export default function TravelDetailsScreen() {
             )}
           </View>
           
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{tagLabel}</Text>
+          <View style={styles.tagIconRow}>
+            {tagLabel && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{tagLabel}</Text>
+              </View>
+            )}
+            {icons && (
+              <Text style={styles.iconText}>{icons}</Text>
+            )}
           </View>
 
           <View style={styles.postIdContainer}>
             <Text style={styles.postIdLabel}>Post ID:</Text>
             <Text style={styles.postIdValue}>{displayId}</Text>
-          </View>
-
-          <View style={styles.routeContainer}>
-            <Text style={styles.routeText}>
-              {travelPost.fromCity} ✈️ {travelPost.toCity}
-            </Text>
           </View>
 
           <View style={styles.dateContainer}>
@@ -311,18 +305,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  tagIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
   badge: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.sm,
-    alignSelf: 'flex-start',
-    marginBottom: spacing.md,
   },
   badgeText: {
     ...typography.bodySmall,
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  iconText: {
+    fontSize: 16,
   },
   postIdContainer: {
     flexDirection: 'row',
@@ -340,13 +341,6 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontSize: 14,
-  },
-  routeContainer: {
-    marginBottom: spacing.md,
-  },
-  routeText: {
-    ...typography.h3,
-    color: colors.text,
   },
   dateContainer: {
     marginBottom: spacing.md,

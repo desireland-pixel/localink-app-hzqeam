@@ -115,7 +115,7 @@ export default function CommunityDetailsScreen() {
   const isOwnPost = topic.userId === user?.id;
   const createdDate = formatDateToDDMMYYYY(topic.createdAt);
   const authorName = topic.user.username || topic.user.name;
-  const postedByText = `by ${authorName} on ${createdDate}`;
+  const postedByText = `${authorName} • ${createdDate}`;
 
   const handleEdit = () => {
     console.log('CommunityDetailsScreen: Edit topic', id);
@@ -161,8 +161,8 @@ export default function CommunityDetailsScreen() {
           )}
 
           <View style={styles.metaContainer}>
-            <Text style={styles.postedByText}>Posted {postedByText}</Text>
-            <View style={[styles.tagBadge, { backgroundColor: '#4CAF50' }]}>
+            <Text style={styles.postedByText}>{postedByText}</Text>
+            <View style={[styles.tagBadge, { backgroundColor: colors.primary }]}>
               <Text style={styles.tagBadgeText}>{topic.category}</Text>
             </View>
           </View>

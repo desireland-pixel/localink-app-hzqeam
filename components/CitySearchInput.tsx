@@ -9,9 +9,10 @@ interface CitySearchInputProps {
   onChangeText: (city: string) => void;
   placeholder?: string;
   style?: any;
+  cityType?: 'all' | 'travel';
 }
 
-export function CitySearchInput({ value, onChangeText, placeholder = 'Search city...', style }: CitySearchInputProps) {
+export function CitySearchInput({ value, onChangeText, placeholder = 'Search city...', style, cityType = 'all' }: CitySearchInputProps) {
   const [query, setQuery] = useState(value);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -25,7 +26,8 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
     
     if (text.trim().length > 0) {
       try {
-        const response = await apiGet<{ cities: string[] }>(`/api/cities/search?q=${encodeURIComponent(text)}&limit=8`);
+        const typeParam = cityType !== 'all' ? `&type=${cityType}` : '';
+        const response = await apiGet<{ cities: string[] }>(`/api/cities/search?q=${encodeURIComponent(text)}&limit=8${typeParam}`);
         setSuggestions(response.cities);
         setShowSuggestions(response.cities.length > 0);
       } catch (error) {
@@ -60,7 +62,8 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
   const handleFocus = async () => {
     if (query.trim().length > 0) {
       try {
-        const response = await apiGet<{ cities: string[] }>(`/api/cities/search?q=${encodeURIComponent(query)}&limit=8`);
+        const typeParam = cityType !== 'all' ? `&type=${cityType}` : '';
+        const response = await apiGet<{ cities: string[] }>(`/api/cities/search?q=${encodeURIComponent(query)}&limit=8${typeParam}`);
         setSuggestions(response.cities);
         setShowSuggestions(response.cities.length > 0);
       } catch (error) {

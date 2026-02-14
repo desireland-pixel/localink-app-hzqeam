@@ -69,19 +69,31 @@ export default function SubletDetailsScreen() {
     console.log('SubletDetailsScreen: Contact user', sublet.userId);
     
     try {
+      // Ensure we have valid UUIDs
+      const postId = typeof id === 'string' ? id : String(id);
+      const recipientId = sublet.userId;
+      
+      console.log('SubletDetailsScreen: Creating conversation with postId:', postId, 'recipientId:', recipientId);
+      
       const response = await authenticatedPost<{ conversationId: string }>(
         '/api/conversations',
         {
-          postId: id,
+          postId: postId,
           postType: 'sublet',
-          recipientId: sublet.userId,
+          recipientId: recipientId,
         }
       );
       console.log('SubletDetailsScreen: Conversation created', response);
       router.push(`/chat/${response.conversationId}`);
     } catch (error: any) {
       console.error('SubletDetailsScreen: Error creating conversation', error);
-      setError(error.message || 'Failed to start conversation');
+      const errorMsg = error.message || 'Failed to start conversation';
+      // Check if it's a UUID validation error
+      if (errorMsg.includes('uuid') || errorMsg.includes('UUID')) {
+        setError('Unable to start conversation. Please try again later.');
+      } else {
+        setError(errorMsg);
+      }
     }
   };
 

@@ -78,15 +78,30 @@ export default function TravelFiltersScreen() {
     // Map role and types to backend API format
     if (role) {
       params.append('role', role);
-    }
-    
-    // Add type filters
-    if (types.size > 0) {
-      if (types.has('companionship')) {
-        params.append('canOfferCompanionship', 'true');
-      }
-      if (types.has('ally')) {
-        params.append('canCarryItems', 'true');
+      
+      // For type filters, we need to handle them differently based on role
+      if (role === 'offering') {
+        // For offering, use canOfferCompanionship and canCarryItems flags
+        if (types.size > 0) {
+          if (types.has('companionship')) {
+            params.append('canOfferCompanionship', 'true');
+          }
+          if (types.has('ally')) {
+            params.append('canCarryItems', 'true');
+          }
+        }
+      } else if (role === 'seeking') {
+        // For seeking, use the type parameter to distinguish between seeking (companionship) and seeking-ally
+        if (types.size > 0) {
+          if (types.has('companionship') && types.has('ally')) {
+            // Both selected - need to handle this case
+            params.append('type', 'seeking,seeking-ally');
+          } else if (types.has('companionship')) {
+            params.append('type', 'seeking');
+          } else if (types.has('ally')) {
+            params.append('type', 'seeking-ally');
+          }
+        }
       }
     }
     
@@ -151,7 +166,7 @@ export default function TravelFiltersScreen() {
             onPress={() => toggleType('companionship')}
           >
             <Text style={[styles.typeText, types.has('companionship') && styles.typeTextActive]}>
-              👥 Companionship
+              👥
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -159,7 +174,7 @@ export default function TravelFiltersScreen() {
             onPress={() => toggleType('ally')}
           >
             <Text style={[styles.typeText, types.has('ally') && styles.typeTextActive]}>
-              📦 Ally
+              📦
             </Text>
           </TouchableOpacity>
         </View>
@@ -169,6 +184,7 @@ export default function TravelFiltersScreen() {
           value={fromCity}
           onChangeText={setFromCity}
           placeholder="Search city or type India/Germany..."
+          cityType="travel"
         />
 
         <Text style={styles.sectionTitle}>To</Text>
@@ -176,6 +192,7 @@ export default function TravelFiltersScreen() {
           value={toCity}
           onChangeText={setToCity}
           placeholder="Search city or type India/Germany..."
+          cityType="travel"
         />
 
         <Text style={styles.sectionTitle}>Date</Text>
