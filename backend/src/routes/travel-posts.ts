@@ -92,7 +92,17 @@ export function registerTravelPostRoutes(app: App) {
 
       // Filter by role (offering/seeking)
       if (filters.role) {
-        conditions.push(eq(schema.travelPosts.type, filters.role));
+        if (filters.role === 'offering') {
+          conditions.push(eq(schema.travelPosts.type, 'offering'));
+        } else if (filters.role === 'seeking') {
+          // 'seeking' role includes both 'seeking' and 'seeking-ally' types
+          conditions.push(
+            or(
+              eq(schema.travelPosts.type, 'seeking'),
+              eq(schema.travelPosts.type, 'seeking-ally')
+            )!
+          );
+        }
       }
 
       // Filter by type (companionship/ally)

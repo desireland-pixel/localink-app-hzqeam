@@ -33,7 +33,8 @@ export function formatTravelPostTitle(
   }
 
   const title = `${tagText} ${emojis} from ${fromCity} to ${toCity}`;
-  const tag = `${tagText} ${emojis}`;
+  // Tag should be just the type text, not the emojis
+  const tag = tagText;
 
   return {
     title,

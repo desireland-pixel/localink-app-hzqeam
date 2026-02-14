@@ -1,6 +1,6 @@
 import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, gte, lte, isNull, isNotNull, desc } from 'drizzle-orm';
+import { eq, and, or, gte, lte, isNull, isNotNull, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { generateShortId } from '../utils/short-id.js';
 import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '../utils/date-format.js';
@@ -88,9 +88,23 @@ export function registerSubletRoutes(app: App) {
       }
 
       if (filters.cityRegistrationRequired === 'yes') {
-        conditions.push(eq(schema.sublets.cityRegistrationRequired, true));
+        // For offering posts only, filter by cityRegistrationRequired=true
+        // Seeking posts don't have this requirement
+        conditions.push(
+          or(
+            eq(schema.sublets.cityRegistrationRequired, true),
+            eq(schema.sublets.type, 'seeking')
+          )!
+        );
       } else if (filters.cityRegistrationRequired === 'no') {
-        conditions.push(eq(schema.sublets.cityRegistrationRequired, false));
+        // For offering posts, show those without registration requirement
+        // For seeking posts, show all
+        conditions.push(
+          or(
+            eq(schema.sublets.cityRegistrationRequired, false),
+            eq(schema.sublets.type, 'seeking')
+          )!
+        );
       }
 
       const limit = parseInt(filters.limit || '20');
