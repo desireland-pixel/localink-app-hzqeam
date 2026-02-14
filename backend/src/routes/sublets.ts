@@ -115,7 +115,7 @@ export function registerSubletRoutes(app: App) {
           status: schema.sublets.status,
           createdAt: schema.sublets.createdAt,
           updatedAt: schema.sublets.updatedAt,
-          userName: schema.profiles.name,
+          username: schema.profiles.username,
         })
         .from(schema.sublets)
         .leftJoin(schema.profiles, eq(schema.sublets.userId, schema.profiles.userId))
@@ -125,19 +125,43 @@ export function registerSubletRoutes(app: App) {
         .orderBy(desc(schema.sublets.createdAt));
 
       // Transform to include user object and format dates
-      const result = sublets.map(sublet => ({
-        ...sublet,
-        availableFrom: formatDateToDDMMYYYY(sublet.availableFrom as unknown as string),
-        availableTo: formatDateToDDMMYYYY(sublet.availableTo as unknown as string),
-        user: {
-          id: sublet.userId,
-          name: sublet.userName || 'Unknown User',
-        },
-        userName: undefined, // Remove flat userName field
-      }));
+      const result = sublets.map(sublet => {
+        // Dates come as strings from database in YYYY-MM-DD format
+        const fromDate = String(sublet.availableFrom);
+        const toDate = String(sublet.availableTo);
 
-      app.logger.info({ count: result.length }, 'Sublets listed successfully');
-      return result;
+        return {
+          ...sublet,
+          availableFrom: formatDateToDDMMYYYY(fromDate),
+          availableTo: formatDateToDDMMYYYY(toDate),
+          user: {
+            id: sublet.userId,
+            username: sublet.username || 'Unknown User',
+          },
+          username: undefined, // Remove flat username field
+        };
+      });
+
+      // Build filter metadata
+      const appliedFilters: Record<string, any> = {};
+      if (filters.type) appliedFilters.type = filters.type;
+      if (filters.city) appliedFilters.city = filters.city;
+      if (filters.availableFrom) appliedFilters.availableFrom = filters.availableFrom;
+      if (filters.availableTo) appliedFilters.availableTo = filters.availableTo;
+      if (filters.minRent) appliedFilters.minRent = filters.minRent;
+      if (filters.maxRent) appliedFilters.maxRent = filters.maxRent;
+      if (filters.cityRegistrationRequired) appliedFilters.cityRegistrationRequired = filters.cityRegistrationRequired;
+
+      app.logger.info({ count: result.length, appliedFilters }, 'Sublets listed successfully');
+      return {
+        data: result,
+        pagination: {
+          limit,
+          offset,
+          total: result.length,
+        },
+        filters: appliedFilters,
+      };
     } catch (error) {
       app.logger.error({ err: error }, 'Failed to list sublets');
       return reply.status(500).send({ error: 'Failed to list sublets' });
@@ -181,7 +205,7 @@ export function registerSubletRoutes(app: App) {
           status: schema.sublets.status,
           createdAt: schema.sublets.createdAt,
           updatedAt: schema.sublets.updatedAt,
-          userName: schema.profiles.name,
+          username: schema.profiles.username,
         })
         .from(schema.sublets)
         .leftJoin(schema.profiles, eq(schema.sublets.userId, schema.profiles.userId))
@@ -194,16 +218,21 @@ export function registerSubletRoutes(app: App) {
       }
 
       const sublet = result[0];
+
+      // Dates come as strings from database in YYYY-MM-DD format
+      const fromDate = String(sublet.availableFrom);
+      const toDate = String(sublet.availableTo);
+
       const response = {
         ...sublet,
-        availableFrom: formatDateToDDMMYYYY(sublet.availableFrom as unknown as string),
-        availableTo: formatDateToDDMMYYYY(sublet.availableTo as unknown as string),
+        availableFrom: formatDateToDDMMYYYY(fromDate),
+        availableTo: formatDateToDDMMYYYY(toDate),
         shortId: generateShortId(sublet.id),
         user: {
           id: sublet.userId,
-          name: sublet.userName || 'Unknown User',
+          username: sublet.username || 'Unknown User',
         },
-        userName: undefined,
+        username: undefined,
       };
 
       app.logger.info({ subletId: id, shortId: response.shortId }, 'Sublet details fetched successfully');
@@ -263,8 +292,12 @@ export function registerSubletRoutes(app: App) {
 
       // Validate dates: availableTo must be after availableFrom
       if (dbAvailableTo <= dbAvailableFrom) {
-        app.logger.warn({ availableFrom: dbAvailableFrom, availableTo: dbAvailableTo }, 'Move-out date must be after move-in date');
-        return reply.status(400).send({ error: 'Move-out date must be after Move-in date' });
+        app.logger.warn({ availableFrom: dbAvailableFrom, availableTo: dbAvailableTo }, 'Available To date must be after Available From date');
+        // Use different message based on type
+        const errorMsg = body.type === 'offering'
+          ? 'Available To date must be after Available From date'
+          : 'Move-out date must be after Move-in date';
+        return reply.status(400).send({ error: errorMsg });
       }
 
       // Validate that availableFrom is not in the past

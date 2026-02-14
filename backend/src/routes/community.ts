@@ -68,7 +68,7 @@ export function registerCommunityRoutes(app: App) {
           repliesCount: schema.discussionTopics.repliesCount,
           createdAt: schema.discussionTopics.createdAt,
           updatedAt: schema.discussionTopics.updatedAt,
-          userName: schema.profiles.name,
+          username: schema.profiles.username,
         })
         .from(schema.discussionTopics)
         .leftJoin(schema.profiles, eq(schema.discussionTopics.userId, schema.profiles.userId))
@@ -86,10 +86,10 @@ export function registerCommunityRoutes(app: App) {
           shortId: generateShortId(topic.id),
           user: {
             id: topic.userId,
-            name: topic.userName || 'Unknown User',
+            username: topic.username || 'Unknown User',
           },
-          userName: undefined,
-          byline: `by ${topic.userName || 'Unknown User'} on ${formattedDate}`,
+          username: undefined,
+          byline: `by ${topic.username || 'Unknown User'} on ${formattedDate}`,
         };
       });
 
@@ -130,7 +130,7 @@ export function registerCommunityRoutes(app: App) {
           repliesCount: schema.discussionTopics.repliesCount,
           createdAt: schema.discussionTopics.createdAt,
           updatedAt: schema.discussionTopics.updatedAt,
-          userName: schema.profiles.name,
+          username: schema.profiles.username,
         })
         .from(schema.discussionTopics)
         .leftJoin(schema.profiles, eq(schema.discussionTopics.userId, schema.profiles.userId))
@@ -153,7 +153,7 @@ export function registerCommunityRoutes(app: App) {
           content: schema.discussionReplies.content,
           createdAt: schema.discussionReplies.createdAt,
           updatedAt: schema.discussionReplies.updatedAt,
-          userName: schema.profiles.name,
+          username: schema.profiles.username,
         })
         .from(schema.discussionReplies)
         .leftJoin(schema.profiles, eq(schema.discussionReplies.userId, schema.profiles.userId))
@@ -165,9 +165,9 @@ export function registerCommunityRoutes(app: App) {
         ...reply,
         user: {
           id: reply.userId,
-          name: reply.userName || 'Unknown User',
+          username: reply.username || 'Unknown User',
         },
-        userName: undefined,
+        username: undefined,
       }));
 
       const response = {
@@ -175,9 +175,9 @@ export function registerCommunityRoutes(app: App) {
         shortId: generateShortId(topic.id),
         user: {
           id: topic.userId,
-          name: topic.userName || 'Unknown User',
+          username: topic.username || 'Unknown User',
         },
-        userName: undefined,
+        username: undefined,
         replies: transformedReplies,
       };
 
@@ -501,7 +501,7 @@ export function registerCommunityRoutes(app: App) {
           content: schema.discussionReplies.content,
           createdAt: schema.discussionReplies.createdAt,
           updatedAt: schema.discussionReplies.updatedAt,
-          userName: schema.profiles.name,
+          username: schema.profiles.username,
         })
         .from(schema.discussionReplies)
         .leftJoin(schema.profiles, eq(schema.discussionReplies.userId, schema.profiles.userId))
@@ -513,9 +513,9 @@ export function registerCommunityRoutes(app: App) {
         ...reply,
         user: {
           id: reply.userId,
-          name: reply.userName || 'Unknown User',
+          username: reply.username || 'Unknown User',
         },
-        userName: undefined,
+        username: undefined,
       }));
 
       app.logger.info({ postId, count: transformedReplies.length }, 'Comments fetched successfully');
@@ -529,7 +529,7 @@ export function registerCommunityRoutes(app: App) {
   // Add comment to a community post (alias for POST /api/community/topics/:id/replies)
   app.fastify.post('/api/community/:postId/comments', {
     schema: {
-      description: 'Add a comment to a community post',
+      description: 'Add a comment to a community post (only if topic is open)',
       tags: ['community'],
       params: {
         type: 'object',
@@ -540,9 +540,9 @@ export function registerCommunityRoutes(app: App) {
       },
       body: {
         type: 'object',
-        required: ['text'],
+        required: ['content'],
         properties: {
-          text: { type: 'string' },
+          content: { type: 'string' },
         },
       },
     },
@@ -551,11 +551,11 @@ export function registerCommunityRoutes(app: App) {
     if (!session) return;
 
     const { postId } = request.params as { postId: string };
-    const { text } = request.body as { text: string };
-    app.logger.info({ userId: session.user.id, postId, textLength: text.length }, 'Adding comment to community post');
+    const { content } = request.body as { content: string };
+    app.logger.info({ userId: session.user.id, postId, contentLength: content.length }, 'Adding comment to community post');
 
     try {
-      // Check if post exists
+      // Check if post exists and is open for comments
       const topic = await app.db.query.discussionTopics.findFirst({
         where: eq(schema.discussionTopics.id, postId),
       });
@@ -565,12 +565,17 @@ export function registerCommunityRoutes(app: App) {
         return reply.status(404).send({ error: 'Community post not found.' });
       }
 
+      if (topic.status === 'closed') {
+        app.logger.warn({ postId, userId: session.user.id }, 'Cannot comment on closed topic');
+        return reply.status(403).send({ error: 'This discussion is closed. No new comments are allowed.' });
+      }
+
       const [newReply] = await app.db
         .insert(schema.discussionReplies)
         .values({
           topicId: postId,
           userId: session.user.id,
-          content: text,
+          content,
         })
         .returning();
 

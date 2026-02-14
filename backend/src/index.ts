@@ -45,6 +45,7 @@ app.withAuth({
     },
   },
   emailAndPassword: {
+    requireEmailVerification: true,
     sendResetPassword: async ({ user, url }) => {
       resend.emails.send({
         from: 'Localink <noreply@localink.app>',

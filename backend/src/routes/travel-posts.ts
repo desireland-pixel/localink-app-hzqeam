@@ -183,7 +183,7 @@ export function registerTravelPostRoutes(app: App) {
           status: schema.travelPosts.status,
           createdAt: schema.travelPosts.createdAt,
           updatedAt: schema.travelPosts.updatedAt,
-          userName: schema.profiles.name,
+          username: schema.profiles.username,
         })
         .from(schema.travelPosts)
         .leftJoin(schema.profiles, eq(schema.travelPosts.userId, schema.profiles.userId))
@@ -194,6 +194,10 @@ export function registerTravelPostRoutes(app: App) {
 
       // Transform to include user object, format dates, and add formatted title
       const result = posts.map(post => {
+        // Convert dates to strings in YYYY-MM-DD format from database
+        const travelDate = String(post.travelDate);
+        const travelDateTo = post.travelDateTo ? String(post.travelDateTo) : null;
+
         const { title, tag } = formatTravelPostTitle(
           post.type as 'offering' | 'seeking' | 'seeking-ally',
           post.fromCity,
@@ -209,21 +213,39 @@ export function registerTravelPostRoutes(app: App) {
 
         return {
           ...post,
-          travelDate: formatDateToDDMMYYYY(post.travelDate as unknown as string),
-          travelDateTo: post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo as unknown as string) : null,
+          travelDate: formatDateToDDMMYYYY(travelDate),
+          travelDateTo: travelDateTo ? formatDateToDDMMYYYY(travelDateTo) : null,
           formattedTitle: title,
           tag: tag,
           typeEmojis: typeEmojis,
           user: {
             id: post.userId,
-            name: post.userName || 'Unknown User',
+            username: post.username || 'Unknown User',
           },
-          userName: undefined,
+          username: undefined,
         };
       });
 
-      app.logger.info({ count: result.length }, 'Travel posts listed successfully');
-      return result;
+      // Build filter metadata
+      const appliedFilters: Record<string, any> = {};
+      if (filters.role) appliedFilters.role = filters.role;
+      if (filters.type) appliedFilters.type = filters.type;
+      if (filters.fromCity) appliedFilters.fromCity = filters.fromCity;
+      if (filters.toCity) appliedFilters.toCity = filters.toCity;
+      if (filters.travelDate) appliedFilters.travelDate = filters.travelDate;
+      if (filters.travelDateFrom) appliedFilters.travelDateFrom = filters.travelDateFrom;
+      if (filters.travelDateTo) appliedFilters.travelDateTo = filters.travelDateTo;
+
+      app.logger.info({ count: result.length, appliedFilters }, 'Travel posts listed successfully');
+      return {
+        data: result,
+        pagination: {
+          limit,
+          offset,
+          total: result.length,
+        },
+        filters: appliedFilters,
+      };
     } catch (error) {
       app.logger.error({ err: error }, 'Failed to list travel posts');
       return reply.status(500).send({ error: 'Failed to list travel posts' });
@@ -265,7 +287,7 @@ export function registerTravelPostRoutes(app: App) {
           status: schema.travelPosts.status,
           createdAt: schema.travelPosts.createdAt,
           updatedAt: schema.travelPosts.updatedAt,
-          userName: schema.profiles.name,
+          username: schema.profiles.username,
         })
         .from(schema.travelPosts)
         .leftJoin(schema.profiles, eq(schema.travelPosts.userId, schema.profiles.userId))
@@ -278,6 +300,11 @@ export function registerTravelPostRoutes(app: App) {
       }
 
       const post = result[0];
+
+      // Convert dates to strings in YYYY-MM-DD format from database
+      const travelDate = String(post.travelDate);
+      const travelDateTo = post.travelDateTo ? String(post.travelDateTo) : null;
+
       const { title, tag } = formatTravelPostTitle(
         post.type as 'offering' | 'seeking' | 'seeking-ally',
         post.fromCity,
@@ -293,17 +320,17 @@ export function registerTravelPostRoutes(app: App) {
 
       const response = {
         ...post,
-        travelDate: formatDateToDDMMYYYY(post.travelDate as unknown as string),
-        travelDateTo: post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo as unknown as string) : null,
+        travelDate: formatDateToDDMMYYYY(travelDate),
+        travelDateTo: travelDateTo ? formatDateToDDMMYYYY(travelDateTo) : null,
         formattedTitle: title,
         tag: tag,
         typeEmojis: typeEmojis,
         shortId: generateShortId(post.id),
         user: {
           id: post.userId,
-          name: post.userName || 'Unknown User',
+          username: post.username || 'Unknown User',
         },
-        userName: undefined,
+        username: undefined,
       };
 
       app.logger.info({ travelPostId: id, shortId: response.shortId }, 'Travel post details fetched successfully');
