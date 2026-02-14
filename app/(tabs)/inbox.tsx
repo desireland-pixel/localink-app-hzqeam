@@ -227,15 +227,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   participantName: {
-    ...typography.h3,
+    ...typography.body,
     color: colors.text,
+    fontWeight: '600',
+    fontSize: 14,
   },
   timestamp: {
     ...typography.bodySmall,
     color: colors.textLight,
+    fontSize: 11,
   },
   lastMessage: {
     ...typography.body,
     color: colors.textSecondary,
+    fontSize: 14,
   },
 });

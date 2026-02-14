@@ -52,11 +52,14 @@ export default function SubletScreen() {
       console.log('SubletScreen: API call with params:', filterParams);
       const data = await authenticatedGet<Sublet[]>(`/api/sublets${filterParams}`);
       console.log('SubletScreen: Fetched sublets', data);
+      // Ensure data is an array before sorting
+      const dataArray = Array.isArray(data) ? data : [];
       // Sort by createdAt descending (newest first)
-      const sortedData = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const sortedData = dataArray.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setSublets(sortedData);
     } catch (error) {
       console.error('SubletScreen: Error fetching sublets', error);
+      setSublets([]); // Set empty array on error
     } finally {
       setLoading(false);
       setRefreshing(false);

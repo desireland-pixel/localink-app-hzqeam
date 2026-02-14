@@ -35,7 +35,7 @@ export default function AuthScreen() {
 
   console.log('[AuthScreen] Rendering, mode:', mode, 'user:', user?.id, 'profile:', profile?.name);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated - directly to home page (sublet)
   useEffect(() => {
     if (authLoading || profileLoading) {
       console.log('[AuthScreen] Auth/profile loading, waiting...');
@@ -43,14 +43,8 @@ export default function AuthScreen() {
     }
 
     if (user) {
-      console.log('[AuthScreen] User authenticated, checking profile...');
-      if (profile && profile.username && profile.city) {
-        console.log('[AuthScreen] Profile complete, redirecting to main app');
-        router.replace('/(tabs)/sublet');
-      } else {
-        console.log('[AuthScreen] Profile incomplete, redirecting to personal-details');
-        router.replace('/personal-details');
-      }
+      console.log('[AuthScreen] User authenticated, redirecting to home (sublet)');
+      router.replace('/(tabs)/sublet');
     }
   }, [user, profile, authLoading, profileLoading]);
 
@@ -98,10 +92,10 @@ export default function AuthScreen() {
             setTimeout(() => {
               router.push({ pathname: '/verify-otp', params: { email } });
             }, 2000);
-          } else if (errorMsg.includes('Invalid') || errorMsg.includes('password') || errorMsg.includes('credentials') || errorMsg.includes('401')) {
-            setError('Invalid email or password. Please try again.');
+          } else if (errorMsg.includes('incorrect') || errorMsg.includes('Invalid') || errorMsg.includes('password') || errorMsg.includes('credentials') || errorMsg.includes('401')) {
+            setError('Email or Password is incorrect.');
           } else {
-            setError('Sign in failed. Please check your credentials and try again.');
+            setError('Email or Password is incorrect.');
           }
           throw signInErr;
         }

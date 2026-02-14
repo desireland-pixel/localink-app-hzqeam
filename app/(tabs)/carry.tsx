@@ -61,11 +61,14 @@ export default function CommunityScreen() {
       const categoryParam = selectedCategory !== 'All' ? `?category=${encodeURIComponent(selectedCategory)}` : '';
       const data = await authenticatedGet<CommunityTopic[]>(`/api/community/topics${categoryParam}`);
       console.log('CommunityScreen: Fetched community topics', data);
+      // Ensure data is an array before sorting
+      const dataArray = Array.isArray(data) ? data : [];
       // Sort by createdAt descending (newest first)
-      const sortedData = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const sortedData = dataArray.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setTopics(sortedData);
     } catch (error) {
       console.error('CommunityScreen: Error fetching community topics', error);
+      setTopics([]); // Set empty array on error
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -210,10 +213,11 @@ export default function CommunityScreen() {
         >
           {filteredTopics.map((topic) => {
             const authorName = topic.user?.username || topic.user?.name || 'Unknown';
-            const statusColor = topic.status === 'open' ? colors.success : colors.textLight;
             const createdDate = formatDateToDDMMYYYY(topic.createdAt);
             const authorText = `by ${authorName}`;
             const dateText = `on ${createdDate}`;
+            const statusText = topic.status === 'open' ? 'Open' : 'Closed';
+            const statusColor = topic.status === 'open' ? '#4CAF50' : '#9E9E9E';
             const isFavorited = favorites.has(topic.id);
             
             return (
@@ -226,13 +230,8 @@ export default function CommunityScreen() {
                 }}
               >
                 <View style={styles.cardHeader}>
-                  <View style={styles.headerLeft}>
-                    <View style={styles.categoryBadge}>
-                      <Text style={styles.categoryBadgeText}>{topic.category}</Text>
-                    </View>
-                    <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-                      <Text style={styles.statusBadgeText}>{topic.status}</Text>
-                    </View>
+                  <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryBadgeText}>{topic.category}</Text>
                   </View>
                   <TouchableOpacity 
                     style={styles.likeButton}
@@ -261,18 +260,21 @@ export default function CommunityScreen() {
                     <Text style={styles.cardAuthor}>{authorText}</Text>
                     <Text style={styles.cardDate}> {dateText}</Text>
                   </View>
-                  {topic.replyCount !== undefined && (
-                    <View style={styles.replyCount}>
-                      <IconSymbol
-                        ios_icon_name="bubble.left.fill"
-                        android_material_icon_name="chat-bubble"
-                        size={14}
-                        color={colors.textSecondary}
-                      />
-                      <Text style={styles.replyCountText}>{topic.replyCount}</Text>
-                    </View>
-                  )}
+                  <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+                    <Text style={styles.statusBadgeText}>{statusText}</Text>
+                  </View>
                 </View>
+                {topic.replyCount !== undefined && topic.replyCount > 0 && (
+                  <View style={styles.replyCountContainer}>
+                    <IconSymbol
+                      ios_icon_name="bubble.left.fill"
+                      android_material_icon_name="chat-bubble"
+                      size={14}
+                      color={colors.textSecondary}
+                    />
+                    <Text style={styles.replyCountText}>{topic.replyCount} {topic.replyCount === 1 ? 'reply' : 'replies'}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -400,11 +402,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
   likeButton: {
     padding: spacing.xs,
   },
@@ -419,18 +416,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '600',
-  },
-  statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-  },
-  statusBadgeText: {
-    ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
   },
   cardTitle: {
     ...typography.h3,
@@ -452,22 +437,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
+    flex: 1,
   },
   cardAuthor: {
     ...typography.bodySmall,
     color: colors.textLight,
+    fontSize: 11,
   },
   cardDate: {
     ...typography.bodySmall,
     color: colors.textLight,
+    fontSize: 11,
   },
-  replyCount: {
+  statusBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  statusBadgeText: {
+    ...typography.bodySmall,
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  replyCountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    marginTop: spacing.xs,
   },
   replyCountText: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+    fontSize: 11,
   },
 });

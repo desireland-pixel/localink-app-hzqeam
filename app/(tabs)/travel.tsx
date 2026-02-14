@@ -54,11 +54,14 @@ export default function TravelScreen() {
       const filterParams = params.filters ? `?${params.filters}` : '';
       const data = await authenticatedGet<TravelPost[]>(`/api/travel-posts${filterParams}`);
       console.log('TravelScreen: Fetched travel posts', data);
+      // Ensure data is an array before sorting
+      const dataArray = Array.isArray(data) ? data : [];
       // Sort by createdAt descending (newest first)
-      const sortedData = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const sortedData = dataArray.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setPosts(sortedData);
     } catch (error) {
       console.error('TravelScreen: Error fetching travel posts', error);
+      setPosts([]); // Set empty array on error
     } finally {
       setLoading(false);
       setRefreshing(false);

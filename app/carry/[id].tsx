@@ -113,8 +113,9 @@ export default function CommunityDetailsScreen() {
   }
 
   const isOwnPost = topic.userId === user?.id;
-  const displayId = topic.shortId || topic.id.substring(0, 8);
   const createdDate = formatDateToDDMMYYYY(topic.createdAt);
+  const authorName = topic.user.username || topic.user.name;
+  const postedByText = `by ${authorName} on ${createdDate}`;
 
   const handleEdit = () => {
     console.log('CommunityDetailsScreen: Edit topic', id);
@@ -160,11 +161,10 @@ export default function CommunityDetailsScreen() {
           )}
 
           <View style={styles.metaContainer}>
-            <Text style={styles.metaText}>Post ID: {displayId}</Text>
-            <Text style={styles.metaSeparator}>•</Text>
-            <Text style={styles.metaText}>{topic.category}</Text>
-            <Text style={styles.metaSeparator}>•</Text>
-            <Text style={styles.metaText}>Posted by {topic.user.username || topic.user.name} on {createdDate}</Text>
+            <Text style={styles.postedByText}>Posted {postedByText}</Text>
+            <View style={[styles.tagBadge, { backgroundColor: '#4CAF50' }]}>
+              <Text style={styles.tagBadgeText}>{topic.category}</Text>
+            </View>
           </View>
         </View>
 
@@ -176,12 +176,13 @@ export default function CommunityDetailsScreen() {
             topic.replies.map((reply) => {
               const replyDate = formatDateToDDMMYYYY(reply.createdAt);
               const replyAuthor = reply.user.username || reply.user.name;
+              
               return (
                 <View key={reply.id} style={styles.replyCard}>
                   <Text style={styles.replyContent}>{reply.content}</Text>
                   <View style={styles.replyFooter}>
                     <Text style={styles.replyAuthor}>{replyAuthor}</Text>
-                    <Text style={styles.replyDate}>• {replyDate}</Text>
+                    <Text style={styles.replyDate}> {replyDate}</Text>
                   </View>
                 </View>
               );
@@ -282,6 +283,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     flex: 1,
     marginRight: spacing.sm,
+    fontSize: 18,
   },
   editButton: {
     padding: spacing.xs,
@@ -298,55 +300,36 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  metaContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  metaText: {
-    ...typography.bodySmall,
-    color: colors.textLight,
-    fontSize: 12,
-  },
-  metaSeparator: {
-    ...typography.bodySmall,
-    color: colors.textLight,
-    marginHorizontal: spacing.xs,
-  },
   description: {
     ...typography.body,
     color: colors.text,
     lineHeight: 22,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
-  contactButton: {
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+  metaContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
-  contactButtonDisabled: {
-    opacity: 0.5,
+  postedByText: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 12,
+    flex: 1,
   },
-  contactButtonText: {
-    ...typography.button,
+  tagBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+  },
+  tagBadgeText: {
+    ...typography.bodySmall,
     color: '#FFFFFF',
-  },
-  ownPostNotice: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  ownPostText: {
-    ...typography.body,
-    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
   },
   repliesSection: {
     marginTop: spacing.lg,
@@ -356,6 +339,7 @@ const styles = StyleSheet.create({
     ...typography.h3,
     color: colors.text,
     marginBottom: spacing.md,
+    fontSize: 16,
   },
   replyCard: {
     backgroundColor: colors.card,
@@ -380,12 +364,12 @@ const styles = StyleSheet.create({
   replyAuthor: {
     ...typography.bodySmall,
     color: colors.textLight,
-    fontSize: 11,
+    fontSize: 10,
   },
   replyDate: {
     ...typography.bodySmall,
     color: colors.textLight,
-    fontSize: 11,
+    fontSize: 10,
   },
   noRepliesText: {
     ...typography.body,
@@ -429,12 +413,6 @@ const styles = StyleSheet.create({
   submitButtonText: {
     ...typography.button,
     color: '#FFFFFF',
-  },
-  replyFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: spacing.xs,
   },
   closedNotice: {
     backgroundColor: colors.card,
