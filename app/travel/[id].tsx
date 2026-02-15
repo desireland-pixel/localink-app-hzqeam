@@ -129,10 +129,10 @@ export default function TravelDetailsScreen() {
     } catch (error: any) {
       console.error('TravelDetailsScreen: Error sharing', error);
       // Fallback to basic share
-      const shareMessage = `Check out this travel post: ${travelPost.fromCity} → ${travelPost.toCity}`;
+      const shareMessage = `Check out this travel post: ${travelPost.fromCity} ✈️ ${travelPost.toCity}`;
       await Share.share({
         message: shareMessage,
-        title: `${travelPost.fromCity} → ${travelPost.toCity}`,
+        title: `${travelPost.fromCity} ✈️ ${travelPost.toCity}`,
       });
     }
   };
@@ -209,7 +209,7 @@ export default function TravelDetailsScreen() {
     icons = '📦';
   }
   
-  const titleText = `${travelPost.fromCity} → ${travelPost.toCity}`;
+  const titleText = `${travelPost.fromCity} ✈️ ${travelPost.toCity}`;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -219,15 +219,7 @@ export default function TravelDetailsScreen() {
             <Text style={styles.title}>{titleText}</Text>
             {isOwnPost ? (
               <View style={styles.actionButtons}>
-                <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-                  <IconSymbol
-                    ios_icon_name="pencil"
-                    android_material_icon_name="edit"
-                    size={20}
-                    color={colors.text}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.editButton} onPress={handleShare}>
+                <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
                   <IconSymbol
                     ios_icon_name="square.and.arrow.up"
                     android_material_icon_name="share"
@@ -238,7 +230,7 @@ export default function TravelDetailsScreen() {
               </View>
             ) : (
               <View style={styles.actionButtons}>
-                <TouchableOpacity style={styles.editButton} onPress={handleShare}>
+                <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
                   <IconSymbol
                     ios_icon_name="square.and.arrow.up"
                     android_material_icon_name="share"
@@ -293,21 +285,33 @@ export default function TravelDetailsScreen() {
           )}
 
           <View style={styles.userContainer}>
-            <Text style={styles.userLabel}>Posted by:</Text>
-            <Text style={styles.userName}>{travelPost.user.username || travelPost.user.name}</Text>
+            <View style={styles.userHeader}>
+              <View>
+                <Text style={styles.userLabel}>Posted by:</Text>
+                <Text style={styles.userName}>{travelPost.user.username || travelPost.user.name}</Text>
+              </View>
+              {isOwnPost && (
+                <View style={styles.ownerActions}>
+                  <TouchableOpacity style={styles.iconButton} onPress={handleEdit}>
+                    <IconSymbol
+                      ios_icon_name="pencil"
+                      android_material_icon_name="edit"
+                      size={20}
+                      color={colors.text}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.iconButton} onPress={() => setShowDeleteModal(true)}>
+                    <IconSymbol
+                      ios_icon_name="trash"
+                      android_material_icon_name="delete"
+                      size={20}
+                      color="#FF3B30"
+                    />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           </View>
-          
-          {isOwnPost && (
-            <TouchableOpacity style={styles.deleteButton} onPress={() => setShowDeleteModal(true)}>
-              <IconSymbol
-                ios_icon_name="trash"
-                android_material_icon_name="delete"
-                size={20}
-                color="#FF3B30"
-              />
-              <Text style={styles.deleteButtonText}>Delete Post</Text>
-            </TouchableOpacity>
-          )}
         </View>
 
         {!isOwnPost && (
@@ -409,7 +413,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.xs,
   },
-  editButton: {
+  shareButton: {
     padding: spacing.xs,
     backgroundColor: colors.background,
     borderRadius: borderRadius.sm,
@@ -484,6 +488,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
+  userHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   userLabel: {
     ...typography.bodySmall,
     color: colors.textSecondary,
@@ -494,22 +503,16 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '600',
   },
-  deleteButton: {
+  ownerActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: '#FF3B30',
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
-  deleteButtonText: {
-    ...typography.bodySmall,
-    color: '#FF3B30',
-    fontWeight: '600',
+  iconButton: {
+    padding: spacing.sm,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   contactButton: {
     backgroundColor: colors.primary,
