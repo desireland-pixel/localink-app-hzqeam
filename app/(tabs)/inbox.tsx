@@ -239,7 +239,7 @@ export default function InboxScreen() {
                       </Text>
                     </View>
                   </View>
-                  <View style={styles.timestampContainer}>
+                  <View style={styles.rightColumn}>
                     <Text style={styles.timestamp}>
                       {timeText}
                     </Text>
@@ -372,15 +372,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     maxWidth: 180,
   },
-  timestampContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  rightColumn: {
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
     gap: spacing.xs,
+    minWidth: 60,
   },
   timestamp: {
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 11,
+    marginBottom: spacing.xs,
   },
   unreadBadge: {
     backgroundColor: colors.primary,
@@ -390,6 +392,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     justifyContent: 'center',
     alignItems: 'center',
+    alignSelf: 'center',
   },
   unreadBadgeText: {
     color: '#FFFFFF',

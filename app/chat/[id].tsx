@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost, BACKEND_URL, getBearerToken } from '@/utils/api';
@@ -22,12 +22,31 @@ interface Message {
   };
 }
 
+interface Conversation {
+  id: string;
+  postId: string;
+  postType: string;
+  createdAt: string;
+  otherParticipant: {
+    id: string;
+    name: string;
+    username?: string;
+  };
+  post: {
+    id: string;
+    title: string;
+    type: 'sublet' | 'travel';
+  };
+}
+
 export default function ChatScreen() {
   const { id } = useLocalSearchParams();
+  const router = useRouter();
   const { user, fetchUnreadCount } = useAuth();
   const flatListRef = useRef<FlatList>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -37,6 +56,7 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (id) {
+      fetchConversation();
       fetchMessages();
       setupWebSocket();
     }
@@ -112,6 +132,34 @@ export default function ChatScreen() {
       wsRef.current = ws;
     } catch (error) {
       console.error('ChatScreen: Error setting up WebSocket', error);
+    }
+  };
+
+  const fetchConversation = async () => {
+    console.log('ChatScreen: Fetching conversation details', id);
+    try {
+      // Try to use the new GET /api/conversations/:id endpoint that returns conversation details
+      // including participant info and post details
+      const data = await authenticatedGet<Conversation>(`/api/conversations/${id}`);
+      console.log('ChatScreen: Fetched conversation details from dedicated endpoint', data);
+      setConversation(data);
+    } catch (error: any) {
+      console.error('ChatScreen: Error fetching conversation from dedicated endpoint', error);
+      // Fallback: Try to get conversation details from the conversations list
+      try {
+        const conversations = await authenticatedGet<Conversation[]>('/api/conversations');
+        const conv = conversations.find(c => c.id === id);
+        if (conv) {
+          console.log('ChatScreen: Found conversation in list', conv);
+          setConversation(conv);
+        } else {
+          console.error('ChatScreen: Conversation not found in list');
+          setError('Conversation not found');
+        }
+      } catch (fallbackError: any) {
+        console.error('ChatScreen: Fallback also failed', fallbackError);
+        setError('Failed to load conversation details');
+      }
     }
   };
 
@@ -192,6 +240,18 @@ export default function ChatScreen() {
     }
   };
 
+  const handleViewPost = () => {
+    if (!conversation?.postId || !conversation?.postType) return;
+    
+    console.log('ChatScreen: Navigating to post', conversation.postId, conversation.postType);
+    
+    if (conversation.postType === 'sublet') {
+      router.push(`/sublet/${conversation.postId}`);
+    } else if (conversation.postType === 'travel') {
+      router.push(`/travel/${conversation.postId}`);
+    }
+  };
+
   const timeDisplay = (dateString: string) => {
     const date = new Date(dateString);
     const hours = String(date.getHours()).padStart(2, '0');
@@ -236,8 +296,29 @@ export default function ChatScreen() {
     );
   }
 
+  // Use conversation details from the new GET /api/conversations/:id endpoint
+  const participantName = conversation?.otherParticipant?.username || conversation?.otherParticipant?.name || 'Chat';
+  const postTitle = conversation?.post?.title || '';
+  const postEmoji = conversation?.post?.type === 'sublet' ? '🏠' : conversation?.post?.type === 'travel' ? '✈️' : '';
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <Stack.Screen 
+        options={{
+          headerShown: true,
+          title: participantName,
+          headerRight: () => (
+            conversation?.postId ? (
+              <TouchableOpacity onPress={handleViewPost} style={styles.headerButton}>
+                <Text style={styles.headerButtonEmoji}>{postEmoji}</Text>
+                <Text style={styles.headerButtonText} numberOfLines={1}>
+                  {postTitle}
+                </Text>
+              </TouchableOpacity>
+            ) : null
+          ),
+        }}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -301,6 +382,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    marginRight: spacing.sm,
+    maxWidth: 150,
+  },
+  headerButtonEmoji: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  headerButtonText: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontSize: 12,
   },
   messagesContainer: {
     flex: 1,
