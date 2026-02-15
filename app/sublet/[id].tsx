@@ -134,6 +134,7 @@ export default function SubletDetailsScreen() {
   };
 
   const handleEdit = () => {
+    if (!sublet) return;
     console.log('SubletDetailsScreen: Edit post', id);
     router.push({
       pathname: '/post-sublet',
@@ -146,14 +147,14 @@ export default function SubletDetailsScreen() {
 
   const handleDelete = async () => {
     if (!sublet) return;
-    console.log('SubletDetailsScreen: Delete post', id);
+    console.log('SubletDetailsScreen: Close post', id);
     setDeleting(true);
     
     try {
       await authenticatedPatch(`/api/sublets/${id}/close`, {});
       console.log('SubletDetailsScreen: Post closed successfully');
       setShowDeleteModal(false);
-      router.back();
+      router.replace('/my-posts');
     } catch (error: any) {
       console.error('SubletDetailsScreen: Error closing post', error);
       setError(error.message || 'Failed to close post');

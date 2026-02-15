@@ -1,14 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Image, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedPost } from '@/utils/api';
+import { authenticatedPost, authenticatedPut, BACKEND_URL, getBearerToken } from '@/utils/api';
 import Modal from '@/components/ui/Modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { CitySearchInput } from '@/components/CitySearchInput';
-import { formatDateToDDMMYYYY, dateToISOString } from '@/utils/cities';
+import { formatDateToDDMMYYYY, dateToISOString, parseDateFromDDMMYYYY } from '@/utils/cities';
 import * as ImagePicker from 'expo-image-picker';
 import { IconSymbol } from '@/components/IconSymbol';
 
@@ -16,6 +16,7 @@ type SubletType = 'offering' | 'seeking' | null;
 
 export default function PostSubletScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [subletType, setSubletType] = useState<SubletType>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -35,7 +36,49 @@ export default function PostSubletScreen() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
 
-  console.log('PostSubletScreen: Rendering', { subletType, imageCount: imageUrls.length, consentChecked });
+  const isEditing = !!params.editId;
+  const editId = params.editId as string | undefined;
+
+  console.log('PostSubletScreen: Rendering', { subletType, imageCount: imageUrls.length, consentChecked, isEditing, editId });
+
+  // Load existing data for editing
+  useEffect(() => {
+    if (isEditing && params.editData) {
+      try {
+        const data = JSON.parse(params.editData as string);
+        console.log('PostSubletScreen: Loading edit data', data);
+        
+        setSubletType(data.type);
+        setTitle(data.title || '');
+        setDescription(data.description || '');
+        setCity(data.city || '');
+        setAddress(data.address || '');
+        setPincode(data.pincode || '');
+        setCityRegistration(data.cityRegistrationRequired ?? null);
+        setRent(data.rent || '');
+        setDeposit(data.deposit || '');
+        setImageUrls(data.imageUrls || []);
+        setConsentChecked(true); // Pre-check consent for editing
+        
+        // Parse dates from dd.mm.yyyy format
+        if (data.availableFrom) {
+          const fromDate = parseDateFromDDMMYYYY(data.availableFrom);
+          if (fromDate) {
+            setAvailableFrom(new Date(fromDate));
+          }
+        }
+        if (data.availableTo) {
+          const toDate = parseDateFromDDMMYYYY(data.availableTo);
+          if (toDate) {
+            setAvailableTo(new Date(toDate));
+          }
+        }
+      } catch (err) {
+        console.error('PostSubletScreen: Error parsing edit data', err);
+        setError('Failed to load post data');
+      }
+    }
+  }, [isEditing, params.editData]);
 
   const handlePickImages = async () => {
     console.log('PostSubletScreen: Pick images');
@@ -58,6 +101,12 @@ export default function PostSubletScreen() {
         setUploadingImages(true);
         
         try {
+          // Get auth token
+          const token = await getBearerToken();
+          if (!token) {
+            throw new Error('Not authenticated');
+          }
+
           // Create FormData for image upload
           const formData = new FormData();
           result.assets.forEach((asset, index) => {
@@ -73,17 +122,19 @@ export default function PostSubletScreen() {
             } as any);
           });
 
-          // Upload images to backend
+          // Upload images to backend with authentication
           console.log('PostSubletScreen: Uploading images to backend');
-          const response = await fetch(`${require('@/utils/api').BACKEND_URL}/api/upload/images`, {
+          const response = await fetch(`${BACKEND_URL}/api/upload/images`, {
             method: 'POST',
             body: formData,
             headers: {
-              'Content-Type': 'multipart/form-data',
+              'Authorization': `Bearer ${token}`,
             },
           });
 
           if (!response.ok) {
+            const errorText = await response.text();
+            console.error('PostSubletScreen: Upload failed', response.status, errorText);
             throw new Error('Failed to upload images');
           }
 
@@ -112,7 +163,7 @@ export default function PostSubletScreen() {
   };
 
   const handleSubmit = async () => {
-    console.log('PostSubletScreen: Submit sublet', { subletType, title, city, availableFrom, availableTo, consentChecked });
+    console.log('PostSubletScreen: Submit sublet', { subletType, title, city, availableFrom, availableTo, consentChecked, isEditing });
     
     if (!subletType) {
       setError('Please select if you are offering or seeking a sublet');
@@ -173,8 +224,8 @@ export default function PostSubletScreen() {
         title: title.trim(),
         description: description.trim() || undefined,
         city: city.trim(),
-        availableFrom: dateToISOString(availableFrom),
-        availableTo: dateToISOString(availableTo),
+        availableFrom: formatDateToDDMMYYYY(availableFrom),
+        availableTo: formatDateToDDMMYYYY(availableTo),
         rent: rent.trim() || undefined,
         type: subletType,
         imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
@@ -188,13 +239,20 @@ export default function PostSubletScreen() {
         postData.deposit = deposit.trim() || undefined;
       }
 
-      console.log('PostSubletScreen: Creating sublet with data:', postData);
-      await authenticatedPost('/api/sublets', postData);
-      console.log('PostSubletScreen: Sublet created successfully');
+      if (isEditing && editId) {
+        console.log('PostSubletScreen: Updating sublet with data:', postData);
+        await authenticatedPut(`/api/sublets/${editId}`, postData);
+        console.log('PostSubletScreen: Sublet updated successfully');
+      } else {
+        console.log('PostSubletScreen: Creating sublet with data:', postData);
+        await authenticatedPost('/api/sublets', postData);
+        console.log('PostSubletScreen: Sublet created successfully');
+      }
+      
       router.back();
     } catch (error: any) {
-      console.error('PostSubletScreen: Error creating sublet', error);
-      setError(error.message || 'Failed to create sublet. Please try again.');
+      console.error('PostSubletScreen: Error saving sublet', error);
+      setError(error.message || `Failed to ${isEditing ? 'update' : 'create'} sublet. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -222,6 +280,7 @@ export default function PostSubletScreen() {
               <TouchableOpacity
                 style={styles.radioOption}
                 onPress={() => setSubletType('offering')}
+                disabled={isEditing}
               >
                 <View style={styles.radioCircle}>
                   {subletType === 'offering' && <View style={styles.radioCircleSelected} />}
@@ -232,6 +291,7 @@ export default function PostSubletScreen() {
               <TouchableOpacity
                 style={styles.radioOption}
                 onPress={() => setSubletType('seeking')}
+                disabled={isEditing}
               >
                 <View style={styles.radioCircle}>
                   {subletType === 'seeking' && <View style={styles.radioCircleSelected} />}
@@ -525,7 +585,7 @@ export default function PostSubletScreen() {
               disabled={loading || !consentChecked}
             >
               <Text style={styles.buttonText}>
-                {loading ? 'Posting...' : 'Post'}
+                {loading ? (isEditing ? 'Updating...' : 'Posting...') : (isEditing ? 'Update' : 'Post')}
               </Text>
             </TouchableOpacity>
           )}

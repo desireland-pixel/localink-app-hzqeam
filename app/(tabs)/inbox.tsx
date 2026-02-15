@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { colors, spacing, typography, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, BACKEND_URL, getBearerToken } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,6 +42,14 @@ export default function InboxScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   console.log('[InboxScreen] Rendering', { conversationsCount: conversations.length });
+
+  // Refresh conversations when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('[InboxScreen] Screen focused, refreshing conversations');
+      fetchConversations();
+    }, [])
+  );
 
   useEffect(() => {
     fetchConversations();
@@ -376,7 +384,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'flex-start',
     gap: spacing.xs,
-    minWidth: 60,
+    minWidth: 70,
   },
   timestamp: {
     ...typography.bodySmall,
@@ -387,12 +395,12 @@ const styles = StyleSheet.create({
   unreadBadge: {
     backgroundColor: colors.primary,
     borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    paddingHorizontal: 6,
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 7,
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'center',
+    alignSelf: 'flex-end',
   },
   unreadBadgeText: {
     color: '#FFFFFF',
