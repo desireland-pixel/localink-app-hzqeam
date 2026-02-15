@@ -138,28 +138,19 @@ export default function ChatScreen() {
   const fetchConversation = async () => {
     console.log('ChatScreen: Fetching conversation details', id);
     try {
-      // Try to use the new GET /api/conversations/:id endpoint that returns conversation details
-      // including participant info and post details
-      const data = await authenticatedGet<Conversation>(`/api/conversations/${id}`);
-      console.log('ChatScreen: Fetched conversation details from dedicated endpoint', data);
-      setConversation(data);
-    } catch (error: any) {
-      console.error('ChatScreen: Error fetching conversation from dedicated endpoint', error);
-      // Fallback: Try to get conversation details from the conversations list
-      try {
-        const conversations = await authenticatedGet<Conversation[]>('/api/conversations');
-        const conv = conversations.find(c => c.id === id);
-        if (conv) {
-          console.log('ChatScreen: Found conversation in list', conv);
-          setConversation(conv);
-        } else {
-          console.error('ChatScreen: Conversation not found in list');
-          setError('Conversation not found');
-        }
-      } catch (fallbackError: any) {
-        console.error('ChatScreen: Fallback also failed', fallbackError);
-        setError('Failed to load conversation details');
+      // Fallback: Get conversation details from the conversations list
+      const conversations = await authenticatedGet<Conversation[]>('/api/conversations');
+      const conv = conversations.find(c => c.id === id);
+      if (conv) {
+        console.log('ChatScreen: Found conversation in list', conv);
+        setConversation(conv);
+      } else {
+        console.error('ChatScreen: Conversation not found in list');
+        setError('Conversation not found');
       }
+    } catch (error: any) {
+      console.error('ChatScreen: Error fetching conversation', error);
+      setError('Failed to load conversation details');
     }
   };
 
@@ -310,7 +301,7 @@ export default function ChatScreen() {
     );
   }
 
-  // Use conversation details from the new GET /api/conversations/:id endpoint
+  // Use conversation details from the conversations list
   const participantName = conversation?.otherParticipant?.username || conversation?.otherParticipant?.name || 'Chat';
   const postTitle = conversation?.post?.title || '';
   const postEmoji = conversation?.post?.type === 'sublet' ? '🏠' : conversation?.post?.type === 'travel' ? '✈️' : '';

@@ -214,14 +214,6 @@ export default function SubletDetailsScreen() {
           </View>
           {isOwnPost ? (
             <View style={styles.actionButtons}>
-              <TouchableOpacity style={styles.actionButton} onPress={handleEdit}>
-                <IconSymbol
-                  ios_icon_name="pencil"
-                  android_material_icon_name="edit"
-                  size={20}
-                  color={colors.text}
-                />
-              </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
                 <IconSymbol
                   ios_icon_name="square.and.arrow.up"
@@ -302,7 +294,26 @@ export default function SubletDetailsScreen() {
               <Text style={styles.authorLabel}>Posted by</Text>
               <Text style={styles.authorName}>{sublet.user.username || sublet.user.name}</Text>
             </View>
-            {!isOwnPost && (
+            {isOwnPost ? (
+              <View style={styles.ownerActions}>
+                <TouchableOpacity style={styles.iconButton} onPress={handleEdit}>
+                  <IconSymbol
+                    ios_icon_name="pencil"
+                    android_material_icon_name="edit"
+                    size={20}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.iconButton} onPress={() => setShowDeleteModal(true)}>
+                  <IconSymbol
+                    ios_icon_name="trash"
+                    android_material_icon_name="delete"
+                    size={20}
+                    color="#FF3B30"
+                  />
+                </TouchableOpacity>
+              </View>
+            ) : (
               <TouchableOpacity style={styles.msgButton} onPress={handleContact}>
                 <IconSymbol
                   ios_icon_name="message.fill"
@@ -314,17 +325,6 @@ export default function SubletDetailsScreen() {
               </TouchableOpacity>
             )}
           </View>
-          {isOwnPost && (
-            <TouchableOpacity style={styles.deleteButton} onPress={() => setShowDeleteModal(true)}>
-              <IconSymbol
-                ios_icon_name="trash"
-                android_material_icon_name="delete"
-                size={20}
-                color="#FF3B30"
-              />
-              <Text style={styles.deleteButtonText}>Delete Post</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </ScrollView>
 
@@ -526,6 +526,17 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '600',
   },
+  ownerActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  iconButton: {
+    padding: spacing.sm,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   msgButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -538,23 +549,6 @@ const styles = StyleSheet.create({
   msgButtonText: {
     ...typography.bodySmall,
     color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: '#FF3B30',
-    gap: spacing.xs,
-  },
-  deleteButtonText: {
-    ...typography.bodySmall,
-    color: '#FF3B30',
     fontWeight: '600',
   },
   footer: {
