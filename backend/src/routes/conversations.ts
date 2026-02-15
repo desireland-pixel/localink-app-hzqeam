@@ -68,18 +68,9 @@ export function registerConversationRoutes(app: App) {
 
       // Format response with last message and other participant info
       const formatted = conversations.map(conv => {
-        const isCurrentUserParticipant1 = conv.participant1Id === session.user.id;
-        const otherParticipantId = isCurrentUserParticipant1 ? conv.participant2Id : conv.participant1Id;
-        const otherParticipant = isCurrentUserParticipant1 ? conv.participant2 : conv.participant1;
+        const otherParticipantId = conv.participant1Id === session.user.id ? conv.participant2Id : conv.participant1Id;
+        const otherParticipant = conv.participant1Id === session.user.id ? conv.participant2 : conv.participant1;
         const profile = profileMap.get(otherParticipantId);
-
-        // Determine unread count based on current user's position
-        // If user is participant1, unread count is the stored unreadCount
-        // If user is participant2, we need to count unread messages from participant1
-        // For now, we'll use a simple approach: if user is participant2, use unreadCount
-        const unreadCount = isCurrentUserParticipant1
-          ? 0  // Participant1 unread tracking is handled differently
-          : parseInt(conv.unreadCount?.toString() || '0');
 
         return {
           id: conv.id,
@@ -88,7 +79,6 @@ export function registerConversationRoutes(app: App) {
           postId: conv.postId,
           postType: conv.postType,
           lastMessageAt: conv.lastMessageAt,
-          unreadCount: unreadCount,
           createdAt: conv.createdAt,
           lastMessage: conv.messages[0] || null,
           otherParticipant: {
@@ -174,7 +164,7 @@ export function registerConversationRoutes(app: App) {
   // Get messages for a conversation
   app.fastify.get('/api/conversations/:id/messages', {
     schema: {
-      description: 'Get messages for a conversation (paginated, sorted oldest to newest). Marks all messages as read.',
+      description: 'Get messages for a conversation (paginated)',
       tags: ['conversations'],
       params: {
         type: 'object',
@@ -218,38 +208,16 @@ export function registerConversationRoutes(app: App) {
         return reply.status(403).send({ error: 'You are not a participant in this conversation' });
       }
 
-      // Get messages sorted oldest to newest (chronological order)
+      // Get messages
       const messages = await app.db
         .select()
         .from(schema.messages)
         .where(eq(schema.messages.conversationId, id))
-        .orderBy(schema.messages.createdAt)  // Ascending order = oldest first
+        .orderBy(desc(schema.messages.createdAt))
         .limit(limit)
         .offset(offset);
 
-      // Mark all messages as read and update unreadCount to 0
-      // Only mark messages from other participants as read
-      const otherParticipantId = conversation.participant1Id === session.user.id
-        ? conversation.participant2Id
-        : conversation.participant1Id;
-
-      await app.db
-        .update(schema.messages)
-        .set({ isRead: true, readAt: new Date() })
-        .where(
-          and(
-            eq(schema.messages.conversationId, id),
-            eq(schema.messages.senderId, otherParticipantId)
-          )
-        );
-
-      // Reset unreadCount to 0
-      await app.db
-        .update(schema.conversations)
-        .set({ unreadCount: 0 })
-        .where(eq(schema.conversations.id, id));
-
-      app.logger.info({ conversationId: id, count: messages.length }, 'Messages fetched and marked as read successfully');
+      app.logger.info({ conversationId: id, count: messages.length }, 'Messages fetched successfully');
       return messages;
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, conversationId: id }, 'Failed to fetch messages');
@@ -317,22 +285,10 @@ export function registerConversationRoutes(app: App) {
         where: eq(schema.profiles.userId, session.user.id),
       });
 
-      // Determine recipient (the other participant)
-      const recipientId = conversation.participant1Id === session.user.id
-        ? conversation.participant2Id
-        : conversation.participant1Id;
-
-      // Increment unreadCount for recipient
-      const currentUnreadCount = parseInt(conversation.unreadCount?.toString() || '0');
-      const newUnreadCount = currentUnreadCount + 1;
-
-      // Update conversation lastMessageAt and unreadCount
+      // Update conversation lastMessageAt
       await app.db
         .update(schema.conversations)
-        .set({
-          lastMessageAt: new Date(),
-          unreadCount: newUnreadCount,
-        })
+        .set({ lastMessageAt: new Date() })
         .where(eq(schema.conversations.id, id));
 
       const messageWithSender = {
@@ -343,9 +299,13 @@ export function registerConversationRoutes(app: App) {
         },
       };
 
-      app.logger.info({ messageId: message.id, conversationId: id, userId: session.user.id, unreadCount: newUnreadCount }, 'Message sent successfully');
+      app.logger.info({ messageId: message.id, conversationId: id, userId: session.user.id }, 'Message sent successfully');
 
-      // Broadcast message to recipient via WebSocket
+      // Broadcast message to both participants via WebSocket
+      const recipientId = conversation.participant1Id === session.user.id
+        ? conversation.participant2Id
+        : conversation.participant1Id;
+
       wsManager.broadcastToUsers([recipientId], {
         type: 'new_message',
         conversationId: id,

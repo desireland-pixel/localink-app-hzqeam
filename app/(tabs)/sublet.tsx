@@ -129,24 +129,6 @@ export default function SubletScreen() {
     (sublet.description && sublet.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  // Check if a post is active (not past-dated)
-  const isPostActive = (sublet: Sublet): boolean => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (sublet.type === 'offering') {
-      // For offering: check availableFrom date
-      const availableFromDate = new Date(sublet.availableFrom);
-      availableFromDate.setHours(0, 0, 0, 0);
-      return availableFromDate >= today;
-    } else {
-      // For seeking: check availableFrom (move-in date)
-      const moveInDate = new Date(sublet.availableFrom);
-      moveInDate.setHours(0, 0, 0, 0);
-      return moveInDate >= today;
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -210,33 +192,20 @@ export default function SubletScreen() {
             const label = sublet.type === 'offering' ? 'Offering' : 'Seeking';
             const hasImage = sublet.imageUrls && sublet.imageUrls.length > 0;
             const isFavorited = favorites.has(sublet.id);
-            const isActive = isPostActive(sublet);
             
             return (
               <TouchableOpacity
                 key={sublet.id}
-                style={[
-                  styles.card,
-                  !isActive && styles.cardInactive
-                ]}
+                style={styles.card}
                 onPress={() => router.push(`/sublet/${sublet.id}`)}
               >
                 <View style={styles.cardContent}>
                   <View style={styles.leftColumn}>
                     <View style={styles.imageContainer}>
                       {hasImage ? (
-                        <Image 
-                          source={{ uri: sublet.imageUrls![0] }} 
-                          style={[
-                            styles.cardImage,
-                            !isActive && styles.cardImageInactive
-                          ]} 
-                        />
+                        <Image source={{ uri: sublet.imageUrls![0] }} style={styles.cardImage} />
                       ) : (
-                        <View style={[
-                          styles.imagePlaceholder,
-                          !isActive && styles.imagePlaceholderInactive
-                        ]}>
+                        <View style={styles.imagePlaceholder}>
                           <IconSymbol
                             ios_icon_name="photo"
                             android_material_icon_name="image"
@@ -247,59 +216,23 @@ export default function SubletScreen() {
                       )}
                     </View>
                     <View style={styles.typeTagContainer}>
-                      <View style={[
-                        styles.typeTag,
-                        !isActive && styles.typeTagInactive
-                      ]}>
+                      <View style={styles.typeTag}>
                         <Text style={styles.typeTagText}>{label}</Text>
                       </View>
                     </View>
                   </View>
                   <View style={styles.cardTextContent}>
-                    <Text 
-                      style={[
-                        styles.cardTitle,
-                        !isActive && styles.cardTitleInactive
-                      ]} 
-                      numberOfLines={1}
-                    >
-                      {sublet.title}
-                    </Text>
-                    <Text style={[
-                      styles.cardCity,
-                      !isActive && styles.cardCityInactive
-                    ]}>
-                      {sublet.city}
-                    </Text>
+                    <Text style={styles.cardTitle} numberOfLines={1}>{sublet.title}</Text>
+                    <Text style={styles.cardCity}>{sublet.city}</Text>
                     {fromDisplay && toDisplay && (
                       <View style={styles.cardDateRow}>
-                        <Text style={[
-                          styles.cardDateText,
-                          !isActive && styles.cardDateTextInactive
-                        ]}>
-                          {fromDisplay}
-                        </Text>
-                        <Text style={[
-                          styles.cardDateSeparator,
-                          !isActive && styles.cardDateTextInactive
-                        ]}>
-                          -
-                        </Text>
-                        <Text style={[
-                          styles.cardDateText,
-                          !isActive && styles.cardDateTextInactive
-                        ]}>
-                          {toDisplay}
-                        </Text>
+                        <Text style={styles.cardDateText}>{fromDisplay}</Text>
+                        <Text style={styles.cardDateSeparator}>-</Text>
+                        <Text style={styles.cardDateText}>{toDisplay}</Text>
                       </View>
                     )}
                     {sublet.rent && (
-                      <Text style={[
-                        styles.cardRent,
-                        !isActive && styles.cardRentInactive
-                      ]}>
-                        €{sublet.rent}/month
-                      </Text>
+                      <Text style={styles.cardRent}>€{sublet.rent}/month</Text>
                     )}
                   </View>
                   <TouchableOpacity 
@@ -415,10 +348,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  cardInactive: {
-    opacity: 0.5,
-    backgroundColor: colors.border,
-  },
   cardContent: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -436,9 +365,6 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: borderRadius.md,
   },
-  cardImageInactive: {
-    opacity: 0.6,
-  },
   imagePlaceholder: {
     width: 80,
     height: 80,
@@ -446,9 +372,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  imagePlaceholderInactive: {
-    opacity: 0.6,
   },
   typeTagContainer: {
     alignItems: 'center',
@@ -458,9 +381,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
-  },
-  typeTagInactive: {
-    backgroundColor: colors.textLight,
   },
   typeTagText: {
     ...typography.bodySmall,
@@ -476,16 +396,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: spacing.xs,
   },
-  cardTitleInactive: {
-    color: colors.textSecondary,
-  },
   cardCity: {
     ...typography.body,
     color: colors.text,
     marginBottom: spacing.xs,
-  },
-  cardCityInactive: {
-    color: colors.textSecondary,
   },
   cardDateRow: {
     flexDirection: 'row',
@@ -497,9 +411,6 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textSecondary,
   },
-  cardDateTextInactive: {
-    color: colors.textLight,
-  },
   cardDateSeparator: {
     ...typography.bodySmall,
     color: colors.textSecondary,
@@ -508,9 +419,6 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.primary,
     fontWeight: '600',
-  },
-  cardRentInactive: {
-    color: colors.textLight,
   },
   likeButton: {
     padding: spacing.xs,

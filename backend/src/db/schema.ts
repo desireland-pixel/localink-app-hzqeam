@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, numeric, integer, date, boolean, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, numeric, date, boolean, uniqueIndex } from 'drizzle-orm/pg-core';
 import { user } from './auth-schema.js';
 import { relations } from 'drizzle-orm';
 
@@ -88,8 +88,6 @@ export const conversations = pgTable('conversations', {
   postId: uuid('post_id'),
   postType: text('post_type', { enum: ['sublet', 'travel'] }),
   lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
-  // Unread message count for participant2 (participant1's unread count is tracked separately in app logic)
-  unreadCount: integer('unread_count').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -99,7 +97,6 @@ export const messages = pgTable('messages', {
   conversationId: uuid('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
   senderId: text('sender_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
-  isRead: boolean('is_read').default(false).notNull(),
   readAt: timestamp('read_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

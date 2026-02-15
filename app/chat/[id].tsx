@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost } from '@/utils/api';
@@ -24,7 +24,7 @@ interface Message {
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams();
-  const { user, fetchUnreadCount } = useAuth();
+  const { user } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -40,33 +40,14 @@ export default function ChatScreen() {
     }
   }, [id]);
 
-  // Refresh unread count when screen is focused (messages are marked as read)
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('[ChatScreen] Screen focused, refreshing unread count');
-      fetchUnreadCount();
-    }, [])
-  );
-
   const fetchMessages = async () => {
     console.log('ChatScreen: Fetching messages', id);
     setLoading(true);
     try {
       const data = await authenticatedGet<Message[]>(`/api/conversations/${id}/messages`);
       console.log('ChatScreen: Fetched messages', data);
-      
-      // Sort messages oldest to newest (ascending by createdAt)
-      const sortedMessages = data.sort((a, b) => {
-        const dateA = new Date(a.createdAt);
-        const dateB = new Date(b.createdAt);
-        return dateA.getTime() - dateB.getTime();
-      });
-      
-      setMessages(sortedMessages);
+      setMessages(data);
       setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
-      
-      // Refresh unread count after fetching messages (they are now marked as read)
-      fetchUnreadCount();
     } catch (error: any) {
       console.error('ChatScreen: Error fetching messages', error);
       setError(error.message || 'Failed to load messages');
@@ -121,8 +102,7 @@ export default function ChatScreen() {
     const date = new Date(dateString);
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    const timeText = `${hours}:${minutes}`;
-    return timeText;
+    return `${hours}:${minutes}`;
   };
 
   const renderMessage = (msg: Message) => {

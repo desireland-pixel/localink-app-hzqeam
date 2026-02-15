@@ -152,28 +152,10 @@ export function registerSubletRoutes(app: App) {
         const fromDate = String(sublet.availableFrom);
         const toDate = String(sublet.availableTo);
 
-        // Check if post is expired
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        let isExpired = false;
-        if (sublet.type === 'offering') {
-          // For offering: expired if availableFrom is in the past
-          const availableFromDate = new Date(fromDate);
-          availableFromDate.setHours(0, 0, 0, 0);
-          isExpired = availableFromDate < today;
-        } else if (sublet.type === 'seeking') {
-          // For seeking: expired if availableTo (move-in date) is in the past
-          const availableToDate = new Date(toDate);
-          availableToDate.setHours(0, 0, 0, 0);
-          isExpired = availableToDate < today;
-        }
-
         return {
           ...sublet,
           availableFrom: formatDateToDDMMYYYY(fromDate),
           availableTo: formatDateToDDMMYYYY(toDate),
-          isExpired: isExpired,
           user: {
             id: sublet.userId,
             username: sublet.username || 'Unknown User',
@@ -245,28 +227,10 @@ export function registerSubletRoutes(app: App) {
       const fromDate = String(sublet.availableFrom);
       const toDate = String(sublet.availableTo);
 
-      // Check if post is expired
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      let isExpired = false;
-      if (sublet.type === 'offering') {
-        // For offering: expired if availableFrom is in the past
-        const availableFromDate = new Date(fromDate);
-        availableFromDate.setHours(0, 0, 0, 0);
-        isExpired = availableFromDate < today;
-      } else if (sublet.type === 'seeking') {
-        // For seeking: expired if availableTo (move-in date) is in the past
-        const availableToDate = new Date(toDate);
-        availableToDate.setHours(0, 0, 0, 0);
-        isExpired = availableToDate < today;
-      }
-
       const response = {
         ...sublet,
         availableFrom: formatDateToDDMMYYYY(fromDate),
         availableTo: formatDateToDDMMYYYY(toDate),
-        isExpired: isExpired,
         shortId: generateShortId(sublet.id),
         user: {
           id: sublet.userId,
@@ -560,55 +524,6 @@ export function registerSubletRoutes(app: App) {
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id }, 'Failed to fetch user sublets');
       return reply.status(500).send({ error: 'Failed to fetch sublets' });
-    }
-  });
-
-  // Delete sublet (only by creator)
-  app.fastify.delete('/api/sublets/:id', {
-    schema: {
-      description: 'Delete a sublet post (only by creator)',
-      tags: ['sublets'],
-      params: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', format: 'uuid' },
-        },
-        required: ['id'],
-      },
-    },
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireAuth(request, reply);
-    if (!session) return;
-
-    const { id } = request.params as { id: string };
-    app.logger.info({ userId: session.user.id, subletId: id }, 'Deleting sublet');
-
-    try {
-      // Check ownership
-      const existing = await app.db.query.sublets.findFirst({
-        where: eq(schema.sublets.id, id),
-      });
-
-      if (!existing) {
-        app.logger.warn({ subletId: id }, 'Sublet not found');
-        return reply.status(404).send({ error: 'Sublet not found' });
-      }
-
-      if (existing.userId !== session.user.id) {
-        app.logger.warn({ userId: session.user.id, subletId: id }, 'Unauthorized sublet delete attempt');
-        return reply.status(403).send({ error: 'You can only delete your own sublets' });
-      }
-
-      // Delete the sublet
-      await app.db
-        .delete(schema.sublets)
-        .where(eq(schema.sublets.id, id));
-
-      app.logger.info({ subletId: id, userId: session.user.id }, 'Sublet deleted successfully');
-      return { success: true };
-    } catch (error) {
-      app.logger.error({ err: error, userId: session.user.id, subletId: id }, 'Failed to delete sublet');
-      return reply.status(500).send({ error: 'Failed to delete sublet' });
     }
   });
 }

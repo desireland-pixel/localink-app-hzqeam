@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { colors, spacing, typography, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,7 +14,6 @@ interface Conversation {
   participant1Id: string;
   participant2Id: string;
   createdAt: string;
-  unreadCount?: number;
   lastMessage?: {
     id: string;
     content: string;
@@ -30,7 +29,7 @@ interface Conversation {
 
 export default function InboxScreen() {
   const router = useRouter();
-  const { user, fetchUnreadCount } = useAuth();
+  const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -40,14 +39,6 @@ export default function InboxScreen() {
   useEffect(() => {
     fetchConversations();
   }, []);
-
-  // Refresh unread count when screen is focused
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('[InboxScreen] Screen focused, refreshing unread count');
-      fetchUnreadCount();
-    }, [])
-  );
 
   const fetchConversations = async () => {
     console.log('[InboxScreen] Fetching conversations');
@@ -84,10 +75,7 @@ export default function InboxScreen() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) {
-      const justNowText = 'Just now';
-      return justNowText;
-    }
+    if (diffMins < 1) return 'Just now';
     if (diffMins < 60) {
       const minsText = `${diffMins}m ago`;
       return minsText;
@@ -105,20 +93,10 @@ export default function InboxScreen() {
     return dateText;
   };
 
-  // Calculate total unread count for badge
-  const totalUnreadCount = conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Inbox</Text>
-        {totalUnreadCount > 0 && (
-          <View style={styles.unreadBadge}>
-            <Text style={styles.unreadBadgeText}>
-              {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
-            </Text>
-          </View>
-        )}
       </View>
 
       {loading ? (
@@ -152,7 +130,6 @@ export default function InboxScreen() {
             const lastMessagePreview = conversation.lastMessage?.content || 'No messages yet';
             const isLastMessageFromMe = conversation.lastMessage?.senderId === user?.id;
             const lastMessageTime = conversation.lastMessage?.createdAt || conversation.createdAt;
-            const hasUnread = (conversation.unreadCount || 0) > 0;
             
             // Safely extract participant name with multiple fallbacks
             let participantName = 'Unknown User';
@@ -165,35 +142,18 @@ export default function InboxScreen() {
             return (
               <TouchableOpacity
                 key={conversation.id}
-                style={[
-                  styles.conversationCard,
-                  hasUnread && styles.conversationCardUnread
-                ]}
+                style={styles.conversationCard}
                 onPress={() => router.push(`/chat/${conversation.id}`)}
               >
                 <View style={styles.conversationHeader}>
-                  <Text style={[
-                    styles.participantName,
-                    hasUnread && styles.participantNameUnread
-                  ]}>
+                  <Text style={styles.participantName}>
                     {participantName}
                   </Text>
-                  <View style={styles.timestampContainer}>
-                    <Text style={styles.timestamp}>
-                      {timeText}
-                    </Text>
-                    {hasUnread && (
-                      <View style={styles.unreadDot} />
-                    )}
-                  </View>
+                  <Text style={styles.timestamp}>
+                    {timeText}
+                  </Text>
                 </View>
-                <Text 
-                  style={[
-                    styles.lastMessage,
-                    hasUnread && styles.lastMessageUnread
-                  ]} 
-                  numberOfLines={2}
-                >
+                <Text style={styles.lastMessage} numberOfLines={2}>
                   {isLastMessageFromMe ? 'You: ' : ''}{lastMessagePreview}
                 </Text>
               </TouchableOpacity>
@@ -212,8 +172,6 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? 16 : 0,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
@@ -223,21 +181,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: colors.text,
-  },
-  unreadBadge: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: spacing.sm,
-    paddingHorizontal: spacing.xs,
-  },
-  unreadBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
   },
   loadingContainer: {
     flex: 1,
@@ -282,11 +225,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  conversationCardUnread: {
-    backgroundColor: colors.card,
-    borderColor: colors.primary,
-    borderWidth: 2,
-  },
   conversationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -299,33 +237,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
-  participantNameUnread: {
-    fontWeight: '700',
-    color: colors.text,
-  },
-  timestampContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
   timestamp: {
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 11,
   },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-  },
   lastMessage: {
     ...typography.body,
     color: colors.textSecondary,
     fontSize: 14,
-  },
-  lastMessageUnread: {
-    fontWeight: '600',
-    color: colors.text,
   },
 });

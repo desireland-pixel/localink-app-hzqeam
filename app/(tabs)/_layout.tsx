@@ -1,14 +1,11 @@
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabLayout() {
-  const { unreadCount } = useAuth();
-  console.log('TabLayout: Rendering tabs', { unreadCount });
+  console.log('TabLayout: Rendering tabs');
 
   return (
     <Tabs
@@ -77,21 +74,12 @@ export default function TabLayout() {
         options={{
           title: 'Inbox',
           tabBarIcon: ({ color }) => (
-            <View>
-              <IconSymbol
-                ios_icon_name="message.fill"
-                android_material_icon_name="chat"
-                size={26}
-                color={color}
-              />
-              {unreadCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </View>
+            <IconSymbol
+              ios_icon_name="message.fill"
+              android_material_icon_name="chat"
+              size={26}
+              color={color}
+            />
           ),
         }}
       />
@@ -119,23 +107,3 @@ export default function TabLayout() {
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  badge: {
-    position: 'absolute',
-    top: -4,
-    right: -8,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-});
