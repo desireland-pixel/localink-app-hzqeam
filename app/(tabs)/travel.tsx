@@ -219,6 +219,7 @@ export default function TravelScreen() {
             }
             
             const authorName = post.user?.username || post.user?.name || 'Unknown';
+            const createdDate = formatDateToDDMMYYYY(post.createdAt);
             const isFavorited = favorites.has(post.id);
             
             return (
@@ -270,7 +271,10 @@ export default function TravelScreen() {
                     {post.description}
                   </Text>
                 )}
-                <Text style={styles.cardAuthor}>Posted by {authorName}</Text>
+                <View style={styles.authorDateRow}>
+                  <Text style={styles.cardAuthor}>{authorName}</Text>
+                  <Text style={styles.cardDate}> • {createdDate}</Text>
+                </View>
               </TouchableOpacity>
             );
           })}
@@ -431,8 +435,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     lineHeight: 20,
   },
+  authorDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   cardAuthor: {
     ...typography.bodySmall,
     color: colors.textLight,
+    fontSize: 11,
+  },
+  cardDate: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 11,
   },
 });

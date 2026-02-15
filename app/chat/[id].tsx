@@ -76,7 +76,18 @@ export default function ChatScreen() {
         { content: messageText }
       );
       console.log('ChatScreen: Message sent', response);
-      setMessages([...messages, response]);
+      
+      // Ensure sender object exists with proper fallbacks
+      const messageWithSender = {
+        ...response,
+        sender: response.sender || {
+          id: user?.id || '',
+          name: user?.name || 'You',
+          username: user?.username || user?.name || 'You'
+        }
+      };
+      
+      setMessages([...messages, messageWithSender]);
       setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (error: any) {
       console.error('ChatScreen: Error sending message', error);
@@ -97,8 +108,8 @@ export default function ChatScreen() {
   const renderMessage = (msg: Message) => {
     const isOwnMessage = msg.senderId === user?.id;
     const time = timeDisplay(msg.createdAt);
-    // Use username if available, fallback to name
-    const senderDisplayName = msg.sender.username || msg.sender.name;
+    // Use username if available, fallback to name, with proper null checks
+    const senderDisplayName = msg.sender?.username || msg.sender?.name || 'Unknown User';
 
     return (
       <View

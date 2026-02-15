@@ -33,16 +33,19 @@ export default function TravelFiltersScreen() {
         setRole(roleParam);
       }
       
-      // Check for type flags
-      const newTypes = new Set<'companionship' | 'ally'>();
-      if (urlParams.get('canOfferCompanionship') === 'true') {
-        newTypes.add('companionship');
-      }
-      if (urlParams.get('canCarryItems') === 'true') {
-        newTypes.add('ally');
-      }
-      if (newTypes.size > 0) {
-        setTypes(newTypes);
+      // Check for type parameter
+      const typeParam = urlParams.get('type');
+      if (typeParam) {
+        const newTypes = new Set<'companionship' | 'ally'>();
+        if (typeParam.includes('companionship')) {
+          newTypes.add('companionship');
+        }
+        if (typeParam.includes('ally')) {
+          newTypes.add('ally');
+        }
+        if (newTypes.size > 0) {
+          setTypes(newTypes);
+        }
       }
       
       const from = urlParams.get('fromCity');
@@ -75,34 +78,15 @@ export default function TravelFiltersScreen() {
     // Build query params
     const params = new URLSearchParams();
     
-    // Map role and types to backend API format
+    // Add role filter
     if (role) {
       params.append('role', role);
-      
-      // For type filters, we need to handle them differently based on role
-      if (role === 'offering') {
-        // For offering, use canOfferCompanionship and canCarryItems flags
-        if (types.size > 0) {
-          if (types.has('companionship')) {
-            params.append('canOfferCompanionship', 'true');
-          }
-          if (types.has('ally')) {
-            params.append('canCarryItems', 'true');
-          }
-        }
-      } else if (role === 'seeking') {
-        // For seeking, use the type parameter to distinguish between seeking (companionship) and seeking-ally
-        if (types.size > 0) {
-          if (types.has('companionship') && types.has('ally')) {
-            // Both selected - need to handle this case
-            params.append('type', 'seeking,seeking-ally');
-          } else if (types.has('companionship')) {
-            params.append('type', 'seeking');
-          } else if (types.has('ally')) {
-            params.append('type', 'seeking-ally');
-          }
-        }
-      }
+    }
+    
+    // Add type filter - send as comma-separated string
+    if (types.size > 0) {
+      const typeArray = Array.from(types);
+      params.append('type', typeArray.join(','));
     }
     
     if (fromCity) params.append('fromCity', fromCity);

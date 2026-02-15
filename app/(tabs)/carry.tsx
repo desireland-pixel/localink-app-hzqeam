@@ -214,8 +214,6 @@ export default function CommunityScreen() {
           {filteredTopics.map((topic) => {
             const authorName = topic.user?.username || topic.user?.name || 'Unknown';
             const createdDate = formatDateToDDMMYYYY(topic.createdAt);
-            const authorText = `${authorName}`;
-            const dateText = ` • ${createdDate}`;
             const statusText = topic.status === 'open' ? 'Open' : 'Closed';
             const statusColor = topic.status === 'open' ? colors.primary : '#9E9E9E';
             const isFavorited = favorites.has(topic.id);
@@ -237,6 +235,7 @@ export default function CommunityScreen() {
                     style={styles.likeButton}
                     onPress={(e) => {
                       e.stopPropagation();
+                      console.log('CommunityScreen: Heart button pressed for', topic.id);
                       toggleFavorite(topic.id);
                     }}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -257,8 +256,8 @@ export default function CommunityScreen() {
                 )}
                 <View style={styles.cardFooter}>
                   <View style={styles.authorDateContainer}>
-                    <Text style={styles.cardAuthor}>{authorText}</Text>
-                    <Text style={styles.cardDate}> {dateText}</Text>
+                    <Text style={styles.cardAuthor}>{authorName}</Text>
+                    <Text style={styles.cardDate}> • {createdDate}</Text>
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
                     <Text style={styles.statusBadgeText}>{statusText}</Text>

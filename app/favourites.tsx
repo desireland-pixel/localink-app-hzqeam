@@ -23,10 +23,19 @@ interface FavoritePost {
     availableFrom?: string;
     availableTo?: string;
     travelDate?: string;
+    travelDateTo?: string;
     rent?: string;
     type?: string;
     imageUrls?: string[];
     category?: string;
+    status?: string;
+    canOfferCompanionship?: boolean;
+    canCarryItems?: boolean;
+    user?: {
+      id: string;
+      name: string;
+      username?: string;
+    };
   };
 }
 
@@ -151,61 +160,13 @@ export default function FavouritesScreen() {
                   onPress={() => handleViewPost(favorite.postId, favorite.postType)}
                 >
                   {selectedTab === 'sublet' && (
-                    <View style={styles.cardContent}>
-                      {post.imageUrls && post.imageUrls.length > 0 ? (
-                        <Image source={{ uri: post.imageUrls[0] }} style={styles.cardImage} />
-                      ) : (
-                        <View style={styles.imagePlaceholder}>
-                          <IconSymbol
-                            ios_icon_name="photo"
-                            android_material_icon_name="image"
-                            size={32}
-                            color={colors.textLight}
-                          />
-                        </View>
-                      )}
-                      <View style={styles.cardTextContent}>
-                        <Text style={styles.postTitle}>{post.title}</Text>
-                        {post.description && (
-                          <Text style={styles.postDescription} numberOfLines={2}>
-                            {post.description}
-                          </Text>
-                        )}
-                        <View style={styles.postInfo}>
-                          <Text style={styles.postInfoText}>{post.city}</Text>
-                          {post.rent && (
-                            <>
-                              <Text style={styles.postInfoText}>•</Text>
-                              <Text style={styles.postInfoText}>€{post.rent}/month</Text>
-                            </>
-                          )}
-                        </View>
-                      </View>
-                      <TouchableOpacity 
-                        style={styles.removeButton}
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          handleRemoveFavorite(favorite.postId, favorite.postType);
-                        }}
-                      >
-                        <IconSymbol
-                          ios_icon_name="heart.fill"
-                          android_material_icon_name="favorite"
-                          size={20}
-                          color={colors.primary}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                  
-                  {selectedTab === 'travel' && (
                     <>
                       <View style={styles.cardHeader}>
-                        <Text style={styles.postTitle} numberOfLines={1}>
-                          {post.fromCity} → {post.toCity}
-                        </Text>
+                        <View style={styles.typeTag}>
+                          <Text style={styles.typeTagText}>{post.type === 'offering' ? 'Offering' : 'Seeking'}</Text>
+                        </View>
                         <TouchableOpacity 
-                          style={styles.removeButton}
+                          style={styles.likeButton}
                           onPress={(e) => {
                             e.stopPropagation();
                             handleRemoveFavorite(favorite.postId, favorite.postType);
@@ -219,27 +180,103 @@ export default function FavouritesScreen() {
                           />
                         </TouchableOpacity>
                       </View>
+                      <Text style={styles.postTitle}>{post.title}</Text>
                       {post.description && (
                         <Text style={styles.postDescription} numberOfLines={2}>
                           {post.description}
                         </Text>
                       )}
                       <View style={styles.postInfo}>
-                        {post.travelDate && (
-                          <Text style={styles.postInfoText}>
-                            {formatDateToDDMMYYYY(post.travelDate)}
-                          </Text>
+                        <Text style={styles.postInfoText}>{post.city}</Text>
+                        {post.rent && (
+                          <>
+                            <Text style={styles.postInfoText}>•</Text>
+                            <Text style={styles.postInfoText}>€{post.rent}/month</Text>
+                          </>
                         )}
                       </View>
+                      {(post.availableFrom || post.availableTo) && (
+                        <View style={styles.dateRow}>
+                          {post.availableFrom && <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.availableFrom)}</Text>}
+                          {post.availableFrom && post.availableTo && <Text style={styles.dateSeparator}>-</Text>}
+                          {post.availableTo && <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.availableTo)}</Text>}
+                        </View>
+                      )}
+                    </>
+                  )}
+                  
+                  {selectedTab === 'travel' && (
+                    <>
+                      <View style={styles.cardHeader}>
+                        <View style={styles.tagRow}>
+                          {post.type && (
+                            <View style={styles.typeTag}>
+                              <Text style={styles.typeTagText}>
+                                {post.type === 'offering' ? 'Offering' : 'Seeking'}
+                              </Text>
+                            </View>
+                          )}
+                          {post.type === 'offering' && (
+                            <Text style={styles.iconText}>
+                              {post.canOfferCompanionship && post.canCarryItems ? '👥, 📦' : 
+                               post.canOfferCompanionship ? '👥' : 
+                               post.canCarryItems ? '📦' : '👥, 📦'}
+                            </Text>
+                          )}
+                          {post.type === 'seeking' && <Text style={styles.iconText}>👥</Text>}
+                          {post.type === 'seeking-ally' && <Text style={styles.iconText}>📦</Text>}
+                        </View>
+                        <TouchableOpacity 
+                          style={styles.likeButton}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            handleRemoveFavorite(favorite.postId, favorite.postType);
+                          }}
+                        >
+                          <IconSymbol
+                            ios_icon_name="heart.fill"
+                            android_material_icon_name="favorite"
+                            size={20}
+                            color={colors.primary}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                      <View style={styles.routeContainer}>
+                        <Text style={styles.routeText}>{post.fromCity}</Text>
+                        <Text style={styles.routeArrow}>→</Text>
+                        <Text style={styles.routeText}>{post.toCity}</Text>
+                      </View>
+                      {(post.travelDate || post.travelDateTo) && (
+                        <View style={styles.dateRow}>
+                          {post.travelDate && <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.travelDate)}</Text>}
+                          {post.travelDate && post.travelDateTo && <Text style={styles.dateSeparator}>-</Text>}
+                          {post.travelDateTo && <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.travelDateTo)}</Text>}
+                        </View>
+                      )}
+                      {post.description && (
+                        <Text style={styles.postDescription} numberOfLines={2}>
+                          {post.description}
+                        </Text>
+                      )}
+                      {post.user && (
+                        <View style={styles.authorDateRow}>
+                          <Text style={styles.authorText}>{post.user.username || post.user.name}</Text>
+                          <Text style={styles.dateText}> • {formatDateToDDMMYYYY(favorite.createdAt)}</Text>
+                        </View>
+                      )}
                     </>
                   )}
                   
                   {selectedTab === 'community' && (
                     <>
                       <View style={styles.cardHeader}>
-                        <Text style={styles.postTitle} numberOfLines={1}>{post.title}</Text>
+                        {post.category && (
+                          <View style={styles.categoryBadge}>
+                            <Text style={styles.categoryBadgeText}>{post.category}</Text>
+                          </View>
+                        )}
                         <TouchableOpacity 
-                          style={styles.removeButton}
+                          style={styles.likeButton}
                           onPress={(e) => {
                             e.stopPropagation();
                             handleRemoveFavorite(favorite.postId, 'community');
@@ -253,16 +290,27 @@ export default function FavouritesScreen() {
                           />
                         </TouchableOpacity>
                       </View>
+                      <Text style={styles.postTitle}>{post.title}</Text>
                       {post.description && (
                         <Text style={styles.postDescription} numberOfLines={2}>
                           {post.description}
                         </Text>
                       )}
-                      {post.category && (
-                        <View style={styles.postInfo}>
-                          <Text style={styles.postInfoText}>{post.category}</Text>
+                      <View style={styles.cardFooter}>
+                        <View style={styles.authorDateRow}>
+                          {post.user && (
+                            <>
+                              <Text style={styles.authorText}>{post.user.username || post.user.name}</Text>
+                              <Text style={styles.dateText}> • {formatDateToDDMMYYYY(favorite.createdAt)}</Text>
+                            </>
+                          )}
                         </View>
-                      )}
+                        {post.status && (
+                          <View style={[styles.statusBadge, { backgroundColor: post.status === 'open' ? colors.primary : '#9E9E9E' }]}>
+                            <Text style={styles.statusBadgeText}>{post.status === 'open' ? 'Open' : 'Closed'}</Text>
+                          </View>
+                        )}
+                      </View>
                     </>
                   )}
                 </TouchableOpacity>
@@ -309,7 +357,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   loadingContainer: {
     flex: 1,
@@ -343,53 +391,120 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  cardContent: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  cardImage: {
-    width: 80,
-    height: 80,
-    borderRadius: borderRadius.md,
-  },
-  imagePlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardTextContent: {
-    flex: 1,
-  },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.xs,
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  typeTag: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  typeTagText: {
+    ...typography.bodySmall,
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  iconText: {
+    fontSize: 14,
+  },
+  categoryBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  categoryBadgeText: {
+    ...typography.bodySmall,
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  likeButton: {
+    padding: spacing.xs,
   },
   postTitle: {
     ...typography.h3,
     color: colors.text,
     marginBottom: spacing.xs,
-    flex: 1,
   },
   postDescription: {
     ...typography.body,
     color: colors.textSecondary,
     marginBottom: spacing.sm,
+    lineHeight: 20,
   },
   postInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    marginBottom: spacing.xs,
   },
   postInfoText: {
     ...typography.bodySmall,
     color: colors.textSecondary,
   },
-  removeButton: {
-    padding: spacing.xs,
+  routeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  routeText: {
+    ...typography.h3,
+    color: colors.text,
+  },
+  routeArrow: {
+    ...typography.h3,
+    color: colors.textSecondary,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  dateText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontSize: 11,
+  },
+  dateSeparator: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  authorDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  authorText: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 11,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  statusBadgeText: {
+    ...typography.bodySmall,
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
   },
 });
