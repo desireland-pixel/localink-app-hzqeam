@@ -22,17 +22,17 @@ interface PaginationQuery {
 export function registerConversationRoutes(app: App) {
   const requireAuth = app.requireAuth();
 
-  // Get total unread message count for current user
+  // Get unread conversation count for current user (for inbox icon badge)
   app.fastify.get('/api/conversations/unread-count', {
     schema: {
-      description: 'Get total unread message count for current user',
+      description: 'Get number of conversations with unread messages (for inbox icon badge)',
       tags: ['conversations'],
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const session = await requireAuth(request, reply);
     if (!session) return;
 
-    app.logger.info({ userId: session.user.id }, 'Fetching unread message count');
+    app.logger.info({ userId: session.user.id }, 'Fetching unread conversation count');
 
     try {
       // Get all conversations for the user with their messages
@@ -46,20 +46,22 @@ export function registerConversationRoutes(app: App) {
         },
       });
 
-      // Count all unread messages from other participants
-      let totalUnreadCount = 0;
+      // Count conversations that have at least one unread message from other participants
+      let unreadConversationCount = 0;
       conversations.forEach(conv => {
-        const unreadInConv = conv.messages.filter(msg =>
+        const hasUnread = conv.messages.some(msg =>
           msg.senderId !== session.user.id && !msg.readAt
-        ).length;
-        totalUnreadCount += unreadInConv;
+        );
+        if (hasUnread) {
+          unreadConversationCount++;
+        }
       });
 
-      app.logger.info({ userId: session.user.id, totalUnreadCount }, 'Unread count fetched successfully');
-      return { totalUnreadCount };
+      app.logger.info({ userId: session.user.id, unreadConversationCount }, 'Unread conversation count fetched successfully');
+      return { unreadConversationCount };
     } catch (error) {
-      app.logger.error({ err: error, userId: session.user.id }, 'Failed to fetch unread count');
-      return reply.status(500).send({ error: 'Failed to fetch unread count' });
+      app.logger.error({ err: error, userId: session.user.id }, 'Failed to fetch unread conversation count');
+      return reply.status(500).send({ error: 'Failed to fetch unread conversation count' });
     }
   });
 
@@ -263,10 +265,10 @@ export function registerConversationRoutes(app: App) {
     }
   });
 
-  // Get messages for a conversation
+  // Get messages for a conversation with participant and post details
   app.fastify.get('/api/conversations/:id/messages', {
     schema: {
-      description: 'Get messages for a conversation (paginated)',
+      description: 'Get messages for a conversation (paginated) with participant and post details',
       tags: ['conversations'],
       params: {
         type: 'object',
@@ -295,9 +297,13 @@ export function registerConversationRoutes(app: App) {
     app.logger.info({ userId: session.user.id, conversationId: id, limit, offset }, 'Fetching conversation messages');
 
     try {
-      // Check if user is a participant
+      // Check if user is a participant and get conversation with participant details
       const conversation = await app.db.query.conversations.findFirst({
         where: eq(schema.conversations.id, id),
+        with: {
+          participant1: true,
+          participant2: true,
+        },
       });
 
       if (!conversation) {
@@ -308,6 +314,41 @@ export function registerConversationRoutes(app: App) {
       if (conversation.participant1Id !== session.user.id && conversation.participant2Id !== session.user.id) {
         app.logger.warn({ userId: session.user.id, conversationId: id }, 'Unauthorized conversation access attempt');
         return reply.status(403).send({ error: 'You are not a participant in this conversation' });
+      }
+
+      // Get other participant
+      const otherParticipantId = conversation.participant1Id === session.user.id ? conversation.participant2Id : conversation.participant1Id;
+      const otherParticipant = conversation.participant1Id === session.user.id ? conversation.participant2 : conversation.participant1;
+
+      // Fetch other participant's profile for username
+      const otherParticipantProfile = await app.db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, otherParticipantId),
+      });
+
+      // Fetch post details based on postType
+      let post = null;
+      if (conversation.postType === 'sublet') {
+        const sublet = await app.db.query.sublets.findFirst({
+          where: eq(schema.sublets.id, conversation.postId),
+        });
+        if (sublet) {
+          post = {
+            id: sublet.id,
+            title: sublet.title,
+            type: 'sublet' as const,
+          };
+        }
+      } else if (conversation.postType === 'travel') {
+        const travelPost = await app.db.query.travelPosts.findFirst({
+          where: eq(schema.travelPosts.id, conversation.postId),
+        });
+        if (travelPost) {
+          post = {
+            id: travelPost.id,
+            title: `${travelPost.fromCity} → ${travelPost.toCity}`,
+            type: 'travel' as const,
+          };
+        }
       }
 
       // Mark all unread messages from the other participant as read
@@ -332,7 +373,19 @@ export function registerConversationRoutes(app: App) {
         .offset(offset);
 
       app.logger.info({ conversationId: id, count: messages.length }, 'Messages fetched and marked as read successfully');
-      return messages;
+
+      return {
+        messages,
+        conversation: {
+          id: conversation.id,
+          otherParticipant: {
+            id: otherParticipantId,
+            name: otherParticipant.name,
+            username: otherParticipantProfile?.username || null,
+          },
+          post: post,
+        },
+      };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, conversationId: id }, 'Failed to fetch messages');
       return reply.status(500).send({ error: 'Failed to fetch messages' });
