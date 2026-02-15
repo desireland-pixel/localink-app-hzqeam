@@ -28,6 +28,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   profileLoading: boolean;
+  unreadCount: number;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, name?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -37,6 +38,7 @@ interface AuthContextType {
   fetchUser: () => Promise<void>;
   fetchProfile: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  fetchUnreadCount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -89,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     console.log('[AuthContext] Initializing auth state');
@@ -104,11 +107,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       fetchUser();
     }, 5 * 60 * 1000);
 
+    // Poll for unread count every 30 seconds when user is logged in
+    const unreadInterval = setInterval(() => {
+      if (user) {
+        fetchUnreadCountInternal();
+      }
+    }, 30 * 1000);
+
     return () => {
       subscription.remove();
       clearInterval(intervalId);
+      clearInterval(unreadInterval);
     };
-  }, []);
+  }, [user]);
 
   const initializeAuth = async () => {
     try {
@@ -139,16 +150,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         await fetchProfileInternal();
+        await fetchUnreadCountInternal();
       } else {
         console.log('[AuthContext] No user session found');
         setUser(null);
         setProfile(null);
+        setUnreadCount(0);
         await clearAuthTokens();
       }
     } catch (error) {
       console.error("[AuthContext] Failed to fetch user:", error);
       setUser(null);
       setProfile(null);
+      setUnreadCount(0);
     }
   };
 
@@ -174,6 +188,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = async () => {
     console.log('[AuthContext] Refreshing profile');
     await fetchProfileInternal();
+  };
+
+  const fetchUnreadCountInternal = async () => {
+    try {
+      console.log('[AuthContext] Fetching unread count');
+      const conversations = await authenticatedGet<Array<{ unreadCount?: number }>>('/api/conversations');
+      const total = conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
+      console.log('[AuthContext] Total unread count:', total);
+      setUnreadCount(total);
+    } catch (error) {
+      console.error('[AuthContext] Failed to fetch unread count:', error);
+    }
+  };
+
+  const fetchUnreadCount = async () => {
+    await fetchUnreadCountInternal();
   };
 
   const signInWithEmail = async (email: string, password: string) => {
@@ -251,6 +281,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null);
       setProfile(null);
+      setUnreadCount(0);
       await clearAuthTokens();
     }
   };
@@ -262,6 +293,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         profileLoading,
+        unreadCount,
         signInWithEmail,
         signUpWithEmail,
         signInWithGoogle,
@@ -271,6 +303,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fetchUser,
         fetchProfile,
         refreshProfile,
+        fetchUnreadCount,
       }}
     >
       {children}

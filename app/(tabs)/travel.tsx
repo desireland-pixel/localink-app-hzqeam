@@ -121,6 +121,17 @@ export default function TravelScreen() {
   // Check if filters are active
   const hasActiveFilters = params.filters && params.filters.toString().length > 0;
 
+  // Check if a post is active (not past-dated)
+  const isPostActive = (post: TravelPost): boolean => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const postDate = new Date(post.travelDate);
+    postDate.setHours(0, 0, 0, 0);
+    
+    return postDate >= today;
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -221,17 +232,24 @@ export default function TravelScreen() {
             const authorName = post.user?.username || post.user?.name || 'Unknown';
             const createdDate = formatDateToDDMMYYYY(post.createdAt);
             const isFavorited = favorites.has(post.id);
+            const isActive = isPostActive(post);
             
             return (
               <TouchableOpacity
                 key={post.id}
-                style={styles.card}
+                style={[
+                  styles.card,
+                  !isActive && styles.cardInactive
+                ]}
                 onPress={() => router.push(`/travel/${post.id}`)}
               >
                 <View style={styles.cardHeader}>
                   <View style={styles.tagRow}>
                     {label && (
-                      <View style={styles.typeTag}>
+                      <View style={[
+                        styles.typeTag,
+                        !isActive && styles.typeTagInactive
+                      ]}>
                         <Text style={styles.typeTagText}>{label}</Text>
                       </View>
                     )}
@@ -255,25 +273,77 @@ export default function TravelScreen() {
                   </TouchableOpacity>
                 </View>
                 <View style={styles.routeContainer}>
-                  <Text style={styles.routeText}>{post.fromCity}</Text>
-                  <Text style={styles.routeArrow}>→</Text>
-                  <Text style={styles.routeText}>{post.toCity}</Text>
+                  <Text style={[
+                    styles.routeText,
+                    !isActive && styles.routeTextInactive
+                  ]}>
+                    {post.fromCity}
+                  </Text>
+                  <Text style={[
+                    styles.routeArrow,
+                    !isActive && styles.routeTextInactive
+                  ]}>
+                    →
+                  </Text>
+                  <Text style={[
+                    styles.routeText,
+                    !isActive && styles.routeTextInactive
+                  ]}>
+                    {post.toCity}
+                  </Text>
                 </View>
                 {(dateDisplay || dateToDisplay) && (
                   <View style={styles.dateContainer}>
-                    {dateDisplay && <Text style={styles.dateText}>{dateDisplay}</Text>}
-                    {dateDisplay && dateToDisplay && <Text style={styles.dateSeparator}>-</Text>}
-                    {dateToDisplay && <Text style={styles.dateText}>{dateToDisplay}</Text>}
+                    {dateDisplay && (
+                      <Text style={[
+                        styles.dateText,
+                        !isActive && styles.dateTextInactive
+                      ]}>
+                        {dateDisplay}
+                      </Text>
+                    )}
+                    {dateDisplay && dateToDisplay && (
+                      <Text style={[
+                        styles.dateSeparator,
+                        !isActive && styles.dateTextInactive
+                      ]}>
+                        -
+                      </Text>
+                    )}
+                    {dateToDisplay && (
+                      <Text style={[
+                        styles.dateText,
+                        !isActive && styles.dateTextInactive
+                      ]}>
+                        {dateToDisplay}
+                      </Text>
+                    )}
                   </View>
                 )}
                 {post.description && (
-                  <Text style={styles.cardDescription} numberOfLines={2}>
+                  <Text 
+                    style={[
+                      styles.cardDescription,
+                      !isActive && styles.cardDescriptionInactive
+                    ]} 
+                    numberOfLines={2}
+                  >
                     {post.description}
                   </Text>
                 )}
                 <View style={styles.authorDateRow}>
-                  <Text style={styles.cardAuthor}>{authorName}</Text>
-                  <Text style={styles.cardDate}> • {createdDate}</Text>
+                  <Text style={[
+                    styles.cardAuthor,
+                    !isActive && styles.cardAuthorInactive
+                  ]}>
+                    {authorName}
+                  </Text>
+                  <Text style={[
+                    styles.cardDate,
+                    !isActive && styles.cardAuthorInactive
+                  ]}>
+                    {' • '}{createdDate}
+                  </Text>
                 </View>
               </TouchableOpacity>
             );
@@ -372,6 +442,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  cardInactive: {
+    opacity: 0.5,
+    backgroundColor: colors.border,
+  },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -388,6 +462,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
+  },
+  typeTagInactive: {
+    backgroundColor: colors.textLight,
   },
   typeTagText: {
     ...typography.bodySmall,
@@ -411,6 +488,9 @@ const styles = StyleSheet.create({
     ...typography.h3,
     color: colors.text,
   },
+  routeTextInactive: {
+    color: colors.textSecondary,
+  },
   routeArrow: {
     ...typography.h3,
     color: colors.textSecondary,
@@ -425,6 +505,9 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textSecondary,
   },
+  dateTextInactive: {
+    color: colors.textLight,
+  },
   dateSeparator: {
     ...typography.bodySmall,
     color: colors.textSecondary,
@@ -435,6 +518,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     lineHeight: 20,
   },
+  cardDescriptionInactive: {
+    color: colors.textLight,
+  },
   authorDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -443,6 +529,9 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 11,
+  },
+  cardAuthorInactive: {
+    color: colors.textLight,
   },
   cardDate: {
     ...typography.bodySmall,
