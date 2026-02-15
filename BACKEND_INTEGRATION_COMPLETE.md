@@ -1,4 +1,34 @@
 
+# Backend Integration Complete - Unread Messages Feature
+
+## 🎯 Latest Update: Unread Message Functionality
+
+The unread message feature has been successfully integrated with the following capabilities:
+
+### ✅ Completed Features
+1. **Total Unread Count Badge** - Shows on Inbox tab
+2. **Per-Conversation Unread Count** - Shows in conversation list
+3. **Visual Distinction** - Unread conversations have bold text and colored border
+4. **Auto Mark as Read** - Messages marked as read when viewing conversation
+5. **Real-time Updates** - WebSocket integration for instant message updates
+6. **Proper Sorting** - Inbox (newest first), Chat (oldest first)
+
+### 📊 Integration Points
+
+#### Backend Endpoints (Already Deployed)
+- `GET /api/conversations/unread-count` - Total unread count
+- `GET /api/conversations` - Conversations with unreadCount field
+- `POST /api/conversations/:id/mark-read` - Mark messages as read
+- `GET /ws/messages` - WebSocket for real-time updates
+
+#### Frontend Changes
+- **AuthContext**: Added unread count state and 30s polling
+- **Tab Bar**: Added badge to Inbox tab
+- **Inbox Screen**: Added unread indicators and WebSocket
+- **Chat Screen**: Added mark-as-read and WebSocket
+
+---
+
 # Backend Integration Complete ✅
 
 ## Summary

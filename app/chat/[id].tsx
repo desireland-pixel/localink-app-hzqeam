@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Keyboa
 import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedGet, authenticatedPost } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, BACKEND_URL, getBearerToken } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -24,8 +24,9 @@ interface Message {
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams();
-  const { user } = useAuth();
+  const { user, fetchUnreadCount } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
+  const wsRef = useRef<WebSocket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -37,8 +38,73 @@ export default function ChatScreen() {
   useEffect(() => {
     if (id) {
       fetchMessages();
+      setupWebSocket();
     }
+
+    return () => {
+      if (wsRef.current) {
+        console.log('ChatScreen: Closing WebSocket connection');
+        wsRef.current.close();
+      }
+    };
   }, [id]);
+
+  const setupWebSocket = async () => {
+    try {
+      const token = await getBearerToken();
+      if (!token) {
+        console.warn('ChatScreen: No auth token, skipping WebSocket setup');
+        return;
+      }
+
+      // Convert https:// to wss:// or http:// to ws://
+      const wsUrl = BACKEND_URL.replace(/^https?:/, BACKEND_URL.startsWith('https') ? 'wss:' : 'ws:');
+      
+      // Note: WebSocket in React Native doesn't support custom headers in the constructor
+      // The backend should validate the session from cookies or query params
+      const ws = new WebSocket(`${wsUrl}/ws/messages`);
+
+      ws.onopen = () => {
+        console.log('ChatScreen: WebSocket connected');
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('ChatScreen: WebSocket message received', data);
+
+          if (data.type === 'new_message' && data.conversationId === id) {
+            // Add new message to the list if it's for this conversation
+            setMessages(prev => {
+              // Check if message already exists
+              if (prev.some(m => m.id === data.message.id)) {
+                return prev;
+              }
+              return [...prev, data.message];
+            });
+            setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+            
+            // Refresh unread count
+            fetchUnreadCount();
+          }
+        } catch (error) {
+          console.error('ChatScreen: Error parsing WebSocket message', error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('ChatScreen: WebSocket error', error);
+      };
+
+      ws.onclose = () => {
+        console.log('ChatScreen: WebSocket disconnected');
+      };
+
+      wsRef.current = ws;
+    } catch (error) {
+      console.error('ChatScreen: Error setting up WebSocket', error);
+    }
+  };
 
   const fetchMessages = async () => {
     console.log('ChatScreen: Fetching messages', id);
@@ -46,8 +112,23 @@ export default function ChatScreen() {
     try {
       const data = await authenticatedGet<Message[]>(`/api/conversations/${id}/messages`);
       console.log('ChatScreen: Fetched messages', data);
-      setMessages(data);
+      // Sort messages oldest to newest (ascending order by createdAt)
+      const sortedMessages = [...data].sort((a, b) => {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
+      setMessages(sortedMessages);
       setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+      
+      // Mark all messages as read
+      try {
+        await authenticatedPost(`/api/conversations/${id}/mark-read`, {});
+        console.log('ChatScreen: Messages marked as read');
+      } catch (markReadError) {
+        console.error('ChatScreen: Error marking messages as read', markReadError);
+      }
+      
+      // Refresh unread count after marking messages as read
+      await fetchUnreadCount();
     } catch (error: any) {
       console.error('ChatScreen: Error fetching messages', error);
       setError(error.message || 'Failed to load messages');
@@ -87,7 +168,13 @@ export default function ChatScreen() {
         }
       };
       
-      setMessages([...messages, messageWithSender]);
+      // Only add message if it's not already in the list (WebSocket might have added it)
+      setMessages(prev => {
+        if (prev.some(m => m.id === messageWithSender.id)) {
+          return prev;
+        }
+        return [...prev, messageWithSender];
+      });
       setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (error: any) {
       console.error('ChatScreen: Error sending message', error);

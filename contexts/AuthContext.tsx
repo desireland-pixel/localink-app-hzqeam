@@ -28,6 +28,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   profileLoading: boolean;
+  unreadCount: number;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, name?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -37,6 +38,7 @@ interface AuthContextType {
   fetchUser: () => Promise<void>;
   fetchProfile: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  fetchUnreadCount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -89,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     console.log('[AuthContext] Initializing auth state');
@@ -109,6 +112,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearInterval(intervalId);
     };
   }, []);
+
+  // Poll for unread count when user is logged in
+  useEffect(() => {
+    if (user) {
+      console.log('[AuthContext] User logged in, starting unread count polling');
+      fetchUnreadCountInternal();
+      const unreadInterval = setInterval(() => {
+        fetchUnreadCountInternal();
+      }, 30000); // Poll every 30 seconds
+
+      return () => {
+        clearInterval(unreadInterval);
+      };
+    } else {
+      setUnreadCount(0);
+    }
+  }, [user]);
 
   const initializeAuth = async () => {
     try {
@@ -174,6 +194,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = async () => {
     console.log('[AuthContext] Refreshing profile');
     await fetchProfileInternal();
+  };
+
+  const fetchUnreadCountInternal = async () => {
+    try {
+      const response = await authenticatedGet<{ totalUnreadCount: number }>('/api/conversations/unread-count');
+      console.log('[AuthContext] Unread count fetched:', response.totalUnreadCount);
+      setUnreadCount(response.totalUnreadCount);
+    } catch (error: any) {
+      console.error('[AuthContext] Failed to fetch unread count:', error);
+      setUnreadCount(0);
+    }
+  };
+
+  const fetchUnreadCount = async () => {
+    await fetchUnreadCountInternal();
   };
 
   const signInWithEmail = async (email: string, password: string) => {
@@ -262,6 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         profileLoading,
+        unreadCount,
         signInWithEmail,
         signUpWithEmail,
         signInWithGoogle,
@@ -271,6 +307,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fetchUser,
         fetchProfile,
         refreshProfile,
+        fetchUnreadCount,
       }}
     >
       {children}
