@@ -104,6 +104,34 @@ export function registerConversationRoutes(app: App) {
 
       const profileMap = new Map(profiles.map(p => [p.userId, p]));
 
+      // Get all unique post IDs and their types
+      const subletIds = new Set<string>();
+      const travelPostIds = new Set<string>();
+      conversations.forEach(conv => {
+        if (conv.postType === 'sublet') {
+          subletIds.add(conv.postId);
+        } else if (conv.postType === 'travel') {
+          travelPostIds.add(conv.postId);
+        }
+      });
+
+      // Fetch all sublets and travel posts in parallel
+      const [subletsList, travelPostsList] = await Promise.all([
+        subletIds.size > 0
+          ? app.db.query.sublets.findMany({
+              where: inArray(schema.sublets.id, Array.from(subletIds)),
+            })
+          : Promise.resolve([]),
+        travelPostIds.size > 0
+          ? app.db.query.travelPosts.findMany({
+              where: inArray(schema.travelPosts.id, Array.from(travelPostIds)),
+            })
+          : Promise.resolve([]),
+      ]);
+
+      const subletsMap = new Map(subletsList.map(s => [s.id, s]));
+      const travelPostsMap = new Map(travelPostsList.map(t => [t.id, t]));
+
       // Format response with last message and other participant info
       const formatted = conversations.map(conv => {
         const otherParticipantId = conv.participant1Id === session.user.id ? conv.participant2Id : conv.participant1Id;
@@ -122,6 +150,28 @@ export function registerConversationRoutes(app: App) {
             )
           : null;
 
+        // Get post details based on postType
+        let post = null;
+        if (conv.postType === 'sublet') {
+          const sublet = subletsMap.get(conv.postId);
+          if (sublet) {
+            post = {
+              id: sublet.id,
+              title: sublet.title,
+              type: 'sublet' as const,
+            };
+          }
+        } else if (conv.postType === 'travel') {
+          const travelPost = travelPostsMap.get(conv.postId);
+          if (travelPost) {
+            post = {
+              id: travelPost.id,
+              title: `${travelPost.fromCity} → ${travelPost.toCity}`,
+              type: 'travel' as const,
+            };
+          }
+        }
+
         return {
           id: conv.id,
           participant1Id: conv.participant1Id,
@@ -137,6 +187,7 @@ export function registerConversationRoutes(app: App) {
             name: otherParticipant.name,
             username: profile?.username || null,
           },
+          post: post,
         };
       });
 
