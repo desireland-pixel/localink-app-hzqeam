@@ -138,20 +138,27 @@ export default function TravelDetailsScreen() {
   };
 
   const handleEdit = () => {
+    if (!travelPost) return;
     console.log('TravelDetailsScreen: Edit post', id);
-    router.push(`/edit-travel/${id}`);
+    router.push({
+      pathname: '/post-travel',
+      params: {
+        editId: id,
+        editData: JSON.stringify(travelPost),
+      },
+    });
   };
 
   const handleDelete = async () => {
     if (!travelPost) return;
-    console.log('TravelDetailsScreen: Delete post', id);
+    console.log('TravelDetailsScreen: Close post', id);
     setDeleting(true);
     
     try {
       await authenticatedPatch(`/api/travel-posts/${id}/close`, {});
       console.log('TravelDetailsScreen: Post closed successfully');
       setShowDeleteModal(false);
-      router.back();
+      router.replace('/my-posts');
     } catch (error: any) {
       console.error('TravelDetailsScreen: Error closing post', error);
       setError(error.message || 'Failed to close post');

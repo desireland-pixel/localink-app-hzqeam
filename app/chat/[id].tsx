@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost, BACKEND_URL, getBearerToken } from '@/utils/api';
@@ -54,6 +54,14 @@ export default function ChatScreen() {
 
   console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length });
 
+  // Mark messages as read when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('ChatScreen: Screen focused, marking messages as read');
+      markMessagesAsRead();
+    }, [id])
+  );
+
   useEffect(() => {
     if (id) {
       fetchConversation();
@@ -78,6 +86,19 @@ export default function ChatScreen() {
       }, 100);
     }
   }, [messages]);
+
+  const markMessagesAsRead = async () => {
+    if (!id) return;
+    
+    try {
+      await authenticatedPost(`/api/conversations/${id}/mark-read`, {});
+      console.log('ChatScreen: Messages marked as read');
+      // Refresh unread count immediately
+      await fetchUnreadCount();
+    } catch (error) {
+      console.error('ChatScreen: Error marking messages as read', error);
+    }
+  };
 
   const setupWebSocket = async () => {
     try {
@@ -113,8 +134,8 @@ export default function ChatScreen() {
               return [...prev, data.message];
             });
             
-            // Refresh unread count
-            fetchUnreadCount();
+            // Mark as read immediately since user is viewing the chat
+            markMessagesAsRead();
           }
         } catch (error) {
           console.error('ChatScreen: Error parsing WebSocket message', error);
@@ -180,15 +201,7 @@ export default function ChatScreen() {
       setMessages(sortedMessages);
       
       // Mark all messages as read
-      try {
-        await authenticatedPost(`/api/conversations/${id}/mark-read`, {});
-        console.log('ChatScreen: Messages marked as read');
-      } catch (markReadError) {
-        console.error('ChatScreen: Error marking messages as read', markReadError);
-      }
-      
-      // Refresh unread count after marking messages as read
-      await fetchUnreadCount();
+      await markMessagesAsRead();
     } catch (error: any) {
       console.error('ChatScreen: Error fetching messages', error);
       setError(error.message || 'Failed to load messages');
