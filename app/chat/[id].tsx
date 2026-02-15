@@ -15,7 +15,7 @@ interface Message {
   senderId: string;
   content: string;
   createdAt: string;
-  sender: {
+  sender?: {
     id: string;
     name: string;
     username?: string;
@@ -52,7 +52,7 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
 
-  console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length });
+  console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length, currentUserId: user?.id });
 
   // Mark messages as read when screen comes into focus
   useFocusEffect(
@@ -179,25 +179,39 @@ export default function ChatScreen() {
     console.log('ChatScreen: Fetching messages', id);
     setLoading(true);
     try {
-      const data = await authenticatedGet<Message[] | { messages: Message[] }>(`/api/conversations/${id}/messages`);
-      console.log('ChatScreen: Fetched messages', data);
+      const data = await authenticatedGet<{ messages: Message[]; conversation: Conversation }>(`/api/conversations/${id}/messages`);
+      console.log('ChatScreen: Fetched messages response', data);
       
-      // Handle both array response and object with messages property
-      let messagesArray: Message[] = [];
-      if (Array.isArray(data)) {
-        messagesArray = data;
-      } else if (data && typeof data === 'object' && 'messages' in data && Array.isArray(data.messages)) {
-        messagesArray = data.messages;
-      } else {
+      // Backend returns { messages: [...], conversation: {...} }
+      if (!data || !data.messages || !Array.isArray(data.messages)) {
         console.error('ChatScreen: Invalid messages data format', data);
         setError('Invalid messages data format');
         return;
+      }
+      
+      const messagesArray = data.messages;
+      
+      // Update conversation details if available
+      if (data.conversation) {
+        setConversation(data.conversation);
       }
       
       // Sort messages oldest to newest (ascending order by createdAt)
       const sortedMessages = [...messagesArray].sort((a, b) => {
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       });
+      
+      console.log('ChatScreen: Sorted messages', { 
+        count: sortedMessages.length, 
+        currentUserId: user?.id,
+        sampleMessages: sortedMessages.slice(0, 3).map(m => ({
+          id: m.id,
+          senderId: m.senderId,
+          isOwnMessage: m.senderId === user?.id,
+          content: m.content.substring(0, 20)
+        }))
+      });
+      
       setMessages(sortedMessages);
       
       // Mark all messages as read
@@ -278,8 +292,31 @@ export default function ChatScreen() {
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
-    const isOwnMessage = item.senderId === user?.id;
+    // CRITICAL FIX: Compare senderId with current user's ID
+    // Ensure proper string comparison - both IDs should be strings
+    const currentUserId = user?.id;
+    const messageSenderId = item.senderId;
+    
+    // Strict equality check - both should be strings from the backend
+    const isOwnMessage = currentUserId === messageSenderId;
+    
     const time = timeDisplay(item.createdAt);
+
+    // Detailed logging for first few messages to debug
+    if (messages.indexOf(item) < 3) {
+      console.log('ChatScreen: Rendering message (detailed)', {
+        messageId: item.id,
+        senderId: messageSenderId,
+        senderIdType: typeof messageSenderId,
+        currentUserId: currentUserId,
+        currentUserIdType: typeof currentUserId,
+        isOwnMessage: isOwnMessage,
+        strictEqual: currentUserId === messageSenderId,
+        looseEqual: currentUserId == messageSenderId,
+        senderName: item.sender?.name,
+        content: item.content.substring(0, 30)
+      });
+    }
 
     return (
       <View
