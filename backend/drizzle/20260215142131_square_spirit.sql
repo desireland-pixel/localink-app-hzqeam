@@ -1,0 +1,3 @@
+-- Migration removed: columns unread_count and is_read do not exist in current schema
+-- The schema uses readAt timestamp instead for message read tracking
+-- Skipping this migration as it's out of sync with the actual database state
