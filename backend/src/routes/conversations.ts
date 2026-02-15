@@ -372,10 +372,37 @@ export function registerConversationRoutes(app: App) {
         .limit(limit)
         .offset(offset);
 
-      app.logger.info({ conversationId: id, count: messages.length }, 'Messages fetched and marked as read successfully');
+      // Get sender profiles for all messages to include username/name info
+      const senderIds = new Set(messages.map(m => m.senderId));
+      const senderProfiles = senderIds.size > 0
+        ? await app.db.query.profiles.findMany({
+            where: inArray(schema.profiles.userId, Array.from(senderIds)),
+          })
+        : [];
+
+      const senderProfileMap = new Map(senderProfiles.map(p => [p.userId, p]));
+
+      // Enrich messages with sender information
+      const messagesWithSender = messages.map(msg => {
+        const senderProfile = senderProfileMap.get(msg.senderId);
+        return {
+          ...msg,
+          sender: {
+            id: msg.senderId,
+            name: msg.senderId === session.user.id
+              ? conversation.participant1Id === session.user.id
+                ? conversation.participant1.name
+                : conversation.participant2.name
+              : otherParticipant.name,
+            username: senderProfile?.username || null,
+          },
+        };
+      });
+
+      app.logger.info({ conversationId: id, count: messagesWithSender.length }, 'Messages fetched and marked as read successfully');
 
       return {
-        messages,
+        messages: messagesWithSender,
         conversation: {
           id: conversation.id,
           otherParticipant: {
@@ -447,10 +474,23 @@ export function registerConversationRoutes(app: App) {
         })
         .returning();
 
-      // Fetch sender profile to include username
+      // Fetch sender profile and get participant details to include name
       const senderProfile = await app.db.query.profiles.findFirst({
         where: eq(schema.profiles.userId, session.user.id),
       });
+
+      // Get conversation details to get sender's name
+      const fullConversation = await app.db.query.conversations.findFirst({
+        where: eq(schema.conversations.id, id),
+        with: {
+          participant1: true,
+          participant2: true,
+        },
+      });
+
+      const senderName = conversation.participant1Id === session.user.id
+        ? fullConversation?.participant1.name
+        : fullConversation?.participant2.name;
 
       // Update conversation lastMessageAt
       await app.db
@@ -462,6 +502,7 @@ export function registerConversationRoutes(app: App) {
         ...message,
         sender: {
           id: session.user.id,
+          name: senderName,
           username: senderProfile?.username || session.user.email,
         },
       };
