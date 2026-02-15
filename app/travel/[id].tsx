@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform, Share } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedGet, authenticatedPost } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, authenticatedPatch } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
@@ -42,6 +42,8 @@ export default function TravelDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [contacting, setContacting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   console.log('TravelDetailsScreen: Viewing travel', { id });
 
@@ -109,6 +111,55 @@ export default function TravelDetailsScreen() {
     }
   };
 
+  const handleShare = async () => {
+    if (!travelPost) return;
+    console.log('TravelDetailsScreen: Share post', id);
+    
+    try {
+      const shareData = await authenticatedGet<{ shareUrl: string; title: string; description: string }>(
+        `/api/posts/travel/${id}/share`
+      );
+      console.log('TravelDetailsScreen: Share data fetched', shareData);
+      
+      await Share.share({
+        message: `${shareData.title}\n\n${shareData.description}\n\n${shareData.shareUrl}`,
+        title: shareData.title,
+        url: shareData.shareUrl,
+      });
+    } catch (error: any) {
+      console.error('TravelDetailsScreen: Error sharing', error);
+      // Fallback to basic share
+      const shareMessage = `Check out this travel post: ${travelPost.fromCity} → ${travelPost.toCity}`;
+      await Share.share({
+        message: shareMessage,
+        title: `${travelPost.fromCity} → ${travelPost.toCity}`,
+      });
+    }
+  };
+
+  const handleEdit = () => {
+    console.log('TravelDetailsScreen: Edit post', id);
+    router.push(`/edit-travel/${id}`);
+  };
+
+  const handleDelete = async () => {
+    if (!travelPost) return;
+    console.log('TravelDetailsScreen: Delete post', id);
+    setDeleting(true);
+    
+    try {
+      await authenticatedPatch(`/api/travel-posts/${id}`, { status: 'closed' });
+      console.log('TravelDetailsScreen: Post closed successfully');
+      setShowDeleteModal(false);
+      router.back();
+    } catch (error: any) {
+      console.error('TravelDetailsScreen: Error closing post', error);
+      setError(error.message || 'Failed to close post');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -160,27 +211,42 @@ export default function TravelDetailsScreen() {
   
   const titleText = `${travelPost.fromCity} → ${travelPost.toCity}`;
 
-  const handleEdit = () => {
-    console.log('TravelDetailsScreen: Edit post', id);
-    router.push(`/edit-travel/${id}`);
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>{titleText}</Text>
-            {isOwnPost && (
-              <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity style={styles.editButton} onPress={handleShare}>
                 <IconSymbol
-                  ios_icon_name="pencil"
-                  android_material_icon_name="edit"
+                  ios_icon_name="square.and.arrow.up"
+                  android_material_icon_name="share"
                   size={20}
-                  color={colors.primary}
+                  color={colors.text}
                 />
               </TouchableOpacity>
-            )}
+              {isOwnPost && (
+                <>
+                  <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                    <IconSymbol
+                      ios_icon_name="pencil"
+                      android_material_icon_name="edit"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.editButton, styles.deleteButton]} onPress={() => setShowDeleteModal(true)}>
+                    <IconSymbol
+                      ios_icon_name="trash"
+                      android_material_icon_name="delete"
+                      size={20}
+                      color="#FF3B30"
+                    />
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
           </View>
           
           <View style={styles.tagIconRow}>
@@ -259,6 +325,27 @@ export default function TravelDetailsScreen() {
         message={error || ''}
         type="error"
       />
+
+      <Modal
+        visible={showDeleteModal}
+        title="Close Post"
+        message="Are you sure you want to close this post? This action cannot be undone."
+        onClose={() => setShowDeleteModal(false)}
+        type="warning"
+        actions={[
+          {
+            text: 'Cancel',
+            onPress: () => setShowDeleteModal(false),
+            style: 'cancel',
+          },
+          {
+            text: deleting ? 'Closing...' : 'Close Post',
+            onPress: handleDelete,
+            style: 'destructive',
+            disabled: deleting,
+          },
+        ]}
+      />
     </SafeAreaView>
   );
 }
@@ -305,12 +392,19 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: spacing.sm,
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
   editButton: {
     padding: spacing.xs,
     backgroundColor: colors.background,
     borderRadius: borderRadius.sm,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  deleteButton: {
+    borderColor: '#FF3B30',
   },
   tagIconRow: {
     flexDirection: 'row',

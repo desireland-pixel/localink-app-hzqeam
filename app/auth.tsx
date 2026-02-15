@@ -94,9 +94,8 @@ export default function AuthScreen() {
             setTimeout(() => {
               router.push({ pathname: '/verify-otp', params: { email } });
             }, 2000);
-          } else if (errorMsg.includes('incorrect') || errorMsg.includes('Invalid') || errorMsg.includes('password') || errorMsg.includes('credentials') || errorMsg.includes('401')) {
-            setError('Email or Password is incorrect.');
           } else {
+            // For any authentication failure, show generic error message
             setError('Email or Password is incorrect.');
           }
           throw signInErr;

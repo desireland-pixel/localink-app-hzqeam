@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedGet, authenticatedPost } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, authenticatedPatch } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
@@ -40,6 +40,8 @@ export default function SubletDetailsScreen() {
   const [sublet, setSublet] = useState<Sublet | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   console.log('SubletDetailsScreen: Rendering', { id, sublet });
 
@@ -142,6 +144,24 @@ export default function SubletDetailsScreen() {
     });
   };
 
+  const handleDelete = async () => {
+    if (!sublet) return;
+    console.log('SubletDetailsScreen: Delete post', id);
+    setDeleting(true);
+    
+    try {
+      await authenticatedPatch(`/api/sublets/${id}`, { status: 'closed' });
+      console.log('SubletDetailsScreen: Post closed successfully');
+      setShowDeleteModal(false);
+      router.back();
+    } catch (error: any) {
+      console.error('SubletDetailsScreen: Error closing post', error);
+      setError(error.message || 'Failed to close post');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -208,6 +228,16 @@ export default function SubletDetailsScreen() {
                   android_material_icon_name="edit"
                   size={20}
                   color={colors.text}
+                />
+              </TouchableOpacity>
+            )}
+            {isOwnPost && (
+              <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={() => setShowDeleteModal(true)}>
+                <IconSymbol
+                  ios_icon_name="trash"
+                  android_material_icon_name="delete"
+                  size={20}
+                  color="#FF3B30"
                 />
               </TouchableOpacity>
             )}
@@ -301,6 +331,27 @@ export default function SubletDetailsScreen() {
         onClose={() => setError('')}
         type="error"
       />
+
+      <Modal
+        visible={showDeleteModal}
+        title="Close Post"
+        message="Are you sure you want to close this post? This action cannot be undone."
+        onClose={() => setShowDeleteModal(false)}
+        type="warning"
+        actions={[
+          {
+            text: 'Cancel',
+            onPress: () => setShowDeleteModal(false),
+            style: 'cancel',
+          },
+          {
+            text: deleting ? 'Closing...' : 'Close Post',
+            onPress: handleDelete,
+            style: 'destructive',
+            disabled: deleting,
+          },
+        ]}
+      />
     </SafeAreaView>
   );
 }
@@ -378,6 +429,9 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  deleteButton: {
+    borderColor: '#FF3B30',
   },
   title: {
     ...typography.h2,
