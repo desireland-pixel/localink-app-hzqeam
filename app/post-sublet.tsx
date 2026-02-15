@@ -115,6 +115,7 @@ export default function PostSubletScreen() {
             const match = /\.(\w+)$/.exec(filename);
             const type = match ? `image/${match[1]}` : 'image/jpeg';
             
+            // Append each image with the field name 'images'
             formData.append('images', {
               uri,
               name: filename,
@@ -129,6 +130,7 @@ export default function PostSubletScreen() {
             body: formData,
             headers: {
               'Authorization': `Bearer ${token}`,
+              // Don't set Content-Type - let the browser set it with boundary
             },
           });
 
