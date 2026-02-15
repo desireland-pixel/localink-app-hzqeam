@@ -18,6 +18,9 @@ const schema = { ...appSchema, ...authSchema };
 export const app = await createApplication(schema);
 export type App = typeof app;
 
+// Configure storage for file uploads
+app.withStorage();
+
 // Configure Better Auth with email verification and social providers
 app.withAuth({
   emailVerification: {

@@ -517,6 +517,56 @@ export function registerSubletRoutes(app: App) {
     }
   });
 
+  // Delete sublet (same as close - marks as closed)
+  app.fastify.delete('/api/sublets/:id', {
+    schema: {
+      description: 'Delete own sublet post (marks as closed)',
+      tags: ['sublets'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+        },
+        required: ['id'],
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    const { id } = request.params as { id: string };
+    app.logger.info({ userId: session.user.id, subletId: id }, 'Deleting sublet');
+
+    try {
+      // Check ownership
+      const existing = await app.db.query.sublets.findFirst({
+        where: eq(schema.sublets.id, id),
+      });
+
+      if (!existing) {
+        app.logger.warn({ subletId: id }, 'Sublet not found');
+        return reply.status(404).send({ error: 'Sublet not found' });
+      }
+
+      if (existing.userId !== session.user.id) {
+        app.logger.warn({ userId: session.user.id, subletId: id }, 'Unauthorized sublet delete attempt');
+        return reply.status(403).send({ error: 'You can only delete your own sublets' });
+      }
+
+      const [deleted] = await app.db
+        .update(schema.sublets)
+        .set({ status: 'closed', updatedAt: new Date() })
+        .where(eq(schema.sublets.id, id))
+        .returning();
+
+      app.logger.info({ subletId: id, userId: session.user.id }, 'Sublet deleted successfully');
+      return deleted;
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id, subletId: id }, 'Failed to delete sublet');
+      return reply.status(500).send({ error: 'Failed to delete sublet' });
+    }
+  });
+
   // Get current user's sublets
   app.fastify.get('/api/my/sublets', {
     schema: {

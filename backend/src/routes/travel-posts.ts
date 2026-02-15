@@ -624,6 +624,56 @@ export function registerTravelPostRoutes(app: App) {
     }
   });
 
+  // Delete travel post (same as close - marks as closed)
+  app.fastify.delete('/api/travel-posts/:id', {
+    schema: {
+      description: 'Delete own travel post (marks as closed)',
+      tags: ['travel-posts'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+        },
+        required: ['id'],
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    const { id } = request.params as { id: string };
+    app.logger.info({ userId: session.user.id, travelPostId: id }, 'Deleting travel post');
+
+    try {
+      // Check ownership
+      const existing = await app.db.query.travelPosts.findFirst({
+        where: eq(schema.travelPosts.id, id),
+      });
+
+      if (!existing) {
+        app.logger.warn({ travelPostId: id }, 'Travel post not found');
+        return reply.status(404).send({ error: 'Travel post not found' });
+      }
+
+      if (existing.userId !== session.user.id) {
+        app.logger.warn({ userId: session.user.id, travelPostId: id }, 'Unauthorized travel post delete attempt');
+        return reply.status(403).send({ error: 'You can only delete your own travel posts' });
+      }
+
+      const [deleted] = await app.db
+        .update(schema.travelPosts)
+        .set({ status: 'closed', updatedAt: new Date() })
+        .where(eq(schema.travelPosts.id, id))
+        .returning();
+
+      app.logger.info({ travelPostId: id, userId: session.user.id }, 'Travel post deleted successfully');
+      return deleted;
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id, travelPostId: id }, 'Failed to delete travel post');
+      return reply.status(500).send({ error: 'Failed to delete travel post' });
+    }
+  });
+
   // Get current user's travel posts
   app.fastify.get('/api/my/travel-posts', {
     schema: {
