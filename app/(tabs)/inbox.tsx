@@ -26,6 +26,11 @@ interface Conversation {
     name: string;
     username?: string;
   };
+  post?: {
+    id: string;
+    title: string;
+    type: 'sublet' | 'travel';
+  };
 }
 
 export default function InboxScreen() {
@@ -152,6 +157,12 @@ export default function InboxScreen() {
     return dateText;
   };
 
+  const postTypeEmoji = (type: string) => {
+    if (type === 'sublet') return '🏠';
+    if (type === 'travel') return '✈️';
+    return '📝';
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -199,6 +210,11 @@ export default function InboxScreen() {
             
             const timeText = timeDisplay(lastMessageTime);
             
+            // Extract post information
+            const postTitle = conversation.post?.title || 'Post';
+            const postType = conversation.post?.type || conversation.postType;
+            const emoji = postTypeEmoji(postType);
+            
             return (
               <TouchableOpacity
                 key={conversation.id}
@@ -209,12 +225,20 @@ export default function InboxScreen() {
                 onPress={() => router.push(`/chat/${conversation.id}`)}
               >
                 <View style={styles.conversationHeader}>
-                  <Text style={[
-                    styles.participantName,
-                    hasUnread && styles.participantNameUnread
-                  ]}>
-                    {participantName}
-                  </Text>
+                  <View style={styles.participantInfo}>
+                    <Text style={[
+                      styles.participantName,
+                      hasUnread && styles.participantNameUnread
+                    ]}>
+                      {participantName}
+                    </Text>
+                    <View style={styles.postTag}>
+                      <Text style={styles.postEmoji}>{emoji}</Text>
+                      <Text style={styles.postTitle} numberOfLines={1}>
+                        {postTitle}
+                      </Text>
+                    </View>
+                  </View>
                   <View style={styles.timestampContainer}>
                     <Text style={styles.timestamp}>
                       {timeText}
@@ -311,18 +335,42 @@ const styles = StyleSheet.create({
   conversationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: spacing.xs,
+  },
+  participantInfo: {
+    flex: 1,
+    marginRight: spacing.sm,
   },
   participantName: {
     ...typography.body,
     color: colors.text,
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 16,
+    marginBottom: 4,
   },
   participantNameUnread: {
     fontWeight: '700',
     color: colors.text,
+  },
+  postTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+    alignSelf: 'flex-start',
+  },
+  postEmoji: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  postTitle: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontSize: 12,
+    maxWidth: 180,
   },
   timestampContainer: {
     flexDirection: 'row',

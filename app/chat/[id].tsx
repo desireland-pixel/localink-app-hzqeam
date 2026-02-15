@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -25,7 +25,7 @@ interface Message {
 export default function ChatScreen() {
   const { id } = useLocalSearchParams();
   const { user, fetchUnreadCount } = useAuth();
-  const scrollViewRef = useRef<ScrollView>(null);
+  const flatListRef = useRef<FlatList>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -48,6 +48,16 @@ export default function ChatScreen() {
       }
     };
   }, [id]);
+
+  // Auto-scroll to newest message when messages change
+  useEffect(() => {
+    if (messages.length > 0 && flatListRef.current) {
+      // Scroll to end (newest message) after a short delay to ensure layout is complete
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+      }, 100);
+    }
+  }, [messages]);
 
   const setupWebSocket = async () => {
     try {
@@ -82,7 +92,6 @@ export default function ChatScreen() {
               }
               return [...prev, data.message];
             });
-            setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
             
             // Refresh unread count
             fetchUnreadCount();
@@ -117,7 +126,6 @@ export default function ChatScreen() {
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       });
       setMessages(sortedMessages);
-      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
       
       // Mark all messages as read
       try {
@@ -175,7 +183,6 @@ export default function ChatScreen() {
         }
         return [...prev, messageWithSender];
       });
-      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (error: any) {
       console.error('ChatScreen: Error sending message', error);
       setError(error.message || 'Failed to send message');
@@ -192,25 +199,29 @@ export default function ChatScreen() {
     return `${hours}:${minutes}`;
   };
 
-  const renderMessage = (msg: Message) => {
-    const isOwnMessage = msg.senderId === user?.id;
-    const time = timeDisplay(msg.createdAt);
-    // Use username if available, fallback to name, with proper null checks
-    const senderDisplayName = msg.sender?.username || msg.sender?.name || 'Unknown User';
+  const renderMessage = ({ item }: { item: Message }) => {
+    const isOwnMessage = item.senderId === user?.id;
+    const time = timeDisplay(item.createdAt);
 
     return (
       <View
-        key={msg.id}
         style={[
           styles.messageBubble,
           isOwnMessage ? styles.ownMessage : styles.otherMessage,
         ]}
       >
-        {!isOwnMessage && (
-          <Text style={styles.senderName}>{senderDisplayName}</Text>
-        )}
-        <Text style={styles.messageText}>{msg.content}</Text>
-        <Text style={styles.messageTime}>{time}</Text>
+        <Text style={[
+          styles.messageText,
+          isOwnMessage && styles.ownMessageText
+        ]}>
+          {item.content}
+        </Text>
+        <Text style={[
+          styles.messageTime,
+          isOwnMessage && styles.ownMessageTime
+        ]}>
+          {time}
+        </Text>
       </View>
     );
   };
@@ -232,14 +243,15 @@ export default function ChatScreen() {
         style={styles.keyboardView}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <ScrollView
-          ref={scrollViewRef}
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-        >
-          {messages.map(renderMessage)}
-        </ScrollView>
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+        />
 
         <View style={styles.inputContainer}>
           <TextInput
@@ -313,21 +325,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  senderName: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    fontWeight: '600',
-    marginBottom: spacing.xs,
-  },
   messageText: {
     ...typography.body,
     color: colors.text,
     marginBottom: spacing.xs,
   },
+  ownMessageText: {
+    color: '#FFFFFF',
+  },
   messageTime: {
     ...typography.bodySmall,
     color: colors.textLight,
     alignSelf: 'flex-end',
+    fontSize: 11,
+  },
+  ownMessageTime: {
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   inputContainer: {
     flexDirection: 'row',
