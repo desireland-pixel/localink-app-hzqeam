@@ -226,10 +226,18 @@ export function registerTravelPostRoutes(app: App) {
         const createdDate = new Date(post.createdAt);
         const formattedCreatedDate = createdDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
 
+        // Check if post is expired (travelDate is in the past)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const travelDateObj = new Date(travelDate);
+        travelDateObj.setHours(0, 0, 0, 0);
+        const isExpired = travelDateObj < today;
+
         return {
           ...post,
           travelDate: formatDateToDDMMYYYY(travelDate),
           travelDateTo: travelDateTo ? formatDateToDDMMYYYY(travelDateTo) : null,
+          isExpired: isExpired,
           formattedTitle: title,
           tag: tag,
           typeEmojis: typeEmojis,
@@ -316,10 +324,18 @@ export function registerTravelPostRoutes(app: App) {
         post.canCarryItems
       );
 
+      // Check if post is expired (travelDate is in the past)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const travelDateObj = new Date(travelDate);
+      travelDateObj.setHours(0, 0, 0, 0);
+      const isExpired = travelDateObj < today;
+
       const response = {
         ...post,
         travelDate: formatDateToDDMMYYYY(travelDate),
         travelDateTo: travelDateTo ? formatDateToDDMMYYYY(travelDateTo) : null,
+        isExpired: isExpired,
         formattedTitle: title,
         tag: tag,
         typeEmojis: typeEmojis,
@@ -648,6 +664,55 @@ export function registerTravelPostRoutes(app: App) {
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id }, 'Failed to fetch user travel posts');
       return reply.status(500).send({ error: 'Failed to fetch travel posts' });
+    }
+  });
+
+  // Delete travel post (only by creator)
+  app.fastify.delete('/api/travel-posts/:id', {
+    schema: {
+      description: 'Delete a travel post (only by creator)',
+      tags: ['travel-posts'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+        },
+        required: ['id'],
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    const { id } = request.params as { id: string };
+    app.logger.info({ userId: session.user.id, travelPostId: id }, 'Deleting travel post');
+
+    try {
+      // Check ownership
+      const existing = await app.db.query.travelPosts.findFirst({
+        where: eq(schema.travelPosts.id, id),
+      });
+
+      if (!existing) {
+        app.logger.warn({ travelPostId: id }, 'Travel post not found');
+        return reply.status(404).send({ error: 'Travel post not found' });
+      }
+
+      if (existing.userId !== session.user.id) {
+        app.logger.warn({ userId: session.user.id, travelPostId: id }, 'Unauthorized travel post delete attempt');
+        return reply.status(403).send({ error: 'You can only delete your own travel posts' });
+      }
+
+      // Delete the travel post
+      await app.db
+        .delete(schema.travelPosts)
+        .where(eq(schema.travelPosts.id, id));
+
+      app.logger.info({ travelPostId: id, userId: session.user.id }, 'Travel post deleted successfully');
+      return { success: true };
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id, travelPostId: id }, 'Failed to delete travel post');
+      return reply.status(500).send({ error: 'Failed to delete travel post' });
     }
   });
 }
