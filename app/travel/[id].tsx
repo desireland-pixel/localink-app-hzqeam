@@ -148,7 +148,7 @@ export default function TravelDetailsScreen() {
     setDeleting(true);
     
     try {
-      await authenticatedPatch(`/api/travel-posts/${id}`, { status: 'closed' });
+      await authenticatedPatch(`/api/travel-posts/${id}/close`, {});
       console.log('TravelDetailsScreen: Post closed successfully');
       setShowDeleteModal(false);
       router.back();
@@ -217,36 +217,37 @@ export default function TravelDetailsScreen() {
         <View style={styles.card}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>{titleText}</Text>
-            <View style={styles.actionButtons}>
-              <TouchableOpacity style={styles.editButton} onPress={handleShare}>
-                <IconSymbol
-                  ios_icon_name="square.and.arrow.up"
-                  android_material_icon_name="share"
-                  size={20}
-                  color={colors.text}
-                />
-              </TouchableOpacity>
-              {isOwnPost && (
-                <>
-                  <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-                    <IconSymbol
-                      ios_icon_name="pencil"
-                      android_material_icon_name="edit"
-                      size={20}
-                      color={colors.primary}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.editButton, styles.deleteButton]} onPress={() => setShowDeleteModal(true)}>
-                    <IconSymbol
-                      ios_icon_name="trash"
-                      android_material_icon_name="delete"
-                      size={20}
-                      color="#FF3B30"
-                    />
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
+            {isOwnPost ? (
+              <View style={styles.actionButtons}>
+                <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                  <IconSymbol
+                    ios_icon_name="pencil"
+                    android_material_icon_name="edit"
+                    size={20}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.editButton} onPress={handleShare}>
+                  <IconSymbol
+                    ios_icon_name="square.and.arrow.up"
+                    android_material_icon_name="share"
+                    size={20}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.actionButtons}>
+                <TouchableOpacity style={styles.editButton} onPress={handleShare}>
+                  <IconSymbol
+                    ios_icon_name="square.and.arrow.up"
+                    android_material_icon_name="share"
+                    size={20}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
           
           <View style={styles.tagIconRow}>
@@ -295,6 +296,18 @@ export default function TravelDetailsScreen() {
             <Text style={styles.userLabel}>Posted by:</Text>
             <Text style={styles.userName}>{travelPost.user.username || travelPost.user.name}</Text>
           </View>
+          
+          {isOwnPost && (
+            <TouchableOpacity style={styles.deleteButton} onPress={() => setShowDeleteModal(true)}>
+              <IconSymbol
+                ios_icon_name="trash"
+                android_material_icon_name="delete"
+                size={20}
+                color="#FF3B30"
+              />
+              <Text style={styles.deleteButtonText}>Delete Post</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {!isOwnPost && (
@@ -403,9 +416,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  deleteButton: {
-    borderColor: '#FF3B30',
-  },
   tagIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -482,6 +492,23 @@ const styles = StyleSheet.create({
   userName: {
     ...typography.body,
     color: colors.text,
+    fontWeight: '600',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: '#FF3B30',
+    gap: spacing.xs,
+  },
+  deleteButtonText: {
+    ...typography.bodySmall,
+    color: '#FF3B30',
     fontWeight: '600',
   },
   contactButton: {

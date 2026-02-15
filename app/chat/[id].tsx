@@ -167,10 +167,23 @@ export default function ChatScreen() {
     console.log('ChatScreen: Fetching messages', id);
     setLoading(true);
     try {
-      const data = await authenticatedGet<Message[]>(`/api/conversations/${id}/messages`);
+      const data = await authenticatedGet<Message[] | { messages: Message[] }>(`/api/conversations/${id}/messages`);
       console.log('ChatScreen: Fetched messages', data);
+      
+      // Handle both array response and object with messages property
+      let messagesArray: Message[] = [];
+      if (Array.isArray(data)) {
+        messagesArray = data;
+      } else if (data && typeof data === 'object' && 'messages' in data && Array.isArray(data.messages)) {
+        messagesArray = data.messages;
+      } else {
+        console.error('ChatScreen: Invalid messages data format', data);
+        setError('Invalid messages data format');
+        return;
+      }
+      
       // Sort messages oldest to newest (ascending order by createdAt)
-      const sortedMessages = [...data].sort((a, b) => {
+      const sortedMessages = [...messagesArray].sort((a, b) => {
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       });
       setMessages(sortedMessages);
@@ -220,7 +233,7 @@ export default function ChatScreen() {
         sender: response.sender || {
           id: user?.id || '',
           name: user?.name || 'You',
-          username: user?.username || user?.name || 'You'
+          username: user?.name || 'You'
         }
       };
       
@@ -256,7 +269,8 @@ export default function ChatScreen() {
     const date = new Date(dateString);
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
+    const timeText = `${hours}:${minutes}`;
+    return timeText;
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
