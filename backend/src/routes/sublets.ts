@@ -90,29 +90,46 @@ export function registerSubletRoutes(app: App) {
 
       // Handle cityRegistrationRequired filter
       // This filter should only apply to offering posts
-      // Seeking posts should always be included regardless of this filter
+      // If a type filter is provided, apply cityRegistrationRequired only to that type
+      // If no type filter is provided, apply cityRegistrationRequired only to offering posts
       if (filters.cityRegistrationRequired === 'yes') {
-        // Include offering posts where cityRegistrationRequired=true, AND all seeking posts
-        conditions.push(
-          or(
-            and(
-              eq(schema.sublets.type, 'offering'),
-              eq(schema.sublets.cityRegistrationRequired, true)
-            )!,
-            eq(schema.sublets.type, 'seeking')
-          )!
-        );
+        if (filters.type) {
+          // Type filter exists, so apply cityRegistrationRequired to the filtered type
+          if (filters.type === 'offering') {
+            conditions.push(eq(schema.sublets.cityRegistrationRequired, true));
+          }
+          // For 'seeking' type, ignore cityRegistrationRequired filter (seeking posts don't have this property)
+        } else {
+          // No type filter, apply cityRegistrationRequired only to offering posts
+          conditions.push(
+            or(
+              and(
+                eq(schema.sublets.type, 'offering'),
+                eq(schema.sublets.cityRegistrationRequired, true)
+              )!,
+              eq(schema.sublets.type, 'seeking')
+            )!
+          );
+        }
       } else if (filters.cityRegistrationRequired === 'no') {
-        // Include offering posts where cityRegistrationRequired=false, AND all seeking posts
-        conditions.push(
-          or(
-            and(
-              eq(schema.sublets.type, 'offering'),
-              eq(schema.sublets.cityRegistrationRequired, false)
-            )!,
-            eq(schema.sublets.type, 'seeking')
-          )!
-        );
+        if (filters.type) {
+          // Type filter exists, so apply cityRegistrationRequired to the filtered type
+          if (filters.type === 'offering') {
+            conditions.push(eq(schema.sublets.cityRegistrationRequired, false));
+          }
+          // For 'seeking' type, ignore cityRegistrationRequired filter (seeking posts don't have this property)
+        } else {
+          // No type filter, apply cityRegistrationRequired only to offering posts
+          conditions.push(
+            or(
+              and(
+                eq(schema.sublets.type, 'offering'),
+                eq(schema.sublets.cityRegistrationRequired, false)
+              )!,
+              eq(schema.sublets.type, 'seeking')
+            )!
+          );
+        }
       }
 
       const limit = parseInt(filters.limit || '20');
