@@ -2,14 +2,16 @@ import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { eq, and } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
+import { formatDateToDDMMYYYY } from '../utils/date-format.js';
+import { formatTravelPostTitle, getTravelPostTypeEmojis } from '../utils/travel-post-formatter.js';
 
 interface CreateFavoriteBody {
   postId: string;
-  postType: 'sublet' | 'travel';
+  postType: 'sublet' | 'travel' | 'community';
 }
 
 interface FavoriteCheckQuery {
-  postType: 'sublet' | 'travel';
+  postType: 'sublet' | 'travel' | 'community';
 }
 
 export function registerFavoriteRoutes(app: App) {
@@ -25,7 +27,7 @@ export function registerFavoriteRoutes(app: App) {
         required: ['postId', 'postType'],
         properties: {
           postId: { type: 'string', format: 'uuid' },
-          postType: { type: 'string', enum: ['sublet', 'travel'] },
+          postType: { type: 'string', enum: ['sublet', 'travel', 'community'] },
         },
       },
       response: {
@@ -94,7 +96,7 @@ export function registerFavoriteRoutes(app: App) {
       querystring: {
         type: 'object',
         properties: {
-          postType: { type: 'string', enum: ['sublet', 'travel'] },
+          postType: { type: 'string', enum: ['sublet', 'travel', 'community'] },
         },
         required: ['postType'],
       },
@@ -157,7 +159,7 @@ export function registerFavoriteRoutes(app: App) {
       querystring: {
         type: 'object',
         properties: {
-          postType: { type: 'string', enum: ['sublet', 'travel'] },
+          postType: { type: 'string', enum: ['sublet', 'travel', 'community'] },
         },
         required: ['postType'],
       },
@@ -224,23 +226,155 @@ export function registerFavoriteRoutes(app: App) {
         .limit(pageLimit)
         .offset(pageOffset);
 
-      // For each favorite, fetch the corresponding post details
+      // For each favorite, fetch the corresponding post details with full formatting
       const favoritesWithPosts = await Promise.all(
         favorites.map(async (fav) => {
-          let post = null;
+          let post: any = null;
 
           if (fav.postType === 'sublet') {
-            post = await app.db.query.sublets.findFirst({
-              where: eq(schema.sublets.id, fav.postId),
-            });
+            const sublet = await app.db
+              .select({
+                id: schema.sublets.id,
+                userId: schema.sublets.userId,
+                type: schema.sublets.type,
+                title: schema.sublets.title,
+                description: schema.sublets.description,
+                city: schema.sublets.city,
+                availableFrom: schema.sublets.availableFrom,
+                availableTo: schema.sublets.availableTo,
+                rent: schema.sublets.rent,
+                imageUrls: schema.sublets.imageUrls,
+                address: schema.sublets.address,
+                pincode: schema.sublets.pincode,
+                cityRegistrationRequired: schema.sublets.cityRegistrationRequired,
+                deposit: schema.sublets.deposit,
+                status: schema.sublets.status,
+                createdAt: schema.sublets.createdAt,
+                updatedAt: schema.sublets.updatedAt,
+                username: schema.profiles.username,
+              })
+              .from(schema.sublets)
+              .leftJoin(schema.profiles, eq(schema.sublets.userId, schema.profiles.userId))
+              .where(eq(schema.sublets.id, fav.postId))
+              .limit(1);
+
+            if (sublet.length > 0) {
+              const s = sublet[0];
+              const fromDate = String(s.availableFrom);
+              const toDate = String(s.availableTo);
+              post = {
+                ...s,
+                postType: 'sublet',
+                availableFrom: formatDateToDDMMYYYY(fromDate),
+                availableTo: formatDateToDDMMYYYY(toDate),
+                user: {
+                  id: s.userId,
+                  username: s.username || 'Unknown User',
+                },
+                username: undefined,
+              };
+            }
           } else if (fav.postType === 'travel') {
-            post = await app.db.query.travelPosts.findFirst({
-              where: eq(schema.travelPosts.id, fav.postId),
-            });
+            const travel = await app.db
+              .select({
+                id: schema.travelPosts.id,
+                userId: schema.travelPosts.userId,
+                type: schema.travelPosts.type,
+                description: schema.travelPosts.description,
+                fromCity: schema.travelPosts.fromCity,
+                toCity: schema.travelPosts.toCity,
+                travelDate: schema.travelPosts.travelDate,
+                companionshipFor: schema.travelPosts.companionshipFor,
+                travelDateTo: schema.travelPosts.travelDateTo,
+                item: schema.travelPosts.item,
+                canOfferCompanionship: schema.travelPosts.canOfferCompanionship,
+                canCarryItems: schema.travelPosts.canCarryItems,
+                status: schema.travelPosts.status,
+                createdAt: schema.travelPosts.createdAt,
+                updatedAt: schema.travelPosts.updatedAt,
+                username: schema.profiles.username,
+              })
+              .from(schema.travelPosts)
+              .leftJoin(schema.profiles, eq(schema.travelPosts.userId, schema.profiles.userId))
+              .where(eq(schema.travelPosts.id, fav.postId))
+              .limit(1);
+
+            if (travel.length > 0) {
+              const t = travel[0];
+              const travelDate = String(t.travelDate);
+              const travelDateTo = t.travelDateTo ? String(t.travelDateTo) : null;
+
+              const { title, tag } = formatTravelPostTitle(
+                t.type as 'offering' | 'seeking' | 'seeking-ally',
+                t.fromCity,
+                t.toCity,
+                t.canOfferCompanionship,
+                t.canCarryItems
+              );
+              const typeEmojis = getTravelPostTypeEmojis(
+                t.type as 'offering' | 'seeking' | 'seeking-ally',
+                t.canOfferCompanionship,
+                t.canCarryItems
+              );
+
+              post = {
+                ...t,
+                postType: 'travel',
+                travelDate: formatDateToDDMMYYYY(travelDate),
+                travelDateTo: travelDateTo ? formatDateToDDMMYYYY(travelDateTo) : null,
+                formattedTitle: title,
+                tag: tag,
+                typeEmojis: typeEmojis,
+                user: {
+                  id: t.userId,
+                  username: t.username || 'Unknown User',
+                },
+                username: undefined,
+              };
+            }
+          } else if (fav.postType === 'community') {
+            const community = await app.db
+              .select({
+                id: schema.discussionTopics.id,
+                userId: schema.discussionTopics.userId,
+                category: schema.discussionTopics.category,
+                title: schema.discussionTopics.title,
+                description: schema.discussionTopics.description,
+                status: schema.discussionTopics.status,
+                repliesCount: schema.discussionTopics.repliesCount,
+                createdAt: schema.discussionTopics.createdAt,
+                updatedAt: schema.discussionTopics.updatedAt,
+                username: schema.profiles.username,
+              })
+              .from(schema.discussionTopics)
+              .leftJoin(schema.profiles, eq(schema.discussionTopics.userId, schema.profiles.userId))
+              .where(eq(schema.discussionTopics.id, fav.postId))
+              .limit(1);
+
+            if (community.length > 0) {
+              const c = community[0];
+              const createdDate = new Date(c.createdAt);
+              const formattedCreatedDate = createdDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
+
+              post = {
+                ...c,
+                postType: 'community',
+                shortId: undefined, // Will be calculated by frontend if needed
+                user: {
+                  id: c.userId,
+                  username: c.username || 'Unknown User',
+                },
+                byline: `by ${c.username || 'Unknown User'} on ${formattedCreatedDate}`,
+                username: undefined,
+              };
+            }
           }
 
           return {
-            ...fav,
+            favoriteId: fav.id,
+            postId: fav.postId,
+            postType: fav.postType,
+            createdAt: fav.createdAt,
             post,
           };
         })

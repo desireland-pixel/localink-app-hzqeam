@@ -280,11 +280,24 @@ export function registerConversationRoutes(app: App) {
         })
         .returning();
 
+      // Fetch sender profile to include username
+      const senderProfile = await app.db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, session.user.id),
+      });
+
       // Update conversation lastMessageAt
       await app.db
         .update(schema.conversations)
         .set({ lastMessageAt: new Date() })
         .where(eq(schema.conversations.id, id));
+
+      const messageWithSender = {
+        ...message,
+        sender: {
+          id: session.user.id,
+          username: senderProfile?.username || session.user.email,
+        },
+      };
 
       app.logger.info({ messageId: message.id, conversationId: id, userId: session.user.id }, 'Message sent successfully');
 
@@ -296,10 +309,10 @@ export function registerConversationRoutes(app: App) {
       wsManager.broadcastToUsers([recipientId], {
         type: 'new_message',
         conversationId: id,
-        message,
+        message: messageWithSender,
       });
 
-      return message;
+      return messageWithSender;
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, conversationId: id }, 'Failed to send message');
       return reply.status(500).send({ error: 'Failed to send message' });

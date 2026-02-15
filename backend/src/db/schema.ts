@@ -101,12 +101,12 @@ export const messages = pgTable('messages', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-// Favorites (Likes)
+// Favorites (Likes) - for sublets, travel posts, and community discussions
 export const favorites = pgTable('favorites', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   postId: uuid('post_id').notNull(),
-  postType: text('post_type', { enum: ['sublet', 'travel'] }).notNull(),
+  postType: text('post_type', { enum: ['sublet', 'travel', 'community'] }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
   uniqueFavorite: uniqueIndex('favorites_user_post_type_idx').on(table.userId, table.postId, table.postType),

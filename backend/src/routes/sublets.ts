@@ -63,6 +63,7 @@ export function registerSubletRoutes(app: App) {
     try {
       const conditions: any[] = [eq(schema.sublets.status, 'active')];
 
+      // Handle type filter
       if (filters.type) {
         conditions.push(eq(schema.sublets.type, filters.type));
       }
@@ -87,21 +88,28 @@ export function registerSubletRoutes(app: App) {
         conditions.push(lte(schema.sublets.rent, filters.maxRent));
       }
 
+      // Handle cityRegistrationRequired filter
+      // This filter should only apply to offering posts
+      // Seeking posts should always be included regardless of this filter
       if (filters.cityRegistrationRequired === 'yes') {
-        // For offering posts only, filter by cityRegistrationRequired=true
-        // Seeking posts don't have this requirement
+        // Include offering posts where cityRegistrationRequired=true, AND all seeking posts
         conditions.push(
           or(
-            eq(schema.sublets.cityRegistrationRequired, true),
+            and(
+              eq(schema.sublets.type, 'offering'),
+              eq(schema.sublets.cityRegistrationRequired, true)
+            )!,
             eq(schema.sublets.type, 'seeking')
           )!
         );
       } else if (filters.cityRegistrationRequired === 'no') {
-        // For offering posts, show those without registration requirement
-        // For seeking posts, show all
+        // Include offering posts where cityRegistrationRequired=false, AND all seeking posts
         conditions.push(
           or(
-            eq(schema.sublets.cityRegistrationRequired, false),
+            and(
+              eq(schema.sublets.type, 'offering'),
+              eq(schema.sublets.cityRegistrationRequired, false)
+            )!,
             eq(schema.sublets.type, 'seeking')
           )!
         );

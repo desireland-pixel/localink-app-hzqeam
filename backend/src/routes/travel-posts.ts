@@ -106,8 +106,8 @@ export function registerTravelPostRoutes(app: App) {
       }
 
       // Filter by type (companionship/ally)
-      // 'companionship' = offering with canOfferCompanionship OR seeking (default)
-      // 'ally' = offering with canCarryItems OR seeking-ally
+      // 'companionship' = seeking posts OR offering with canOfferCompanionship
+      // 'ally' = seeking-ally posts OR offering with canCarryItems
       if (filters.type) {
         const types = filters.type.split(',').map(t => t.trim());
         const typeConditions: any[] = [];
@@ -115,35 +115,37 @@ export function registerTravelPostRoutes(app: App) {
         for (const t of types) {
           if (t === 'companionship') {
             // seeking posts are companionship, or offering with canOfferCompanionship
-            typeConditions.push(eq(schema.travelPosts.type, 'seeking'));
             typeConditions.push(
-              and(
-                eq(schema.travelPosts.type, 'offering'),
-                eq(schema.travelPosts.canOfferCompanionship, true)
+              or(
+                eq(schema.travelPosts.type, 'seeking'),
+                and(
+                  eq(schema.travelPosts.type, 'offering'),
+                  eq(schema.travelPosts.canOfferCompanionship, true)
+                )!
               )!
             );
           } else if (t === 'ally') {
             // seeking-ally posts, or offering with canCarryItems
-            typeConditions.push(eq(schema.travelPosts.type, 'seeking-ally'));
             typeConditions.push(
-              and(
-                eq(schema.travelPosts.type, 'offering'),
-                eq(schema.travelPosts.canCarryItems, true)
+              or(
+                eq(schema.travelPosts.type, 'seeking-ally'),
+                and(
+                  eq(schema.travelPosts.type, 'offering'),
+                  eq(schema.travelPosts.canCarryItems, true)
+                )!
               )!
             );
           }
         }
 
         if (typeConditions.length > 0) {
-          // Combine with OR if multiple types selected
-          conditions.push(
-            or(
-              ...typeConditions.map((cond, idx) => {
-                // Group by type (companionship conditions, then ally conditions)
-                return cond;
-              })
-            )!
-          );
+          // If multiple type filters are selected, combine them with OR
+          // If only one is selected, use that condition directly
+          if (typeConditions.length === 1) {
+            conditions.push(typeConditions[0]);
+          } else {
+            conditions.push(or(...typeConditions)!);
+          }
         }
       }
 
@@ -221,6 +223,9 @@ export function registerTravelPostRoutes(app: App) {
           post.canCarryItems
         );
 
+        const createdDate = new Date(post.createdAt);
+        const formattedCreatedDate = createdDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
+
         return {
           ...post,
           travelDate: formatDateToDDMMYYYY(travelDate),
@@ -232,6 +237,7 @@ export function registerTravelPostRoutes(app: App) {
             id: post.userId,
             username: post.username || 'Unknown User',
           },
+          byline: `by ${post.username || 'Unknown User'} on ${formattedCreatedDate}`,
           username: undefined,
         };
       });
