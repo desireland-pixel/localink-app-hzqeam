@@ -198,9 +198,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUnreadCountInternal = async () => {
     try {
-      const response = await authenticatedGet<{ totalUnreadCount: number }>('/api/conversations/unread-count');
-      console.log('[AuthContext] Unread count fetched:', response.totalUnreadCount);
-      setUnreadCount(response.totalUnreadCount);
+      const response = await authenticatedGet<{ unreadConversationCount: number }>('/api/conversations/unread-count');
+      console.log('[AuthContext] Unread count fetched:', response.unreadConversationCount);
+      setUnreadCount(response.unreadConversationCount || 0);
     } catch (error: any) {
       console.error('[AuthContext] Failed to fetch unread count:', error);
       setUnreadCount(0);
@@ -286,6 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null);
       setProfile(null);
+      setUnreadCount(0);
       await clearAuthTokens();
     }
   };

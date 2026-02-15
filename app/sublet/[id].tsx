@@ -150,7 +150,7 @@ export default function SubletDetailsScreen() {
     setDeleting(true);
     
     try {
-      await authenticatedPatch(`/api/sublets/${id}`, { status: 'closed' });
+      await authenticatedPatch(`/api/sublets/${id}/close`, {});
       console.log('SubletDetailsScreen: Post closed successfully');
       setShowDeleteModal(false);
       router.back();
@@ -212,16 +212,8 @@ export default function SubletDetailsScreen() {
           <View style={styles.typeTag}>
             <Text style={styles.typeTagText}>{typeLabel}</Text>
           </View>
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
-              <IconSymbol
-                ios_icon_name="square.and.arrow.up"
-                android_material_icon_name="share"
-                size={20}
-                color={colors.text}
-              />
-            </TouchableOpacity>
-            {isOwnPost && (
+          {isOwnPost ? (
+            <View style={styles.actionButtons}>
               <TouchableOpacity style={styles.actionButton} onPress={handleEdit}>
                 <IconSymbol
                   ios_icon_name="pencil"
@@ -230,18 +222,27 @@ export default function SubletDetailsScreen() {
                   color={colors.text}
                 />
               </TouchableOpacity>
-            )}
-            {isOwnPost && (
-              <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={() => setShowDeleteModal(true)}>
+              <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
                 <IconSymbol
-                  ios_icon_name="trash"
-                  android_material_icon_name="delete"
+                  ios_icon_name="square.and.arrow.up"
+                  android_material_icon_name="share"
                   size={20}
-                  color="#FF3B30"
+                  color={colors.text}
                 />
               </TouchableOpacity>
-            )}
-          </View>
+            </View>
+          ) : (
+            <View style={styles.actionButtons}>
+              <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
+                <IconSymbol
+                  ios_icon_name="square.and.arrow.up"
+                  android_material_icon_name="share"
+                  size={20}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         <Text style={styles.title}>{sublet.title}</Text>
@@ -313,6 +314,17 @@ export default function SubletDetailsScreen() {
               </TouchableOpacity>
             )}
           </View>
+          {isOwnPost && (
+            <TouchableOpacity style={styles.deleteButton} onPress={() => setShowDeleteModal(true)}>
+              <IconSymbol
+                ios_icon_name="trash"
+                android_material_icon_name="delete"
+                size={20}
+                color="#FF3B30"
+              />
+              <Text style={styles.deleteButtonText}>Delete Post</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
@@ -430,9 +442,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  deleteButton: {
-    borderColor: '#FF3B30',
-  },
   title: {
     ...typography.h2,
     color: colors.text,
@@ -529,6 +538,23 @@ const styles = StyleSheet.create({
   msgButtonText: {
     ...typography.bodySmall,
     color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: '#FF3B30',
+    gap: spacing.xs,
+  },
+  deleteButtonText: {
+    ...typography.bodySmall,
+    color: '#FF3B30',
     fontWeight: '600',
   },
   footer: {
