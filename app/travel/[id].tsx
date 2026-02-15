@@ -76,7 +76,7 @@ export default function TravelDetailsScreen() {
       
       console.log('[TravelDetails] Creating conversation with postId:', postId, 'recipientId:', recipientId);
       
-      const response = await authenticatedPost<{ conversationId: string; conversation: any }>(
+      const response = await authenticatedPost<{ id: string; conversationId?: string }>(
         '/api/conversations',
         {
           postId: postId,
@@ -86,8 +86,15 @@ export default function TravelDetailsScreen() {
       );
       console.log('[TravelDetails] Conversation created:', response);
       
+      // Backend returns { id: ... } not { conversationId: ... }
+      const conversationId = response.conversationId || response.id;
+      
+      if (!conversationId) {
+        throw new Error('No conversation ID returned from server');
+      }
+      
       // Navigate to the chat
-      router.push(`/chat/${response.conversationId}`);
+      router.push(`/chat/${conversationId}`);
     } catch (err) {
       console.error('[TravelDetails] Error creating conversation:', err);
       const errorMsg = err instanceof Error ? err.message : 'Failed to start conversation';

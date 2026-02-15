@@ -285,7 +285,7 @@ export function searchCities(query: string, maxResults: number = 10): string[] {
 
 /**
  * Format date to dd.mm.yyyy
- * @param date - Date object or ISO string
+ * @param date - Date object, ISO string, or dd.mm.yyyy string
  * @returns Formatted date string in dd.mm.yyyy format
  */
 export function formatDateToDDMMYYYY(date: Date | string | null | undefined): string {
@@ -295,6 +295,11 @@ export function formatDateToDDMMYYYY(date: Date | string | null | undefined): st
   }
   
   try {
+    // If it's already in dd.mm.yyyy format, return it
+    if (typeof date === 'string' && /^\d{2}\.\d{2}\.\d{4}$/.test(date)) {
+      return date;
+    }
+    
     const d = typeof date === 'string' ? new Date(date) : date;
     
     // Check if date is invalid

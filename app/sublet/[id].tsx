@@ -75,7 +75,7 @@ export default function SubletDetailsScreen() {
       
       console.log('SubletDetailsScreen: Creating conversation with postId:', postId, 'recipientId:', recipientId);
       
-      const response = await authenticatedPost<{ conversationId: string }>(
+      const response = await authenticatedPost<{ id: string; conversationId?: string }>(
         '/api/conversations',
         {
           postId: postId,
@@ -84,7 +84,15 @@ export default function SubletDetailsScreen() {
         }
       );
       console.log('SubletDetailsScreen: Conversation created', response);
-      router.push(`/chat/${response.conversationId}`);
+      
+      // Backend returns { id: ... } not { conversationId: ... }
+      const conversationId = response.conversationId || response.id;
+      
+      if (!conversationId) {
+        throw new Error('No conversation ID returned from server');
+      }
+      
+      router.push(`/chat/${conversationId}`);
     } catch (error: any) {
       console.error('SubletDetailsScreen: Error creating conversation', error);
       const errorMsg = error.message || 'Failed to start conversation';
