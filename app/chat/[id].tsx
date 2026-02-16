@@ -15,6 +15,8 @@ interface Message {
   senderId: string;
   content: string;
   createdAt: string;
+  isRead?: boolean;
+  readAt?: string;
   sender?: {
     id: string;
     name: string;
@@ -314,7 +316,8 @@ export default function ChatScreen() {
         strictEqual: currentUserId === messageSenderId,
         looseEqual: currentUserId == messageSenderId,
         senderName: item.sender?.name,
-        content: item.content.substring(0, 30)
+        content: item.content.substring(0, 30),
+        isRead: item.isRead
       });
     }
 
@@ -331,12 +334,19 @@ export default function ChatScreen() {
         ]}>
           {item.content}
         </Text>
-        <Text style={[
-          styles.messageTime,
-          isOwnMessage && styles.ownMessageTime
-        ]}>
-          {time}
-        </Text>
+        <View style={styles.messageFooter}>
+          <Text style={[
+            styles.messageTime,
+            isOwnMessage && styles.ownMessageTime
+          ]}>
+            {time}
+          </Text>
+          {isOwnMessage && (
+            <Text style={styles.readReceipt}>
+              {item.isRead ? '✓✓' : '✓'}
+            </Text>
+          )}
+        </View>
       </View>
     );
   };
@@ -441,12 +451,12 @@ const styles = StyleSheet.create({
   headerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
-    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
+    borderRadius: borderRadius.md,
     marginRight: spacing.sm,
-    maxWidth: 150,
+    maxWidth: 180,
   },
   headerButtonEmoji: {
     fontSize: 14,
@@ -454,8 +464,9 @@ const styles = StyleSheet.create({
   },
   headerButtonText: {
     ...typography.bodySmall,
-    color: colors.text,
+    color: '#FFFFFF',
     fontSize: 12,
+    fontWeight: '600',
   },
   messagesContainer: {
     flex: 1,
@@ -488,14 +499,25 @@ const styles = StyleSheet.create({
   ownMessageText: {
     color: '#FFFFFF',
   },
+  messageFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+  },
   messageTime: {
     ...typography.bodySmall,
     color: colors.textLight,
-    alignSelf: 'flex-end',
     fontSize: 11,
   },
   ownMessageTime: {
     color: 'rgba(255, 255, 255, 0.8)',
+  },
+  readReceipt: {
+    ...typography.bodySmall,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 11,
+    fontWeight: '600',
   },
   inputContainer: {
     flexDirection: 'row',

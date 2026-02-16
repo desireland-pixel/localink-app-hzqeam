@@ -194,26 +194,41 @@ export default function TravelDetailsScreen() {
   
   // Determine tag label and icons
   let tagLabel = '';
-  let icons = '';
+  let iconElements: React.ReactNode[] = [];
   
   if (travelPost.type === 'offering') {
     tagLabel = 'Offering';
     const hasCompanionship = travelPost.canOfferCompanionship;
     const hasCarry = travelPost.canCarryItems;
     
-    if (hasCompanionship && hasCarry) {
-      icons = '👥 📦';
-    } else if (hasCompanionship) {
-      icons = '👥';
-    } else if (hasCarry) {
-      icons = '📦';
+    if (hasCompanionship) {
+      iconElements.push(
+        <View key="companionship" style={styles.iconBadge}>
+          <Text style={styles.iconBadgeText}>👥 Companionship</Text>
+        </View>
+      );
+    }
+    if (hasCarry) {
+      iconElements.push(
+        <View key="carry" style={styles.iconBadge}>
+          <Text style={styles.iconBadgeText}>📦 Carry Items</Text>
+        </View>
+      );
     }
   } else if (travelPost.type === 'seeking') {
     tagLabel = 'Seeking';
-    icons = '👥';
+    iconElements.push(
+      <View key="companionship" style={styles.iconBadge}>
+        <Text style={styles.iconBadgeText}>👥 Companionship</Text>
+      </View>
+    );
   } else if (travelPost.type === 'seeking-ally') {
     tagLabel = 'Seeking';
-    icons = '📦';
+    iconElements.push(
+      <View key="carry" style={styles.iconBadge}>
+        <Text style={styles.iconBadgeText}>📦 Carry Items</Text>
+      </View>
+    );
   }
   
   const titleText = `${travelPost.fromCity} ✈️ ${travelPost.toCity}`;
@@ -255,10 +270,13 @@ export default function TravelDetailsScreen() {
                 <Text style={styles.badgeText}>{tagLabel}</Text>
               </View>
             )}
-            {icons && (
-              <Text style={styles.iconText}>{icons}</Text>
-            )}
           </View>
+          
+          {iconElements.length > 0 && (
+            <View style={styles.iconBadgesContainer}>
+              {iconElements}
+            </View>
+          )}
 
           <View style={styles.postIdContainer}>
             <Text style={styles.postIdLabel}>Post ID:</Text>
@@ -444,8 +462,24 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
   },
-  iconText: {
-    fontSize: 16,
+  iconBadgesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  iconBadge: {
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  iconBadgeText: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontSize: 12,
   },
   postIdContainer: {
     flexDirection: 'row',

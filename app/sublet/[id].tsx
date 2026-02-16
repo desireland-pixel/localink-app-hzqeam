@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Share, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Share, Platform, FlatList, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -9,6 +9,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface Sublet {
   id: string;
@@ -37,13 +39,15 @@ export default function SubletDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const flatListRef = useRef<FlatList>(null);
   const [sublet, setSublet] = useState<Sublet | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  console.log('SubletDetailsScreen: Rendering', { id, sublet });
+  console.log('SubletDetailsScreen: Rendering', { id, sublet, imageCount: sublet?.imageUrls?.length });
 
   useEffect(() => {
     if (id) {
@@ -186,16 +190,52 @@ export default function SubletDetailsScreen() {
   const fromDateDisplay = formatDateToDDMMYYYY(sublet.availableFrom);
   const toDateDisplay = formatDateToDDMMYYYY(sublet.availableTo);
   const isOwnPost = user?.id === sublet.userId;
-  const hasImage = sublet.imageUrls && sublet.imageUrls.length > 0;
+  const hasImages = sublet.imageUrls && sublet.imageUrls.length > 0;
+  const imageCount = sublet.imageUrls?.length || 0;
   const typeLabel = sublet.type === 'offering' ? 'Offering' : 'Seeking';
   const displayId = sublet.shortId || sublet.id.substring(0, 8);
+
+  const handleScroll = (event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(contentOffsetX / SCREEN_WIDTH);
+    setCurrentImageIndex(index);
+  };
+
+  const renderImageItem = ({ item }: { item: string }) => (
+    <Image source={{ uri: item }} style={styles.image} resizeMode="cover" />
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
         <View style={styles.imageContainer}>
-          {hasImage ? (
-            <Image source={{ uri: sublet.imageUrls![0] }} style={styles.image} />
+          {hasImages ? (
+            <>
+              <FlatList
+                ref={flatListRef}
+                data={sublet.imageUrls}
+                renderItem={renderImageItem}
+                keyExtractor={(item, index) => `image-${index}`}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+              />
+              {imageCount > 1 && (
+                <View style={styles.imageIndicatorContainer}>
+                  {sublet.imageUrls!.map((_, index) => (
+                    <View
+                      key={`indicator-${index}`}
+                      style={[
+                        styles.imageIndicator,
+                        index === currentImageIndex && styles.imageIndicatorActive,
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
+            </>
           ) : (
             <View style={styles.imagePlaceholder}>
               <IconSymbol
@@ -397,9 +437,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 250,
     backgroundColor: colors.border,
+    position: 'relative',
   },
   image: {
-    width: '100%',
+    width: SCREEN_WIDTH,
     height: 250,
   },
   imagePlaceholder: {
@@ -413,6 +454,26 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textLight,
     marginTop: spacing.sm,
+  },
+  imageIndicatorContainer: {
+    position: 'absolute',
+    bottom: spacing.md,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  imageIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  imageIndicatorActive: {
+    backgroundColor: '#FFFFFF',
+    width: 24,
   },
   headerActions: {
     flexDirection: 'row',

@@ -21,6 +21,7 @@ interface Profile {
   createdAt: string;
   updatedAt: string;
   isProfileComplete?: boolean;
+  gdprConsentAccepted?: boolean;
 }
 
 interface AuthContextType {

@@ -20,8 +20,9 @@ export default function PersonalDetailsScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [gdprConsent, setGdprConsent] = useState(false);
 
-  console.log('PersonalDetailsScreen: Rendering', { user: user?.id, profile: profile?.name });
+  console.log('PersonalDetailsScreen: Rendering', { user: user?.id, profile: profile?.name, gdprConsent });
 
   useEffect(() => {
     if (user) {
@@ -31,6 +32,7 @@ export default function PersonalDetailsScreen() {
       setName(profile.name || user?.name || '');
       setCity(profile.city || '');
       setUsername(profile.username || '');
+      setGdprConsent((profile as any).gdprConsentAccepted || false);
     } else if (user) {
       setName(user.name || '');
     }
@@ -54,11 +56,17 @@ export default function PersonalDetailsScreen() {
     setSuccess('');
 
     try {
-      await authenticatedPut('/api/profile', {
-        name: name.trim(),
+      const updateData: any = {
         username: username.trim(),
         city: city.trim(),
-      });
+      };
+      
+      // Only include gdprConsentAccepted if it's been checked
+      if (gdprConsent) {
+        updateData.gdprConsentAccepted = true;
+      }
+      
+      await authenticatedPut('/api/profile', updateData);
       setSuccess('Personal details updated successfully');
       await refreshProfile();
       
@@ -225,6 +233,22 @@ export default function PersonalDetailsScreen() {
           <Text style={styles.photoButtonText}>Add a photo</Text>
         </TouchableOpacity>
 
+        <View style={styles.gdprContainer}>
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => setGdprConsent(!gdprConsent)}
+          >
+            <View style={[styles.checkbox, gdprConsent && styles.checkboxChecked]}>
+              {gdprConsent && (
+                <Text style={styles.checkboxIcon}>✓</Text>
+              )}
+            </View>
+            <Text style={styles.gdprText}>
+              I consent to the processing of my personal data in accordance with the GDPR
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
           style={[styles.button, (!isFormValid || loading) && styles.buttonDisabled]}
           onPress={handleSave}
@@ -334,5 +358,40 @@ const styles = StyleSheet.create({
   buttonText: {
     ...typography.button,
     color: '#FFFFFF',
+  },
+  gdprContainer: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  checkboxIcon: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  gdprText: {
+    ...typography.bodySmall,
+    color: colors.text,
+    flex: 1,
+    lineHeight: 20,
   },
 });
