@@ -1,6 +1,6 @@
 import type { App} from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, or, gte, lte, between, desc } from 'drizzle-orm';
+import { eq, and, or, gte, lte, between, desc, isNotNull } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { TRAVEL_CITIES } from '../cities.js';
 import { generateShortId } from '../utils/short-id.js';
@@ -60,6 +60,30 @@ function isFutureDate(dateStr: string): boolean {
   return date >= today;
 }
 
+// Helper function to auto-close expired travel posts
+async function autoCloseExpiredTravelPosts(app: App): Promise<void> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+  // Close offering and seeking posts if travelDate has passed
+  await app.db
+    .update(schema.travelPosts)
+    .set({ status: 'closed', updatedAt: new Date() })
+    .where(and(
+      eq(schema.travelPosts.status, 'active'),
+      or(
+        // Offering and seeking posts: close if travelDate has passed
+        lte(schema.travelPosts.travelDate, todayString),
+        // Seeking posts: close if travelDateTo (end date) has passed
+        and(
+          isNotNull(schema.travelPosts.travelDateTo),
+          lte(schema.travelPosts.travelDateTo, todayString)
+        )
+      )
+    ));
+}
+
 export function registerTravelPostRoutes(app: App) {
   const requireAuth = app.requireAuth();
 
@@ -88,6 +112,9 @@ export function registerTravelPostRoutes(app: App) {
     app.logger.info({ filters }, 'Listing travel posts');
 
     try {
+      // Auto-close expired travel posts
+      await autoCloseExpiredTravelPosts(app);
+
       const conditions: any[] = [eq(schema.travelPosts.status, 'active')];
 
       // Filter by role (offering/seeking)
@@ -624,10 +651,10 @@ export function registerTravelPostRoutes(app: App) {
     }
   });
 
-  // Delete travel post (same as close - marks as closed)
+  // Delete travel post permanently
   app.fastify.delete('/api/travel-posts/:id', {
     schema: {
-      description: 'Delete own travel post (marks as closed)',
+      description: 'Permanently delete own travel post',
       tags: ['travel-posts'],
       params: {
         type: 'object',
@@ -642,7 +669,7 @@ export function registerTravelPostRoutes(app: App) {
     if (!session) return;
 
     const { id } = request.params as { id: string };
-    app.logger.info({ userId: session.user.id, travelPostId: id }, 'Deleting travel post');
+    app.logger.info({ userId: session.user.id, travelPostId: id }, 'Deleting travel post permanently');
 
     try {
       // Check ownership
@@ -660,14 +687,13 @@ export function registerTravelPostRoutes(app: App) {
         return reply.status(403).send({ error: 'You can only delete your own travel posts' });
       }
 
-      const [deleted] = await app.db
-        .update(schema.travelPosts)
-        .set({ status: 'closed', updatedAt: new Date() })
-        .where(eq(schema.travelPosts.id, id))
-        .returning();
+      // Permanently delete the travel post
+      await app.db
+        .delete(schema.travelPosts)
+        .where(eq(schema.travelPosts.id, id));
 
-      app.logger.info({ travelPostId: id, userId: session.user.id }, 'Travel post deleted successfully');
-      return deleted;
+      app.logger.info({ travelPostId: id, userId: session.user.id }, 'Travel post deleted permanently');
+      return { success: true };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, travelPostId: id }, 'Failed to delete travel post');
       return reply.status(500).send({ error: 'Failed to delete travel post' });
