@@ -14,16 +14,24 @@ export function registerWebSocketRoutes(app: App) {
     },
     wsHandler: async (socket: WebSocket, request) => {
       // Validate session from the initial HTTP upgrade request
-      const session = await auth(request, {} as any);
+      let userId: string;
 
-      if (!session) {
-        app.logger.warn('Unauthorized WebSocket connection attempt');
-        socket.send(JSON.stringify({ type: 'error', error: 'Unauthorized' }));
+      try {
+        const session = await auth(request, {} as any);
+
+        if (!session) {
+          app.logger.warn('Unauthorized WebSocket connection attempt');
+          socket.send(JSON.stringify({ type: 'error', error: 'Unauthorized' }));
+          socket.close();
+          return;
+        }
+        userId = session.user.id;
+      } catch (authError) {
+        app.logger.warn({ err: authError }, 'WebSocket authentication error');
+        socket.send(JSON.stringify({ type: 'error', error: 'Authentication failed' }));
         socket.close();
         return;
       }
-
-      const userId = session.user.id;
       app.logger.info({ userId }, 'WebSocket client connected');
 
       // Register client with manager
