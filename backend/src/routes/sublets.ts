@@ -33,6 +33,21 @@ interface SubletBody {
   deposit?: string;
 }
 
+// Helper function to auto-close expired sublets
+async function autoCloseExpiredSublets(app: App): Promise<void> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+  await app.db
+    .update(schema.sublets)
+    .set({ status: 'closed', updatedAt: new Date() })
+    .where(and(
+      eq(schema.sublets.status, 'active'),
+      lte(schema.sublets.availableTo, todayString)
+    ));
+}
+
 export function registerSubletRoutes(app: App) {
   const requireAuth = app.requireAuth();
 
@@ -61,6 +76,9 @@ export function registerSubletRoutes(app: App) {
     app.logger.info({ filters }, 'Listing sublets');
 
     try {
+      // Auto-close expired sublets
+      await autoCloseExpiredSublets(app);
+
       const conditions: any[] = [eq(schema.sublets.status, 'active')];
 
       // Handle type filter
@@ -517,10 +535,10 @@ export function registerSubletRoutes(app: App) {
     }
   });
 
-  // Delete sublet (same as close - marks as closed)
+  // Delete sublet permanently
   app.fastify.delete('/api/sublets/:id', {
     schema: {
-      description: 'Delete own sublet post (marks as closed)',
+      description: 'Permanently delete own sublet post',
       tags: ['sublets'],
       params: {
         type: 'object',
@@ -535,7 +553,7 @@ export function registerSubletRoutes(app: App) {
     if (!session) return;
 
     const { id } = request.params as { id: string };
-    app.logger.info({ userId: session.user.id, subletId: id }, 'Deleting sublet');
+    app.logger.info({ userId: session.user.id, subletId: id }, 'Deleting sublet permanently');
 
     try {
       // Check ownership
@@ -553,14 +571,13 @@ export function registerSubletRoutes(app: App) {
         return reply.status(403).send({ error: 'You can only delete your own sublets' });
       }
 
-      const [deleted] = await app.db
-        .update(schema.sublets)
-        .set({ status: 'closed', updatedAt: new Date() })
-        .where(eq(schema.sublets.id, id))
-        .returning();
+      // Permanently delete the sublet
+      await app.db
+        .delete(schema.sublets)
+        .where(eq(schema.sublets.id, id));
 
-      app.logger.info({ subletId: id, userId: session.user.id }, 'Sublet deleted successfully');
-      return deleted;
+      app.logger.info({ subletId: id, userId: session.user.id }, 'Sublet deleted permanently');
+      return { success: true };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, subletId: id }, 'Failed to delete sublet');
       return reply.status(500).send({ error: 'Failed to delete sublet' });
