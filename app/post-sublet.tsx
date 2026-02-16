@@ -98,6 +98,15 @@ export default function PostSubletScreen() {
 
       if (!result.canceled && result.assets.length > 0) {
         console.log('PostSubletScreen: Images selected', result.assets.length);
+        
+        // Check file sizes before uploading
+        for (const asset of result.assets) {
+          if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+            setError('Photo size should be less than 5 mb');
+            return;
+          }
+        }
+        
         setUploadingImages(true);
         
         try {
@@ -137,6 +146,11 @@ export default function PostSubletScreen() {
           if (!response.ok) {
             const errorText = await response.text();
             console.error('PostSubletScreen: Upload failed', response.status, errorText);
+            
+            // Check for size limit error from backend
+            if (errorText.includes('5 mb') || errorText.includes('5MB')) {
+              throw new Error('Photo size should be less than 5 mb');
+            }
             throw new Error('Failed to upload images');
           }
 

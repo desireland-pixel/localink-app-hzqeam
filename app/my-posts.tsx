@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, A
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedGet, authenticatedPatch, authenticatedPut } from '@/utils/api';
+import { authenticatedGet, authenticatedPatch, authenticatedPut, authenticatedDelete } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import Modal from '@/components/ui/Modal';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -33,6 +33,9 @@ export default function MyPostsScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [error, setError] = useState('');
   const [closingPostId, setClosingPostId] = useState<string | null>(null);
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
 
   console.log('MyPostsScreen: Rendering', { selectedTab, postsCount: posts.length });
 
@@ -93,6 +96,31 @@ export default function MyPostsScreen() {
     }
   };
 
+  const handleDeletePost = async () => {
+    if (!postToDelete) return;
+    console.log('MyPostsScreen: Deleting post permanently', { postId: postToDelete, selectedTab });
+    setDeletingPostId(postToDelete);
+    
+    try {
+      if (selectedTab === 'sublet') {
+        await authenticatedDelete(`/api/sublets/${postToDelete}`, {});
+      } else if (selectedTab === 'travel') {
+        await authenticatedDelete(`/api/travel-posts/${postToDelete}`, {});
+      } else if (selectedTab === 'community') {
+        await authenticatedDelete(`/api/community/topics/${postToDelete}`, {});
+      }
+      console.log('MyPostsScreen: Post deleted successfully');
+      setShowDeleteModal(false);
+      setPostToDelete(null);
+      await fetchPosts();
+    } catch (error: any) {
+      console.error('MyPostsScreen: Error deleting post', error);
+      setError(error.message || 'Failed to delete post');
+    } finally {
+      setDeletingPostId(null);
+    }
+  };
+
   const handleViewPost = (postId: string) => {
     console.log('MyPostsScreen: View post', { postId, selectedTab });
     if (selectedTab === 'sublet') {
@@ -106,12 +134,33 @@ export default function MyPostsScreen() {
 
   const handleEditPost = (postId: string) => {
     console.log('MyPostsScreen: Edit post', { postId, selectedTab });
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+    
     if (selectedTab === 'sublet') {
-      router.push(`/edit-sublet/${postId}`);
+      router.push({
+        pathname: '/post-sublet',
+        params: {
+          editId: postId,
+          editData: JSON.stringify(post),
+        },
+      });
     } else if (selectedTab === 'travel') {
-      router.push(`/edit-travel/${postId}`);
+      router.push({
+        pathname: '/post-travel',
+        params: {
+          editId: postId,
+          editData: JSON.stringify(post),
+        },
+      });
     } else if (selectedTab === 'community') {
-      router.push(`/edit-community/${postId}`);
+      router.push({
+        pathname: '/post-community-topic',
+        params: {
+          editId: postId,
+          editData: JSON.stringify(post),
+        },
+      });
     }
   };
 
@@ -258,7 +307,7 @@ export default function MyPostsScreen() {
                           />
                         </TouchableOpacity>
                       )}
-                      {!isClosed && (
+                      {!isClosed ? (
                         <TouchableOpacity
                           style={[styles.closeButton, isClosing && styles.closeButtonDisabled]}
                           onPress={(e) => {
@@ -271,6 +320,22 @@ export default function MyPostsScreen() {
                             <ActivityIndicator size="small" color={colors.primary} />
                           ) : (
                             <Text style={styles.closeButtonText}>Close</Text>
+                          )}
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          style={[styles.deleteButton, deletingPostId === post.id && styles.deleteButtonDisabled]}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            setPostToDelete(post.id);
+                            setShowDeleteModal(true);
+                          }}
+                          disabled={deletingPostId === post.id}
+                        >
+                          {deletingPostId === post.id ? (
+                            <ActivityIndicator size="small" color="#FF3B30" />
+                          ) : (
+                            <Text style={styles.deleteButtonText}>Delete</Text>
                           )}
                         </TouchableOpacity>
                       )}
@@ -289,6 +354,33 @@ export default function MyPostsScreen() {
         message={error}
         onClose={() => setError('')}
         type="error"
+      />
+
+      <Modal
+        visible={showDeleteModal}
+        title="Delete Post"
+        message="Are you sure you want to permanently delete this post? This action cannot be undone."
+        onClose={() => {
+          setShowDeleteModal(false);
+          setPostToDelete(null);
+        }}
+        type="warning"
+        actions={[
+          {
+            text: 'Cancel',
+            onPress: () => {
+              setShowDeleteModal(false);
+              setPostToDelete(null);
+            },
+            style: 'cancel',
+          },
+          {
+            text: deletingPostId ? 'Deleting...' : 'Delete',
+            onPress: handleDeletePost,
+            style: 'destructive',
+            disabled: !!deletingPostId,
+          },
+        ]}
       />
     </SafeAreaView>
   );
@@ -442,6 +534,21 @@ const styles = StyleSheet.create({
   closeButtonText: {
     ...typography.bodySmall,
     color: colors.primary,
+    fontWeight: '600',
+  },
+  deleteButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: '#FF3B30',
+  },
+  deleteButtonDisabled: {
+    opacity: 0.5,
+  },
+  deleteButtonText: {
+    ...typography.bodySmall,
+    color: '#FF3B30',
     fontWeight: '600',
   },
 });

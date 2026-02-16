@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
-import { authenticatedGet, authenticatedPut } from '@/utils/api';
+import { authenticatedGet, authenticatedPut, BACKEND_URL, getBearerToken } from '@/utils/api';
 import { CitySearchInput } from '@/components/CitySearchInput';
 import { useRouter } from 'expo-router';
 import Modal from '@/components/ui/Modal';
@@ -99,9 +99,62 @@ export default function PersonalDetailsScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      console.log('PersonalDetailsScreen: Photo selected', result.assets[0].uri);
-      // TODO: Upload photo to backend
-      setError('Photo upload coming soon!');
+      const asset = result.assets[0];
+      console.log('PersonalDetailsScreen: Photo selected', asset.uri);
+      
+      // Check file size
+      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+        setError('Photo size should be less than 5 mb');
+        return;
+      }
+      
+      setLoading(true);
+      
+      try {
+        // Upload photo to backend
+        const formData = new FormData();
+        const uri = asset.uri;
+        const filename = uri.split('/').pop() || 'profile.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : 'image/jpeg';
+        
+        formData.append('photo', {
+          uri,
+          name: filename,
+          type,
+        } as any);
+        
+        const token = await getBearerToken();
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+        
+        const response = await fetch(`${BACKEND_URL}/api/upload/profile-photo`, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          if (errorText.includes('5 mb') || errorText.includes('5MB')) {
+            throw new Error('Photo size should be less than 5 mb');
+          }
+          throw new Error('Failed to upload photo');
+        }
+        
+        const data = await response.json();
+        console.log('PersonalDetailsScreen: Photo uploaded', data);
+        setSuccess('Profile photo updated successfully');
+        await refreshProfile();
+      } catch (err: any) {
+        console.error('PersonalDetailsScreen: Error uploading photo', err);
+        setError(err.message || 'Failed to upload photo');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -112,12 +165,11 @@ export default function PersonalDetailsScreen() {
       <ScrollView style={styles.content}>
         <Text style={styles.label}>Full Name</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, styles.inputDisabled]}
           placeholder="Enter your full name"
           placeholderTextColor={colors.textLight}
           value={name}
-          onChangeText={setName}
-          editable={!loading}
+          editable={false}
         />
 
         <Text style={styles.label}>Username</Text>

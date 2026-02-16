@@ -118,8 +118,15 @@ export default function CommunityDetailsScreen() {
   const postedByText = `${authorName} • ${createdDate}`;
 
   const handleEdit = () => {
+    if (!topic) return;
     console.log('CommunityDetailsScreen: Edit topic', id);
-    router.push(`/edit-community/${id}`);
+    router.push({
+      pathname: '/post-community-topic',
+      params: {
+        editId: id,
+        editData: JSON.stringify(topic),
+      },
+    });
   };
 
   return (
