@@ -1,5 +1,7 @@
 import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
+import { eq } from 'drizzle-orm';
+import * as schema from '../db/schema.js';
 
 export function registerUploadRoutes(app: App) {
   const requireAuth = app.requireAuth();
@@ -64,6 +66,65 @@ export function registerUploadRoutes(app: App) {
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id }, 'Failed to upload images');
       return reply.status(500).send({ error: 'Failed to upload images' });
+    }
+  });
+
+  // Upload profile photo
+  app.fastify.post('/api/upload/profile-photo', {
+    schema: {
+      description: 'Upload profile photo and update user profile',
+      tags: ['upload'],
+      consumes: ['multipart/form-data'],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            url: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    app.logger.info({ userId: session.user.id }, 'Uploading profile photo');
+
+    try {
+      const data = await request.file();
+
+      if (!data) {
+        app.logger.warn({ userId: session.user.id }, 'No photo provided');
+        return reply.status(400).send({ error: 'No photo provided' });
+      }
+
+      // Check file size (5MB limit)
+      const buffer = await data.toBuffer();
+      const fileSizeMB = buffer.length / (1024 * 1024);
+
+      if (fileSizeMB > 5) {
+        app.logger.warn({ userId: session.user.id, sizeMB: fileSizeMB }, 'Photo size exceeds limit');
+        return reply.status(400).send({ error: 'Photo size should be less than 5 mb' });
+      }
+
+      // Upload to storage
+      const key = `profile-photos/${session.user.id}/${Date.now()}-${data.filename}`;
+      await app.storage.upload(key, buffer);
+
+      // Generate signed URL
+      const { url } = await app.storage.getSignedUrl(key);
+
+      // Update user profile with photo URL
+      await app.db
+        .update(schema.profiles)
+        .set({ photoUrl: url, updatedAt: new Date() })
+        .where(eq(schema.profiles.userId, session.user.id));
+
+      app.logger.info({ userId: session.user.id, photoUrl: url }, 'Profile photo uploaded successfully');
+      return { url };
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id }, 'Failed to upload profile photo');
+      return reply.status(500).send({ error: 'Failed to upload profile photo' });
     }
   });
 }

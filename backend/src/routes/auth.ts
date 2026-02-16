@@ -58,12 +58,12 @@ export function registerAuthRoutes(app: App) {
 
       if (!user) {
         app.logger.warn({ email }, 'Login failed - user not found');
-        return reply.status(401).send({ error: 'Email or Password is incorrect.' });
+        return reply.status(404).send({ error: 'Account does not exist, Sign Up' });
       }
 
       if (!user.emailVerified) {
         app.logger.warn({ email }, 'Login failed - email not verified');
-        return reply.status(403).send({ error: 'Email not verified. Please check your email for verification link.' });
+        return reply.status(403).send({ error: 'Please verify your email.' });
       }
 
       // Proxy the login request to Better Auth's sign-in endpoint
@@ -81,14 +81,18 @@ export function registerAuthRoutes(app: App) {
       });
 
       if (!authResponse.ok) {
-        const errorData = await authResponse.json();
         app.logger.warn({ email }, 'Login failed - password verification failed');
-        return reply.status(401).send({ error: 'Email or Password is incorrect.' });
+        return reply.status(401).send({ error: 'Invalid email or password.' });
       }
 
-      const authData = await authResponse.json();
-      app.logger.info({ email }, 'Login successful');
-      return authData;
+      const authData = await authResponse.json() as Record<string, any>;
+      app.logger.info({ email, profileCompleted: user.profileCompleted }, 'Login successful');
+
+      // Return auth data with profile_completed flag
+      return {
+        ...authData,
+        profileCompleted: user.profileCompleted,
+      };
     } catch (error) {
       app.logger.error({ err: error, email }, 'Login error');
       return reply.status(500).send({ error: 'Login failed' });
@@ -412,6 +416,69 @@ export function registerAuthRoutes(app: App) {
     } catch (error) {
       app.logger.error({ err: error, email }, 'Failed to send password reset email');
       return reply.status(500).send({ error: 'Failed to send password reset email' });
+    }
+  });
+
+  // OAuth sign-in wrapper that returns profile_completed flag
+  app.fastify.post('/api/oauth/callback', {
+    schema: {
+      description: 'OAuth callback handler that returns profile_completed flag',
+      tags: ['auth'],
+      body: {
+        type: 'object',
+        properties: {
+          code: { type: 'string' },
+          provider: { type: 'string', enum: ['google', 'apple', 'github'] },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { code, provider } = request.body as { code?: string; provider?: string };
+
+    app.logger.info({ provider }, 'OAuth callback received');
+
+    try {
+      // Proxy to Better Auth's social sign-in endpoint
+      const baseUrl = `${request.protocol}://${request.hostname}`;
+
+      if (!code || !provider) {
+        app.logger.warn({ provider }, 'Missing code or provider in OAuth callback');
+        return reply.status(400).send({ error: 'Missing code or provider' });
+      }
+
+      const authResponse = await fetch(`${baseUrl}/api/auth/sign-in/social`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          provider,
+          code,
+        }),
+      });
+
+      if (!authResponse.ok) {
+        const errorData = await authResponse.json();
+        app.logger.warn({ provider, error: errorData }, 'OAuth authentication failed');
+        return reply.status(401).send({ error: 'OAuth authentication failed' });
+      }
+
+      const authData = await authResponse.json() as Record<string, any>;
+
+      // Get user to check profile_completed status
+      const user = await app.db.query.user.findFirst({
+        where: eq(authSchema.user.id, authData.user?.id),
+      });
+
+      app.logger.info({ provider, userId: user?.id, profileCompleted: user?.profileCompleted }, 'OAuth sign-in successful');
+
+      return {
+        ...authData,
+        profileCompleted: user?.profileCompleted ?? false,
+      };
+    } catch (error) {
+      app.logger.error({ err: error, provider }, 'OAuth callback error');
+      return reply.status(500).send({ error: 'OAuth authentication failed' });
     }
   });
 }

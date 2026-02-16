@@ -2,6 +2,7 @@ import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { eq } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
+import * as authSchema from '../db/auth-schema.js';
 import { GERMAN_CITIES } from '../cities.js';
 
 // Validation helper for cities
@@ -133,10 +134,22 @@ export function registerProfileRoutes(app: App) {
           .where(eq(schema.profiles.userId, session.user.id))
           .returning();
 
-        app.logger.info({ userId: session.user.id }, 'Profile updated successfully');
+        // Check if profile is now complete (has username and city)
+        const isProfileComplete = !!(updated.username && updated.city);
+
+        // Update profile_completed flag in auth user if profile is now complete
+        if (isProfileComplete) {
+          await app.db
+            .update(authSchema.user)
+            .set({ profileCompleted: true })
+            .where(eq(authSchema.user.id, session.user.id));
+        }
+
+        app.logger.info({ userId: session.user.id, profileComplete: isProfileComplete }, 'Profile updated successfully');
         return {
           ...updated,
           email: session.user.email,
+          profileCompleted: isProfileComplete,
         };
       } else {
         // Create new profile - requires city (name comes from auth user)
@@ -162,10 +175,22 @@ export function registerProfileRoutes(app: App) {
           })
           .returning();
 
-        app.logger.info({ userId: session.user.id }, 'Profile created successfully');
+        // Check if profile is complete (has username and city)
+        const isProfileComplete = !!(newProfile.username && newProfile.city);
+
+        // Update profile_completed flag in auth user if profile is complete
+        if (isProfileComplete) {
+          await app.db
+            .update(authSchema.user)
+            .set({ profileCompleted: true })
+            .where(eq(authSchema.user.id, session.user.id));
+        }
+
+        app.logger.info({ userId: session.user.id, profileComplete: isProfileComplete }, 'Profile created successfully');
         return {
           ...newProfile,
           email: session.user.email,
+          profileCompleted: isProfileComplete,
         };
       }
     } catch (error) {
@@ -226,13 +251,13 @@ export function registerProfileRoutes(app: App) {
         const errorText = await response.text();
         app.logger.warn({ userId: session.user.id, error: errorText }, 'Password change failed');
         if (response.status === 400) {
-          return reply.status(400).send({ error: 'Incorrect old password' });
+          return reply.status(401).send({ error: 'Current password is incorrect' });
         }
-        return reply.status(400).send({ error: 'Failed to change password' });
+        return reply.status(500).send({ error: 'Failed to change password' });
       }
 
       app.logger.info({ userId: session.user.id }, 'Password changed successfully');
-      return { success: true, message: 'Password changed successfully' };
+      return { success: true, message: 'Password updated successfully' };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id }, 'Failed to change password');
       return reply.status(500).send({ error: 'Failed to change password' });
