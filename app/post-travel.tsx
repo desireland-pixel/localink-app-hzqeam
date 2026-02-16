@@ -1,13 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedPost } from '@/utils/api';
+import { authenticatedPost, authenticatedPut } from '@/utils/api';
 import Modal from '@/components/ui/Modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { formatDateToDDMMYYYY, dateToISOString } from '@/utils/cities';
+import { formatDateToDDMMYYYY, dateToISOString, parseDateFromDDMMYYYY } from '@/utils/cities';
 
 type TravelMode = 'offering' | 'seeking-companionship' | 'seeking-ally' | null;
 
@@ -38,7 +38,11 @@ const COMPANIONSHIP_FOR_OPTIONS = ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 
 
 export default function PostTravelScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [travelMode, setTravelMode] = useState<TravelMode>(null);
+  
+  const isEditing = !!params.editId;
+  const editId = params.editId as string | undefined;
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');
   const [travelDate, setTravelDate] = useState<Date | null>(null);
@@ -56,7 +60,51 @@ export default function PostTravelScreen() {
   const [showFromCityPicker, setShowFromCityPicker] = useState(false);
   const [showToCityPicker, setShowToCityPicker] = useState(false);
 
-  console.log('PostTravelScreen: Rendering', { travelMode });
+  console.log('PostTravelScreen: Rendering', { travelMode, isEditing, editId });
+
+  // Load existing data for editing
+  useEffect(() => {
+    if (isEditing && params.editData) {
+      try {
+        const data = JSON.parse(params.editData as string);
+        console.log('PostTravelScreen: Loading edit data', data);
+        
+        // Determine travel mode from type
+        if (data.type === 'offering') {
+          setTravelMode('offering');
+          setCanOfferCompanionship(data.canOfferCompanionship || false);
+          setCanCarryItems(data.canCarryItems || false);
+        } else if (data.type === 'seeking') {
+          setTravelMode('seeking-companionship');
+          setCompanionshipFor(data.companionshipFor || '');
+        } else if (data.type === 'seeking-ally') {
+          setTravelMode('seeking-ally');
+          setItem(data.item || '');
+        }
+        
+        setFromCity(data.fromCity || '');
+        setToCity(data.toCity || '');
+        setDescription(data.description || '');
+        
+        // Parse dates
+        if (data.travelDate) {
+          const date = parseDateFromDDMMYYYY(data.travelDate);
+          if (date) {
+            setTravelDate(new Date(date));
+          }
+        }
+        if (data.travelDateTo) {
+          const dateTo = parseDateFromDDMMYYYY(data.travelDateTo);
+          if (dateTo) {
+            setTravelDateTo(new Date(dateTo));
+          }
+        }
+      } catch (err) {
+        console.error('PostTravelScreen: Error parsing edit data', err);
+        setError('Failed to load post data');
+      }
+    }
+  }, [isEditing, params.editData]);
 
   const handleSubmit = async () => {
     console.log('PostTravelScreen: Submit travel', { travelMode, fromCity, toCity, travelDate });
@@ -141,9 +189,15 @@ export default function PostTravelScreen() {
         postData.item = item.trim();
       }
 
-      console.log('PostTravelScreen: Creating travel post with data:', postData);
-      await authenticatedPost('/api/travel-posts', postData);
-      console.log('PostTravelScreen: Travel post created successfully');
+      if (isEditing && editId) {
+        console.log('PostTravelScreen: Updating travel post with data:', postData);
+        await authenticatedPut(`/api/travel-posts/${editId}`, postData);
+        console.log('PostTravelScreen: Travel post updated successfully');
+      } else {
+        console.log('PostTravelScreen: Creating travel post with data:', postData);
+        await authenticatedPost('/api/travel-posts', postData);
+        console.log('PostTravelScreen: Travel post created successfully');
+      }
       router.back();
     } catch (error: any) {
       console.error('PostTravelScreen: Error creating travel post', error);
@@ -169,6 +223,7 @@ export default function PostTravelScreen() {
               <TouchableOpacity
                 style={styles.radioOption}
                 onPress={() => setTravelMode('offering')}
+                disabled={isEditing}
               >
                 <View style={styles.radioCircle}>
                   {travelMode === 'offering' && <View style={styles.radioCircleSelected} />}
@@ -179,6 +234,7 @@ export default function PostTravelScreen() {
               <TouchableOpacity
                 style={styles.radioOption}
                 onPress={() => setTravelMode('seeking-companionship')}
+                disabled={isEditing}
               >
                 <View style={styles.radioCircle}>
                   {travelMode === 'seeking-companionship' && <View style={styles.radioCircleSelected} />}
@@ -189,6 +245,7 @@ export default function PostTravelScreen() {
               <TouchableOpacity
                 style={styles.radioOption}
                 onPress={() => setTravelMode('seeking-ally')}
+                disabled={isEditing}
               >
                 <View style={styles.radioCircle}>
                   {travelMode === 'seeking-ally' && <View style={styles.radioCircleSelected} />}
@@ -566,7 +623,7 @@ export default function PostTravelScreen() {
               disabled={loading}
             >
               <Text style={styles.buttonText}>
-                {loading ? 'Posting...' : 'Post'}
+                {loading ? (isEditing ? 'Updating...' : 'Posting...') : (isEditing ? 'Update' : 'Post')}
               </Text>
             </TouchableOpacity>
           )}

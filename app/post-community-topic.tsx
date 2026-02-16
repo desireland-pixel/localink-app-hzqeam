@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedPost } from '@/utils/api';
+import { authenticatedPost, authenticatedPut } from '@/utils/api';
 import Modal from '@/components/ui/Modal';
 
 const CATEGORIES = [
@@ -20,6 +20,7 @@ const CATEGORIES = [
 
 export default function PostCommunityTopicScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [category, setCategory] = useState('');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [title, setTitle] = useState('');
@@ -27,7 +28,27 @@ export default function PostCommunityTopicScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  console.log('PostCommunityTopicScreen: Rendering', { category, title });
+  const isEditing = !!params.editId;
+  const editId = params.editId as string | undefined;
+
+  console.log('PostCommunityTopicScreen: Rendering', { category, title, isEditing, editId });
+
+  // Load existing data for editing
+  useEffect(() => {
+    if (isEditing && params.editData) {
+      try {
+        const data = JSON.parse(params.editData as string);
+        console.log('PostCommunityTopicScreen: Loading edit data', data);
+        
+        setCategory(data.category || '');
+        setTitle(data.title || '');
+        setDescription(data.description || '');
+      } catch (err) {
+        console.error('PostCommunityTopicScreen: Error parsing edit data', err);
+        setError('Failed to load topic data');
+      }
+    }
+  }, [isEditing, params.editData]);
 
   const handleSubmit = async () => {
     console.log('PostCommunityTopicScreen: Submit topic', { category, title, description });
@@ -52,9 +73,15 @@ export default function PostCommunityTopicScreen() {
         description: description.trim() || undefined,
       };
 
-      console.log('PostCommunityTopicScreen: Creating topic with data:', postData);
-      await authenticatedPost('/api/community/topics', postData);
-      console.log('PostCommunityTopicScreen: Topic created successfully');
+      if (isEditing && editId) {
+        console.log('PostCommunityTopicScreen: Updating topic with data:', postData);
+        await authenticatedPut(`/api/community/topics/${editId}`, postData);
+        console.log('PostCommunityTopicScreen: Topic updated successfully');
+      } else {
+        console.log('PostCommunityTopicScreen: Creating topic with data:', postData);
+        await authenticatedPost('/api/community/topics', postData);
+        console.log('PostCommunityTopicScreen: Topic created successfully');
+      }
       router.back();
     } catch (error: any) {
       console.error('PostCommunityTopicScreen: Error creating topic', error);
@@ -71,12 +98,13 @@ export default function PostCommunityTopicScreen() {
         style={styles.keyboardView}
       >
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.pageTitle}>Start a Discussion</Text>
+          <Text style={styles.pageTitle}>{isEditing ? 'Edit Discussion' : 'Start a Discussion'}</Text>
 
           <Text style={styles.label}>Category *</Text>
           <TouchableOpacity 
             style={styles.categoryButton}
             onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+            disabled={isEditing}
           >
             <Text style={[styles.categoryButtonText, !category && styles.categoryButtonPlaceholder]}>
               {category || 'Select category...'}
@@ -127,7 +155,7 @@ export default function PostCommunityTopicScreen() {
             disabled={loading}
           >
             <Text style={styles.buttonText}>
-              {loading ? 'Posting...' : 'Post Discussion'}
+              {loading ? (isEditing ? 'Updating...' : 'Posting...') : (isEditing ? 'Update Discussion' : 'Post Discussion')}
             </Text>
           </TouchableOpacity>
         </ScrollView>

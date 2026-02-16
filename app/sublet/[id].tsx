@@ -256,18 +256,18 @@ export default function SubletDetailsScreen() {
           </View>
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Available From</Text>
+            <Text style={styles.infoLabel}>{sublet.type === 'seeking' ? 'Move-in' : 'Available From'}</Text>
             <Text style={styles.infoValue}>{fromDateDisplay || 'Not specified'}</Text>
           </View>
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Available To</Text>
+            <Text style={styles.infoLabel}>{sublet.type === 'seeking' ? 'Move-out' : 'Available To'}</Text>
             <Text style={styles.infoValue}>{toDateDisplay || 'Not specified'}</Text>
           </View>
           
           {sublet.rent && (
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Rent</Text>
+              <Text style={styles.infoLabel}>{sublet.type === 'seeking' ? 'Budget' : 'Rent'}</Text>
               <Text style={styles.infoValue}>€{sublet.rent}/month</Text>
             </View>
           )}
