@@ -37,7 +37,7 @@ export default function AuthScreen() {
 
   console.log('[AuthScreen] Rendering, mode:', mode, 'user:', user?.id, 'profile:', profile?.name);
 
-  // Redirect if already authenticated - directly to home page (sublet)
+  // Redirect if already authenticated
   useEffect(() => {
     if (authLoading || profileLoading) {
       console.log('[AuthScreen] Auth/profile loading, waiting...');
@@ -45,8 +45,14 @@ export default function AuthScreen() {
     }
 
     if (user) {
-      console.log('[AuthScreen] User authenticated, redirecting to home (sublet)');
-      router.replace('/(tabs)/sublet');
+      // Check if profile is complete (has username and city)
+      if (!profile || !profile.username || !profile.city) {
+        console.log('[AuthScreen] User authenticated but profile incomplete, redirecting to personal details');
+        router.replace('/personal-details');
+      } else {
+        console.log('[AuthScreen] User authenticated with complete profile, redirecting to home (sublet)');
+        router.replace('/(tabs)/sublet');
+      }
     }
   }, [user, profile, authLoading, profileLoading]);
 

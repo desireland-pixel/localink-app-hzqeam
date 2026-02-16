@@ -24,12 +24,14 @@ export default function TravelFiltersScreen() {
   
   // Load existing filters from params
   useEffect(() => {
+    console.log('[TravelFiltersScreen] Loading filters from params', params.filters);
     if (params.filters) {
       const filterString = params.filters as string;
       const urlParams = new URLSearchParams(filterString);
       
       const roleParam = urlParams.get('role');
       if (roleParam === 'offering' || roleParam === 'seeking') {
+        console.log('[TravelFiltersScreen] Setting role:', roleParam);
         setRole(roleParam);
       }
       
@@ -44,23 +46,36 @@ export default function TravelFiltersScreen() {
           newTypes.add('ally');
         }
         if (newTypes.size > 0) {
+          console.log('[TravelFiltersScreen] Setting types:', Array.from(newTypes));
           setTypes(newTypes);
         }
       }
       
       const from = urlParams.get('fromCity');
-      if (from) setFromCity(from);
+      if (from) {
+        console.log('[TravelFiltersScreen] Setting fromCity:', from);
+        setFromCity(from);
+      }
       
       const to = urlParams.get('toCity');
-      if (to) setToCity(to);
+      if (to) {
+        console.log('[TravelFiltersScreen] Setting toCity:', to);
+        setToCity(to);
+      }
       
       const fromDate = urlParams.get('travelDateFrom');
-      if (fromDate) setDateStart(new Date(fromDate));
+      if (fromDate) {
+        console.log('[TravelFiltersScreen] Setting dateStart:', fromDate);
+        setDateStart(new Date(fromDate));
+      }
       
       const toDate = urlParams.get('travelDateTo');
-      if (toDate) setDateEnd(new Date(toDate));
+      if (toDate) {
+        console.log('[TravelFiltersScreen] Setting dateEnd:', toDate);
+        setDateEnd(new Date(toDate));
+      }
     }
-  }, []);
+  }, [params.filters]);
 
   const toggleType = (type: 'companionship' | 'ally') => {
     const newTypes = new Set(types);
@@ -97,8 +112,8 @@ export default function TravelFiltersScreen() {
     const filterString = params.toString();
     console.log('[TravelFiltersScreen] Filter string:', filterString);
     
-    // Navigate back with filters
-    router.push({
+    // Navigate back with filters - use replace to maintain filter state
+    router.replace({
       pathname: '/(tabs)/travel',
       params: { filters: filterString }
     });

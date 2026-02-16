@@ -25,35 +25,57 @@ export default function SubletFiltersScreen() {
   
   // Load existing filters from params
   useEffect(() => {
+    console.log('[SubletFiltersScreen] Loading filters from params', params.filters);
     if (params.filters) {
       const filterString = params.filters as string;
       const urlParams = new URLSearchParams(filterString);
       
       const type = urlParams.get('type');
       if (type === 'offering' || type === 'seeking') {
+        console.log('[SubletFiltersScreen] Setting subletType:', type);
         setSubletType(type);
       }
       
       const cityParam = urlParams.get('city');
-      if (cityParam) setCity(cityParam);
+      if (cityParam) {
+        console.log('[SubletFiltersScreen] Setting city:', cityParam);
+        setCity(cityParam);
+      }
       
       const fromDate = urlParams.get('availableFrom');
-      if (fromDate) setDateStart(new Date(fromDate));
+      if (fromDate) {
+        console.log('[SubletFiltersScreen] Setting dateStart:', fromDate);
+        setDateStart(new Date(fromDate));
+      }
       
       const toDate = urlParams.get('availableTo');
-      if (toDate) setDateEnd(new Date(toDate));
+      if (toDate) {
+        console.log('[SubletFiltersScreen] Setting dateEnd:', toDate);
+        setDateEnd(new Date(toDate));
+      }
       
       const minRentParam = urlParams.get('minRent');
-      if (minRentParam) setMinRent(minRentParam);
+      if (minRentParam) {
+        console.log('[SubletFiltersScreen] Setting minRent:', minRentParam);
+        setMinRent(minRentParam);
+      }
       
       const maxRentParam = urlParams.get('maxRent');
-      if (maxRentParam) setMaxRent(maxRentParam);
+      if (maxRentParam) {
+        console.log('[SubletFiltersScreen] Setting maxRent:', maxRentParam);
+        setMaxRent(maxRentParam);
+      }
       
       const cityReg = urlParams.get('cityRegistrationRequired');
-      if (cityReg === 'yes') setCityRegistration(true);
-      else if (cityReg === 'no') setCityRegistration(false);
+      if (cityReg === 'yes') {
+        console.log('[SubletFiltersScreen] Setting cityRegistration: true');
+        setCityRegistration(true);
+      } else if (cityReg === 'no') {
+        console.log('[SubletFiltersScreen] Setting cityRegistration: false');
+        setCityRegistration(false);
+      }
     }
-  }, []);
+  }, [params.filters]);
 
   const handleApply = () => {
     console.log('[SubletFiltersScreen] Applying filters', { subletType, city, dateStart, dateEnd, minRent, maxRent, cityRegistration });
@@ -98,8 +120,8 @@ export default function SubletFiltersScreen() {
     const filterString = params.toString();
     console.log('[SubletFiltersScreen] Filter string:', filterString);
     
-    // Navigate back with filters
-    router.push({
+    // Navigate back with filters - use replace to maintain filter state
+    router.replace({
       pathname: '/(tabs)/sublet',
       params: { filters: filterString }
     });
