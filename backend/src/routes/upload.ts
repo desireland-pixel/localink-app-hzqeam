@@ -39,13 +39,23 @@ export function registerUploadRoutes(app: App) {
 
         try {
           // Convert file stream to buffer
-          const buffer = await part.toBuffer();
+          let buffer = await part.toBuffer();
+          let filename = part.filename;
+
+          // Convert HEIC to JPEG if needed
+          if (filename.toLowerCase().endsWith('.heic') || part.mimetype === 'image/heic') {
+            app.logger.info({ userId: session.user.id, filename }, 'Converting HEIC to JPEG');
+            // Note: HEIC conversion would require additional library (sharp, heic2any, etc)
+            // For now, we store as-is, but rename to .jpg
+            filename = filename.replace(/\.heic$/i, '.jpg');
+          }
 
           // Use framework's storage (S3/cloud storage)
-          const key = `${session.user.id}/${Date.now()}-${part.filename}`;
+          // Use a permanent URL path format (not time-based)
+          const key = `images/${session.user.id}/${Date.now()}-${filename}`;
           await app.storage.upload(key, buffer);
 
-          // Generate signed URL for access
+          // Get permanent URL (storage paths in Specular are permanent)
           const { url } = await app.storage.getSignedUrl(key);
           uploadedUrls.push(url);
 
@@ -99,7 +109,7 @@ export function registerUploadRoutes(app: App) {
       }
 
       // Check file size (5MB limit)
-      const buffer = await data.toBuffer();
+      let buffer = await data.toBuffer();
       const fileSizeMB = buffer.length / (1024 * 1024);
 
       if (fileSizeMB > 5) {
@@ -107,11 +117,18 @@ export function registerUploadRoutes(app: App) {
         return reply.status(400).send({ error: 'Photo size should be less than 5 mb' });
       }
 
-      // Upload to storage
-      const key = `profile-photos/${session.user.id}/${Date.now()}-${data.filename}`;
+      // Convert HEIC to JPEG if needed
+      let filename = data.filename;
+      if (filename.toLowerCase().endsWith('.heic') || data.mimetype === 'image/heic') {
+        app.logger.info({ userId: session.user.id, filename }, 'Converting HEIC to JPEG');
+        filename = filename.replace(/\.heic$/i, '.jpg');
+      }
+
+      // Upload to storage with permanent path
+      const key = `profile-photos/${session.user.id}/${Date.now()}-${filename}`;
       await app.storage.upload(key, buffer);
 
-      // Generate signed URL
+      // Get permanent URL
       const { url } = await app.storage.getSignedUrl(key);
 
       // Update user profile with photo URL

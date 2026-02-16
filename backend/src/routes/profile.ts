@@ -235,7 +235,8 @@ export function registerProfileRoutes(app: App) {
       // Verify old password using Better Auth's password verification
       // Since we can't access bcrypt directly, we'll use the auth change-password endpoint
       // by proxying through it
-      const response = await fetch(`${request.url.split('/api/')[0]}/api/auth/change-password`, {
+      const baseUrl = `${request.protocol}://${request.hostname}`;
+      const response = await fetch(`${baseUrl}/api/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -249,7 +250,7 @@ export function registerProfileRoutes(app: App) {
 
       if (!response.ok) {
         const errorText = await response.text();
-        app.logger.warn({ userId: session.user.id, error: errorText }, 'Password change failed');
+        app.logger.warn({ userId: session.user.id, status: response.status }, 'Password change failed');
         if (response.status === 400) {
           return reply.status(401).send({ error: 'Current password is incorrect' });
         }
