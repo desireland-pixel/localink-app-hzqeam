@@ -53,6 +53,8 @@ export const sublets = pgTable('sublets', {
   pincode: text('pincode'),
   cityRegistrationRequired: boolean('city_registration_required'),
   deposit: text('deposit'),
+  // Consent field for independent arrangement acknowledgment
+  independentArrangementConsent: boolean('independent_arrangement_consent').default(false).notNull(),
   status: text('status', { enum: ['active', 'closed'] }).default('active').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
@@ -75,6 +77,10 @@ export const travelPosts = pgTable('travel_posts', {
   // Offering-specific fields
   canOfferCompanionship: boolean('can_offer_companionship'),
   canCarryItems: boolean('can_carry_items'),
+  // Consent fields
+  companionshipConsent: boolean('companionship_consent').default(false).notNull(), // For offering companionship
+  allyConsent: boolean('ally_consent').default(false).notNull(), // For seeking ally
+  seekingConsent: boolean('seeking_consent').default(false).notNull(), // For seeking companionship
   status: text('status', { enum: ['active', 'closed'] }).default('active').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
@@ -97,6 +103,7 @@ export const messages = pgTable('messages', {
   conversationId: uuid('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
   senderId: text('sender_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
+  deliveredAt: timestamp('delivered_at', { withTimezone: true }),
   readAt: timestamp('read_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

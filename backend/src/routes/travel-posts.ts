@@ -35,6 +35,10 @@ interface TravelPostBody {
   canCarryItems?: boolean;
   // Offering-specific field
   alsoPostAsAlly?: boolean;
+  // Consent fields
+  companionshipConsent?: boolean;
+  allyConsent?: boolean;
+  seekingConsent?: boolean;
 }
 
 // Validation helper
@@ -439,6 +443,20 @@ export function registerTravelPostRoutes(app: App) {
         return reply.status(400).send({ error: 'Item field is required for seeking-ally posts' });
       }
 
+      // Validation: check appropriate consent based on post type
+      if (body.type === 'offering' && !body.companionshipConsent) {
+        app.logger.warn({ type: body.type }, 'Offering posts require companionship consent');
+        return reply.status(400).send({ error: 'Offering Companionship / Carry posts require consent acknowledgment' });
+      }
+      if (body.type === 'seeking' && !body.seekingConsent) {
+        app.logger.warn({ type: body.type }, 'Seeking companionship posts require seeking consent');
+        return reply.status(400).send({ error: 'Seeking Companionship posts require consent acknowledgment' });
+      }
+      if (body.type === 'seeking-ally' && !body.allyConsent) {
+        app.logger.warn({ type: body.type }, 'Seeking ally posts require ally consent');
+        return reply.status(400).send({ error: 'Seeking an Ally posts require consent acknowledgment' });
+      }
+
       // Convert dates from dd.mm.yyyy to YYYY-MM-DD format
       const dbTravelDate = parseDateFromDDMMYYYY(body.travelDate);
       if (!dbTravelDate) {
@@ -469,6 +487,9 @@ export function registerTravelPostRoutes(app: App) {
           item: body.item,
           canOfferCompanionship: body.canOfferCompanionship,
           canCarryItems: body.canCarryItems,
+          companionshipConsent: body.companionshipConsent || false,
+          allyConsent: body.allyConsent || false,
+          seekingConsent: body.seekingConsent || false,
         })
         .returning();
 

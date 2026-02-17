@@ -31,6 +31,8 @@ interface SubletBody {
   pincode?: string;
   cityRegistrationRequired?: boolean;
   deposit?: string;
+  // Consent field
+  independentArrangementConsent?: boolean;
 }
 
 // Helper function to auto-close expired sublets
@@ -348,6 +350,12 @@ export function registerSubletRoutes(app: App) {
         return reply.status(400).send({ error: 'Start date cannot be in the past' });
       }
 
+      // Validate consent for sublets
+      if (!body.independentArrangementConsent) {
+        app.logger.warn({ userId: session.user.id }, 'Sublet posts require independent arrangement consent');
+        return reply.status(400).send({ error: 'Sublet posts require consent acknowledgment' });
+      }
+
       const [sublet] = await app.db
         .insert(schema.sublets)
         .values({
@@ -364,6 +372,7 @@ export function registerSubletRoutes(app: App) {
           pincode: body.pincode,
           cityRegistrationRequired: body.cityRegistrationRequired,
           deposit: body.deposit,
+          independentArrangementConsent: body.independentArrangementConsent || false,
         })
         .returning();
 
