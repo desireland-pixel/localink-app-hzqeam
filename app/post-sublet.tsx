@@ -495,8 +495,8 @@ export default function PostSubletScreen() {
                 style={styles.consentContainer}
                 onPress={() => setConsentChecked(!consentChecked)}
               >
-                <View style={styles.consentCheckbox}>
-                  {consentChecked && <View style={styles.consentCheckboxChecked} />}
+                <View style={styles.consentRadio}>
+                  {consentChecked && <View style={styles.consentRadioSelected} />}
                 </View>
                 <Text style={styles.consentText}>{consentText}</Text>
               </TouchableOpacity>
@@ -586,8 +586,8 @@ export default function PostSubletScreen() {
                 style={styles.consentContainer}
                 onPress={() => setConsentChecked(!consentChecked)}
               >
-                <View style={styles.consentCheckbox}>
-                  {consentChecked && <View style={styles.consentCheckboxChecked} />}
+                <View style={styles.consentRadio}>
+                  {consentChecked && <View style={styles.consentRadioSelected} />}
                 </View>
                 <Text style={styles.consentText}>{consentText}</Text>
               </TouchableOpacity>
@@ -725,10 +725,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     marginBottom: spacing.md,
   },
-  consentCheckbox: {
+  consentRadio: {
     width: 24,
     height: 24,
-    borderRadius: 4,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: colors.primary,
     alignItems: 'center',
@@ -736,10 +736,10 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
     marginTop: 2,
   },
-  consentCheckboxChecked: {
-    width: 14,
-    height: 14,
-    borderRadius: 2,
+  consentRadioSelected: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: colors.primary,
   },
   consentText: {

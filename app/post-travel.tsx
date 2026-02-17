@@ -59,8 +59,9 @@ export default function PostTravelScreen() {
   const [error, setError] = useState('');
   const [showFromCityPicker, setShowFromCityPicker] = useState(false);
   const [showToCityPicker, setShowToCityPicker] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
 
-  console.log('PostTravelScreen: Rendering', { travelMode, isEditing, editId });
+  console.log('PostTravelScreen: Rendering', { travelMode, isEditing, editId, consentAccepted });
 
   // Load existing data for editing
   useEffect(() => {
@@ -85,6 +86,7 @@ export default function PostTravelScreen() {
         setFromCity(data.fromCity || '');
         setToCity(data.toCity || '');
         setDescription(data.description || '');
+        setConsentAccepted(true); // Pre-check consent for editing
         
         // Parse dates
         if (data.travelDate) {
@@ -126,6 +128,11 @@ export default function PostTravelScreen() {
 
     if (travelMode === 'seeking-ally' && !item.trim()) {
       setError('Please fill all mandatory fields');
+      return;
+    }
+
+    if (!consentAccepted) {
+      setError('Please accept the consent information');
       return;
     }
 
@@ -365,6 +372,18 @@ export default function PostTravelScreen() {
                 multiline
                 numberOfLines={4}
               />
+
+              <TouchableOpacity
+                style={styles.consentContainer}
+                onPress={() => setConsentAccepted(!consentAccepted)}
+              >
+                <View style={styles.consentRadio}>
+                  {consentAccepted && <View style={styles.consentRadioSelected} />}
+                </View>
+                <Text style={styles.consentText}>
+                  I understand that I am acting independently. The platform only facilitates connections and assumes no responsibility for personal arrangements or transported items.
+                </Text>
+              </TouchableOpacity>
             </>
           )}
 
@@ -513,6 +532,18 @@ export default function PostTravelScreen() {
                 multiline
                 numberOfLines={4}
               />
+
+              <TouchableOpacity
+                style={styles.consentContainer}
+                onPress={() => setConsentAccepted(!consentAccepted)}
+              >
+                <View style={styles.consentRadio}>
+                  {consentAccepted && <View style={styles.consentRadioSelected} />}
+                </View>
+                <Text style={styles.consentText}>
+                  I understand that I am responsible for conducting due diligence. The platform facilitates connections only and assumes no liability for personal arrangements.
+                </Text>
+              </TouchableOpacity>
             </>
           )}
 
@@ -613,14 +644,26 @@ export default function PostTravelScreen() {
                 multiline
                 numberOfLines={4}
               />
+
+              <TouchableOpacity
+                style={styles.consentContainer}
+                onPress={() => setConsentAccepted(!consentAccepted)}
+              >
+                <View style={styles.consentRadio}>
+                  {consentAccepted && <View style={styles.consentRadioSelected} />}
+                </View>
+                <Text style={styles.consentText}>
+                  I understand that I am responsible for ensuring items comply with airline, customs, and applicable laws. The platform assumes no responsibility for transported items.
+                </Text>
+              </TouchableOpacity>
             </>
           )}
 
           {travelMode && (
             <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
+              style={[styles.button, (loading || !consentAccepted) && styles.buttonDisabled]}
               onPress={handleSubmit}
-              disabled={loading}
+              disabled={loading || !consentAccepted}
             >
               <Text style={styles.buttonText}>
                 {loading ? (isEditing ? 'Updating...' : 'Posting...') : (isEditing ? 'Update' : 'Post')}
@@ -849,6 +892,35 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
   },
+  consentContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: spacing.xl,
+    marginBottom: spacing.md,
+  },
+  consentRadio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+    marginTop: 2,
+  },
+  consentRadioSelected: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.primary,
+  },
+  consentText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    flex: 1,
+    lineHeight: 20,
+  },
   button: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
@@ -858,7 +930,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.4,
   },
   buttonText: {
     ...typography.button,
