@@ -182,18 +182,21 @@ export default function PostTravelScreen() {
         postData.type = 'offering';
         postData.canOfferCompanionship = canOfferCompanionship;
         postData.canCarryItems = canCarryItems;
+        postData.companionshipConsent = consentAccepted;
         if (canCarryItems) {
           postData.alsoPostAsAlly = true;
         }
       } else if (travelMode === 'seeking-companionship') {
         postData.type = 'seeking';
         postData.companionshipFor = companionshipFor;
+        postData.seekingConsent = consentAccepted;
         if (travelDateTo) {
           postData.travelDateTo = dateToISOString(travelDateTo);
         }
       } else if (travelMode === 'seeking-ally') {
         postData.type = 'seeking-ally';
         postData.item = item.trim();
+        postData.allyConsent = consentAccepted;
       }
 
       if (isEditing && editId) {

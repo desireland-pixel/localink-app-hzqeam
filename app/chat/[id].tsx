@@ -267,17 +267,26 @@ export default function ChatScreen() {
   };
 
   const handleViewPost = () => {
-    if (!conversation?.postId || !conversation?.postType) {
-      console.warn('ChatScreen: Cannot navigate to post - missing postId or postType');
+    console.log('ChatScreen: handleViewPost called', { 
+      postId: conversation?.postId, 
+      postType: conversation?.postType,
+      post: conversation?.post 
+    });
+    
+    if (!conversation?.post?.id || !conversation?.post?.type) {
+      console.warn('ChatScreen: Cannot navigate to post - missing post.id or post.type', conversation);
       return;
     }
     
-    console.log('ChatScreen: Navigating to post', conversation.postId, conversation.postType);
+    const postId = conversation.post.id;
+    const postType = conversation.post.type;
     
-    if (conversation.postType === 'sublet') {
-      router.push(`/sublet/${conversation.postId}`);
-    } else if (conversation.postType === 'travel') {
-      router.push(`/travel/${conversation.postId}`);
+    console.log('ChatScreen: Navigating to post', postId, postType);
+    
+    if (postType === 'sublet') {
+      router.push(`/sublet/${postId}`);
+    } else if (postType === 'travel') {
+      router.push(`/travel/${postId}`);
     }
   };
 
@@ -358,7 +367,7 @@ export default function ChatScreen() {
   const postEmoji = conversation?.post?.type === 'sublet' ? '🏠' : conversation?.post?.type === 'travel' ? '✈️' : '';
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <Stack.Screen 
         options={{
           headerShown: true,
@@ -366,9 +375,9 @@ export default function ChatScreen() {
         }}
       />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         {conversation?.post && (
           <TouchableOpacity 
