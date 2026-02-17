@@ -4,11 +4,10 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
-import { authenticatedGet, authenticatedPut, BACKEND_URL, getBearerToken } from '@/utils/api';
+import { authenticatedPut } from '@/utils/api';
 import { CitySearchInput } from '@/components/CitySearchInput';
 import { useRouter } from 'expo-router';
 import Modal from '@/components/ui/Modal';
-import * as ImagePicker from 'expo-image-picker';
 
 export default function PersonalDetailsScreen() {
   const router = useRouter();
@@ -51,6 +50,11 @@ export default function PersonalDetailsScreen() {
       return;
     }
 
+    if (!gdprConsent) {
+      setError('You must accept the GDPR consent to continue');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setSuccess('');
@@ -59,12 +63,8 @@ export default function PersonalDetailsScreen() {
       const updateData: any = {
         username: username.trim(),
         city: city.trim(),
+        gdprConsentAccepted: gdprConsent,
       };
-      
-      // Only include gdprConsentAccepted if it's been checked
-      if (gdprConsent) {
-        updateData.gdprConsentAccepted = true;
-      }
       
       await authenticatedPut('/api/profile', updateData);
       setSuccess('Personal details updated successfully');
@@ -88,82 +88,6 @@ export default function PersonalDetailsScreen() {
   const handleEditPassword = () => {
     console.log('PersonalDetailsScreen: Navigate to edit password');
     router.push('/edit-password');
-  };
-
-  const handlePickPhoto = async () => {
-    console.log('PersonalDetailsScreen: Pick photo');
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (!permissionResult.granted) {
-      setError('Permission to access photos is required');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      console.log('PersonalDetailsScreen: Photo selected', asset.uri);
-      
-      // Check file size
-      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
-        setError('Photo size should be less than 5 mb');
-        return;
-      }
-      
-      setLoading(true);
-      
-      try {
-        // Upload photo to backend
-        const formData = new FormData();
-        const uri = asset.uri;
-        const filename = uri.split('/').pop() || 'profile.jpg';
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-        
-        formData.append('photo', {
-          uri,
-          name: filename,
-          type,
-        } as any);
-        
-        const token = await getBearerToken();
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-        
-        const response = await fetch(`${BACKEND_URL}/api/upload/profile-photo`, {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          if (errorText.includes('5 mb') || errorText.includes('5MB')) {
-            throw new Error('Photo size should be less than 5 mb');
-          }
-          throw new Error('Failed to upload photo');
-        }
-        
-        const data = await response.json();
-        console.log('PersonalDetailsScreen: Photo uploaded', data);
-        setSuccess('Profile photo updated successfully');
-        await refreshProfile();
-      } catch (err: any) {
-        console.error('PersonalDetailsScreen: Error uploading photo', err);
-        setError(err.message || 'Failed to upload photo');
-      } finally {
-        setLoading(false);
-      }
-    }
   };
 
   const isFormValid = username.trim() && city.trim();
@@ -225,23 +149,13 @@ export default function PersonalDetailsScreen() {
           placeholder="Search city..."
         />
 
-        <Text style={styles.label}>Profile Photo</Text>
-        <TouchableOpacity
-          style={styles.photoButton}
-          onPress={handlePickPhoto}
-        >
-          <Text style={styles.photoButtonText}>Add a photo</Text>
-        </TouchableOpacity>
-
         <View style={styles.gdprContainer}>
           <TouchableOpacity
-            style={styles.checkboxRow}
+            style={styles.radioRow}
             onPress={() => setGdprConsent(!gdprConsent)}
           >
-            <View style={[styles.checkbox, gdprConsent && styles.checkboxChecked]}>
-              {gdprConsent && (
-                <Text style={styles.checkboxIcon}>✓</Text>
-              )}
+            <View style={styles.radioCircle}>
+              {gdprConsent && <View style={styles.radioCircleSelected} />}
             </View>
             <Text style={styles.gdprText}>
               I consent to the processing of my personal data in accordance with the GDPR
@@ -250,9 +164,9 @@ export default function PersonalDetailsScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.button, (!isFormValid || loading) && styles.buttonDisabled]}
+          style={[styles.button, (!isFormValid || !gdprConsent || loading) && styles.buttonDisabled]}
           onPress={handleSave}
-          disabled={!isFormValid || loading}
+          disabled={!isFormValid || !gdprConsent || loading}
         >
           {loading ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
@@ -331,19 +245,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
   },
-  photoButton: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  photoButtonText: {
-    ...typography.body,
-    color: colors.text,
-  },
   button: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
@@ -363,30 +264,27 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.md,
   },
-  checkboxRow: {
+  radioRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
   },
-  checkbox: {
+  radioCircle: {
     width: 24,
     height: 24,
-    borderRadius: 4,
+    borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: colors.primary,
     backgroundColor: colors.card,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 2,
   },
-  checkboxChecked: {
+  radioCircleSelected: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  checkboxIcon: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
   },
   gdprText: {
     ...typography.bodySmall,

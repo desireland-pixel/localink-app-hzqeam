@@ -28,7 +28,7 @@ export default function IndexScreen() {
       if (!user) {
         console.log('[IndexScreen] No user, redirecting to auth');
         router.replace('/auth');
-      } else if (!profile || !profile.username || !profile.city) {
+      } else if (!profile || !profile.username || !profile.city || !profile.gdprConsentAccepted) {
         console.log('[IndexScreen] User authenticated but profile incomplete, redirecting to personal-details');
         router.replace('/personal-details');
       } else {

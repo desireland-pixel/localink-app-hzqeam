@@ -20,7 +20,7 @@ interface Profile {
   photoUrl?: string;
   createdAt: string;
   updatedAt: string;
-  isProfileComplete?: boolean;
+  profileCompleted?: boolean;
   gdprConsentAccepted?: boolean;
 }
 
@@ -179,7 +179,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfileLoading(true);
       const response = await authenticatedGet<Profile>('/api/profile');
       console.log('[AuthContext] Profile fetched successfully:', response);
-      setProfile(response);
+      
+      // Calculate profile_completed based on backend logic
+      const profileCompleted = !!(response.username && response.city && response.gdprConsentAccepted);
+      console.log('[AuthContext] Profile completed status:', profileCompleted, {
+        username: !!response.username,
+        city: !!response.city,
+        gdprConsentAccepted: !!response.gdprConsentAccepted
+      });
+      
+      setProfile({
+        ...response,
+        profileCompleted
+      });
     } catch (error: any) {
       console.log('[AuthContext] Profile fetch failed (may not exist yet):', error?.message);
       setProfile(null);

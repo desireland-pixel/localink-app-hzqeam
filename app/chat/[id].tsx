@@ -15,7 +15,7 @@ interface Message {
   senderId: string;
   content: string;
   createdAt: string;
-  isRead?: boolean;
+  deliveredAt?: string;
   readAt?: string;
   sender?: {
     id: string;
@@ -138,6 +138,19 @@ export default function ChatScreen() {
             
             // Mark as read immediately since user is viewing the chat
             markMessagesAsRead();
+          } else if (data.type === 'message_status_update' && data.conversationId === id) {
+            // Update message status (deliveredAt, readAt)
+            console.log('ChatScreen: Updating message status', data);
+            setMessages(prev => prev.map(msg => {
+              if (msg.id === data.messageId) {
+                return {
+                  ...msg,
+                  deliveredAt: data.deliveredAt || msg.deliveredAt,
+                  readAt: data.readAt || msg.readAt,
+                };
+              }
+              return msg;
+            }));
           }
         } catch (error) {
           console.error('ChatScreen: Error parsing WebSocket message', error);
@@ -294,31 +307,27 @@ export default function ChatScreen() {
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
-    // CRITICAL FIX: Compare senderId with current user's ID
-    // Ensure proper string comparison - both IDs should be strings
     const currentUserId = user?.id;
     const messageSenderId = item.senderId;
-    
-    // Strict equality check - both should be strings from the backend
     const isOwnMessage = currentUserId === messageSenderId;
-    
     const time = timeDisplay(item.createdAt);
 
-    // Detailed logging for first few messages to debug
-    if (messages.indexOf(item) < 3) {
-      console.log('ChatScreen: Rendering message (detailed)', {
-        messageId: item.id,
-        senderId: messageSenderId,
-        senderIdType: typeof messageSenderId,
-        currentUserId: currentUserId,
-        currentUserIdType: typeof currentUserId,
-        isOwnMessage: isOwnMessage,
-        strictEqual: currentUserId === messageSenderId,
-        looseEqual: currentUserId == messageSenderId,
-        senderName: item.sender?.name,
-        content: item.content.substring(0, 30),
-        isRead: item.isRead
-      });
+    // Determine message status icon (WhatsApp-style)
+    // 1 tick = sent, 2 ticks = delivered, 2 blue ticks = read
+    let statusIcon = null;
+    let statusColor = 'rgba(255, 255, 255, 0.7)';
+    
+    if (isOwnMessage) {
+      if (item.readAt) {
+        statusIcon = '✓✓';
+        statusColor = '#3B82F6'; // Blue for read
+      } else if (item.deliveredAt) {
+        statusIcon = '✓✓';
+        statusColor = 'rgba(255, 255, 255, 0.7)'; // Gray for delivered
+      } else {
+        statusIcon = '✓';
+        statusColor = 'rgba(255, 255, 255, 0.7)'; // Gray for sent
+      }
     }
 
     return (
@@ -328,24 +337,26 @@ export default function ChatScreen() {
           isOwnMessage ? styles.ownMessage : styles.otherMessage,
         ]}
       >
-        <Text style={[
-          styles.messageText,
-          isOwnMessage && styles.ownMessageText
-        ]}>
-          {item.content}
-        </Text>
-        <View style={styles.messageFooter}>
+        <View style={styles.messageContent}>
           <Text style={[
-            styles.messageTime,
-            isOwnMessage && styles.ownMessageTime
+            styles.messageText,
+            isOwnMessage && styles.ownMessageText
           ]}>
-            {time}
+            {item.content}
           </Text>
-          {isOwnMessage && (
-            <Text style={styles.readReceipt}>
-              {item.isRead ? '✓✓' : '✓'}
+          <View style={styles.messageFooter}>
+            <Text style={[
+              styles.messageTime,
+              isOwnMessage && styles.ownMessageTime
+            ]}>
+              {time}
             </Text>
-          )}
+            {isOwnMessage && statusIcon && (
+              <Text style={[styles.statusIcon, { color: statusColor }]}>
+                {statusIcon}
+              </Text>
+            )}
+          </View>
         </View>
       </View>
     );
@@ -372,16 +383,6 @@ export default function ChatScreen() {
         options={{
           headerShown: true,
           title: participantName,
-          headerRight: () => (
-            conversation?.postId ? (
-              <TouchableOpacity onPress={handleViewPost} style={styles.headerButton}>
-                <Text style={styles.headerButtonEmoji}>{postEmoji}</Text>
-                <Text style={styles.headerButtonText} numberOfLines={1}>
-                  {postTitle}
-                </Text>
-              </TouchableOpacity>
-            ) : null
-          ),
         }}
       />
       <KeyboardAvoidingView
@@ -389,6 +390,18 @@ export default function ChatScreen() {
         style={styles.keyboardView}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
+        {conversation?.post && (
+          <TouchableOpacity 
+            style={styles.postReferenceCard}
+            onPress={handleViewPost}
+          >
+            <Text style={styles.postReferenceEmoji}>{postEmoji}</Text>
+            <Text style={styles.postReferenceTitle} numberOfLines={1} ellipsizeMode="tail">
+              {postTitle}
+            </Text>
+          </TouchableOpacity>
+        )}
+
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -448,25 +461,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerButton: {
+  postReferenceCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.card,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
     borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  postReferenceEmoji: {
+    fontSize: 16,
     marginRight: spacing.sm,
-    maxWidth: 180,
   },
-  headerButtonEmoji: {
+  postReferenceTitle: {
+    ...typography.body,
+    color: colors.text,
     fontSize: 14,
-    marginRight: 4,
-  },
-  headerButtonText: {
-    ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+    flex: 1,
   },
   messagesContainer: {
     flex: 1,
@@ -478,7 +494,8 @@ const styles = StyleSheet.create({
   messageBubble: {
     maxWidth: '75%',
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     marginBottom: spacing.sm,
   },
   ownMessage: {
@@ -491,10 +508,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  messageContent: {
+    flexDirection: 'column',
+  },
   messageText: {
     ...typography.body,
     color: colors.text,
-    marginBottom: spacing.xs,
+    lineHeight: 20,
   },
   ownMessageText: {
     color: '#FFFFFF',
@@ -504,19 +524,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 4,
+    marginTop: 2,
   },
   messageTime: {
     ...typography.bodySmall,
     color: colors.textLight,
-    fontSize: 11,
+    fontSize: 10,
   },
   ownMessageTime: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
-  readReceipt: {
+  statusIcon: {
     ...typography.bodySmall,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
   inputContainer: {
