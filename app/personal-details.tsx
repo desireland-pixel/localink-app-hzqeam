@@ -20,8 +20,9 @@ export default function PersonalDetailsScreen() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [gdprConsent, setGdprConsent] = useState(false);
+  const [gdprConsentDisabled, setGdprConsentDisabled] = useState(false);
 
-  console.log('PersonalDetailsScreen: Rendering', { user: user?.id, profile: profile?.name, gdprConsent });
+  console.log('PersonalDetailsScreen: Rendering', { user: user?.id, profile: profile?.name, gdprConsent, gdprConsentDisabled });
 
   useEffect(() => {
     if (user) {
@@ -31,7 +32,9 @@ export default function PersonalDetailsScreen() {
       setName(profile.name || user?.name || '');
       setCity(profile.city || '');
       setUsername(profile.username || '');
-      setGdprConsent((profile as any).gdprConsentAccepted || false);
+      const consentAccepted = (profile as any).gdprConsentAccepted || false;
+      setGdprConsent(consentAccepted);
+      setGdprConsentDisabled(consentAccepted);
     } else if (user) {
       setName(user.name || '');
     }
@@ -68,6 +71,12 @@ export default function PersonalDetailsScreen() {
       
       await authenticatedPut('/api/profile', updateData);
       setSuccess('Personal details updated successfully');
+      
+      // Disable GDPR consent checkbox after successful save
+      if (gdprConsent) {
+        setGdprConsentDisabled(true);
+      }
+      
       await refreshProfile();
       
       // Navigate to home page after successful save
@@ -88,7 +97,7 @@ export default function PersonalDetailsScreen() {
     router.push('/edit-password');
   };
 
-  const isFormValid = username.trim() && city.trim();
+  const isFormValid = username.trim() && city.trim() && gdprConsent;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -150,21 +159,22 @@ export default function PersonalDetailsScreen() {
         <View style={styles.gdprContainer}>
           <TouchableOpacity
             style={styles.radioRow}
-            onPress={() => setGdprConsent(!gdprConsent)}
+            onPress={() => !gdprConsentDisabled && setGdprConsent(!gdprConsent)}
+            disabled={gdprConsentDisabled}
           >
             <View style={styles.radioCircle}>
               {gdprConsent && <View style={styles.radioCircleSelected} />}
             </View>
-            <Text style={styles.gdprText}>
+            <Text style={[styles.gdprText, gdprConsentDisabled && styles.gdprTextDisabled]}>
               I consent to the processing of my personal data in accordance with the GDPR
             </Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
-          style={[styles.button, (!isFormValid || !gdprConsent || loading) && styles.buttonDisabled]}
+          style={[styles.button, (!isFormValid || loading) && styles.buttonDisabled]}
           onPress={handleSave}
-          disabled={!isFormValid || !gdprConsent || loading}
+          disabled={!isFormValid || loading}
         >
           {loading ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
@@ -289,5 +299,8 @@ const styles = StyleSheet.create({
     color: colors.text,
     flex: 1,
     lineHeight: 20,
+  },
+  gdprTextDisabled: {
+    opacity: 0.6,
   },
 });

@@ -56,7 +56,6 @@ export default function ChatScreen() {
 
   console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length, currentUserId: user?.id });
 
-  // Mark messages as read when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       console.log('ChatScreen: Screen focused, marking messages as read');
@@ -79,10 +78,8 @@ export default function ChatScreen() {
     };
   }, [id]);
 
-  // Auto-scroll to newest message when messages change
   useEffect(() => {
     if (messages.length > 0 && flatListRef.current) {
-      // Scroll to end (newest message) after a short delay to ensure layout is complete
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: false });
       }, 100);
@@ -95,7 +92,6 @@ export default function ChatScreen() {
     try {
       await authenticatedPost(`/api/conversations/${id}/mark-read`, {});
       console.log('ChatScreen: Messages marked as read');
-      // Refresh unread count immediately
       await fetchUnreadCount();
     } catch (error) {
       console.error('ChatScreen: Error marking messages as read', error);
@@ -110,11 +106,7 @@ export default function ChatScreen() {
         return;
       }
 
-      // Convert https:// to wss:// or http:// to ws://
       const wsUrl = BACKEND_URL.replace(/^https?:/, BACKEND_URL.startsWith('https') ? 'wss:' : 'ws:');
-      
-      // Note: WebSocket in React Native doesn't support custom headers in the constructor
-      // The backend should validate the session from cookies or query params
       const ws = new WebSocket(`${wsUrl}/ws/messages`);
 
       ws.onopen = () => {
@@ -127,19 +119,15 @@ export default function ChatScreen() {
           console.log('ChatScreen: WebSocket message received', data);
 
           if (data.type === 'new_message' && data.conversationId === id) {
-            // Add new message to the list if it's for this conversation
             setMessages(prev => {
-              // Check if message already exists
               if (prev.some(m => m.id === data.message.id)) {
                 return prev;
               }
               return [...prev, data.message];
             });
             
-            // Mark as read immediately since user is viewing the chat
             markMessagesAsRead();
           } else if (data.type === 'message_status_update' && data.conversationId === id) {
-            // Update message status (deliveredAt, readAt)
             console.log('ChatScreen: Updating message status', data);
             setMessages(prev => prev.map(msg => {
               if (msg.id === data.messageId) {
@@ -174,7 +162,6 @@ export default function ChatScreen() {
   const fetchConversation = async () => {
     console.log('ChatScreen: Fetching conversation details', id);
     try {
-      // Fallback: Get conversation details from the conversations list
       const conversations = await authenticatedGet<Conversation[]>('/api/conversations');
       const conv = conversations.find(c => c.id === id);
       if (conv) {
@@ -197,7 +184,6 @@ export default function ChatScreen() {
       const data = await authenticatedGet<{ messages: Message[]; conversation: Conversation }>(`/api/conversations/${id}/messages`);
       console.log('ChatScreen: Fetched messages response', data);
       
-      // Backend returns { messages: [...], conversation: {...} }
       if (!data || !data.messages || !Array.isArray(data.messages)) {
         console.error('ChatScreen: Invalid messages data format', data);
         setError('Invalid messages data format');
@@ -206,12 +192,10 @@ export default function ChatScreen() {
       
       const messagesArray = data.messages;
       
-      // Update conversation details if available
       if (data.conversation) {
         setConversation(data.conversation);
       }
       
-      // Sort messages oldest to newest (ascending order by createdAt)
       const sortedMessages = [...messagesArray].sort((a, b) => {
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       });
@@ -229,7 +213,6 @@ export default function ChatScreen() {
       
       setMessages(sortedMessages);
       
-      // Mark all messages as read
       await markMessagesAsRead();
     } catch (error: any) {
       console.error('ChatScreen: Error fetching messages', error);
@@ -248,7 +231,6 @@ export default function ChatScreen() {
     setNewMessage('');
 
     try {
-      // Validate conversation ID is a valid UUID
       const conversationId = typeof id === 'string' ? id : String(id);
       if (!conversationId || conversationId === 'undefined') {
         throw new Error('Invalid conversation ID');
@@ -260,7 +242,6 @@ export default function ChatScreen() {
       );
       console.log('ChatScreen: Message sent', response);
       
-      // Ensure sender object exists with proper fallbacks
       const messageWithSender = {
         ...response,
         sender: response.sender || {
@@ -270,7 +251,6 @@ export default function ChatScreen() {
         }
       };
       
-      // Only add message if it's not already in the list (WebSocket might have added it)
       setMessages(prev => {
         if (prev.some(m => m.id === messageWithSender.id)) {
           return prev;
@@ -315,24 +295,17 @@ export default function ChatScreen() {
     const isOwnMessage = currentUserId === messageSenderId;
     const time = timeDisplay(item.createdAt);
 
-    // Determine message status icon (WhatsApp-style)
-    // 1 tick = sent (no deliveredAt or readAt)
-    // 2 gray ticks = delivered (has deliveredAt but no readAt)
-    // 2 blue ticks = read (has readAt)
     let statusIcon = null;
     let statusColor = 'rgba(255, 255, 255, 0.7)';
     
     if (isOwnMessage) {
       if (item.readAt) {
-        // Read: 2 blue ticks
         statusIcon = '✓✓';
         statusColor = '#3B82F6';
       } else if (item.deliveredAt) {
-        // Delivered: 2 gray ticks
         statusIcon = '✓✓';
         statusColor = 'rgba(255, 255, 255, 0.7)';
       } else {
-        // Sent: 1 gray tick
         statusIcon = '✓';
         statusColor = 'rgba(255, 255, 255, 0.7)';
       }
@@ -380,7 +353,6 @@ export default function ChatScreen() {
     );
   }
 
-  // Use conversation details from the conversations list
   const participantName = conversation?.otherParticipant?.username || conversation?.otherParticipant?.name || 'Chat';
   const postTitle = conversation?.post?.title || '';
   const postEmoji = conversation?.post?.type === 'sublet' ? '🏠' : conversation?.post?.type === 'travel' ? '✈️' : '';
