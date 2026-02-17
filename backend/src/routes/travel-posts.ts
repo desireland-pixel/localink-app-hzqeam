@@ -390,6 +390,9 @@ export function registerTravelPostRoutes(app: App) {
           canOfferCompanionship: { type: 'boolean' },
           canCarryItems: { type: 'boolean' },
           alsoPostAsAlly: { type: 'boolean' },
+          companionshipConsent: { type: 'boolean' },
+          seekingConsent: { type: 'boolean' },
+          allyConsent: { type: 'boolean' },
         },
       },
       response: {

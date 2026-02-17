@@ -257,13 +257,17 @@ export function registerAuthRoutes(app: App) {
       }
 
       // Update user's emailVerified flag in Better Auth user table
-      // Note: This needs to be done through Better Auth's update mechanism
-      // For now, we'll just delete the OTP record as confirmation
+      await app.db
+        .update(authSchema.user)
+        .set({ emailVerified: true })
+        .where(eq(authSchema.user.email, email));
+
+      // Delete the OTP record after successful verification
       await app.db
         .delete(schema.otpVerifications)
         .where(eq(schema.otpVerifications.email, email));
 
-      app.logger.info({ email }, 'OTP verified successfully');
+      app.logger.info({ email, userId: authUser.id }, 'OTP verified and email marked as verified');
       return { success: true, message: 'Email verified successfully. You can now log in.' };
     } catch (error) {
       app.logger.error({ err: error, email }, 'Failed to verify OTP');
