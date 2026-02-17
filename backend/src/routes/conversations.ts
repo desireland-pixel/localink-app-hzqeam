@@ -464,13 +464,15 @@ export function registerConversationRoutes(app: App) {
         return reply.status(403).send({ error: 'You are not a participant in this conversation' });
       }
 
-      // Create message
+      // Create message with immediate delivery timestamp
+      const now = new Date();
       const [message] = await app.db
         .insert(schema.messages)
         .values({
           conversationId: id,
           senderId: session.user.id,
           content,
+          deliveredAt: now,
         })
         .returning();
 
