@@ -21,34 +21,11 @@ export type App = typeof app;
 // Configure storage for file uploads
 app.withStorage();
 
-// Configure Better Auth with email verification and social providers
+// Configure Better Auth with email and password support
+// Note: Email verification is handled by custom OTP system to prevent duplicate emails
 app.withAuth({
-  emailVerification: {
-    sendOnSignUp: true,
-    sendVerificationEmail: async ({ user, url }) => {
-      resend.emails.send({
-        from: 'Localink <noreply@localink.app>',
-        to: user.email,
-        subject: 'Localink - Verify Your Email',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Welcome to Localink!</h2>
-            <p>Please verify your email address by clicking the link below:</p>
-            <div style="margin: 30px 0;">
-              <a href="${url}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                Verify Email
-              </a>
-            </div>
-            <p style="color: #6B7280; margin-top: 20px;">Or copy and paste this link into your browser:</p>
-            <p style="color: #4F46E5; word-break: break-all;">${url}</p>
-            <p style="color: #6B7280;">If you didn't create an account with Localink, please ignore this email.</p>
-          </div>
-        `,
-      });
-    },
-  },
   emailAndPassword: {
-    requireEmailVerification: true,
+    requireEmailVerification: false,
     sendResetPassword: async ({ user, url }) => {
       resend.emails.send({
         from: 'Localink <noreply@localink.app>',
