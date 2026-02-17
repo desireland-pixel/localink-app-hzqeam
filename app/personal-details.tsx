@@ -70,13 +70,11 @@ export default function PersonalDetailsScreen() {
       setSuccess('Personal details updated successfully');
       await refreshProfile();
       
-      // If this is first-time setup (no profile before), redirect to main app
-      if (!profile || !profile.username || !profile.city) {
-        console.log('PersonalDetailsScreen: First-time setup complete, redirecting to main app');
-        setTimeout(() => {
-          router.replace('/(tabs)/sublet');
-        }, 1000);
-      }
+      // Navigate to home page after successful save
+      console.log('PersonalDetailsScreen: Profile saved, redirecting to home page');
+      setTimeout(() => {
+        router.replace('/(tabs)/sublet');
+      }, 1000);
     } catch (err: any) {
       console.error('PersonalDetailsScreen: Error updating details', err);
       setError(err.message || 'Failed to update personal details');

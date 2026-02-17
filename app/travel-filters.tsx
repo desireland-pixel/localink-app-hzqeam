@@ -20,9 +20,9 @@ export default function TravelFiltersScreen() {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
 
-  console.log('[TravelFiltersScreen] Rendering', { role, types, fromCity, toCity });
+  console.log('[TravelFiltersScreen] Rendering', { role, types: Array.from(types), fromCity, toCity });
   
-  // Load existing filters from params
+  // Load existing filters from params on mount
   useEffect(() => {
     console.log('[TravelFiltersScreen] Loading filters from params', params.filters);
     if (params.filters) {
@@ -88,7 +88,7 @@ export default function TravelFiltersScreen() {
   };
 
   const handleApply = () => {
-    console.log('[TravelFiltersScreen] Applying filters', { role, types, fromCity, toCity, dateStart, dateEnd });
+    console.log('[TravelFiltersScreen] Applying filters', { role, types: Array.from(types), fromCity, toCity, dateStart, dateEnd });
     
     // Build query params
     const params = new URLSearchParams();

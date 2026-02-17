@@ -287,7 +287,10 @@ export default function ChatScreen() {
   };
 
   const handleViewPost = () => {
-    if (!conversation?.postId || !conversation?.postType) return;
+    if (!conversation?.postId || !conversation?.postType) {
+      console.warn('ChatScreen: Cannot navigate to post - missing postId or postType');
+      return;
+    }
     
     console.log('ChatScreen: Navigating to post', conversation.postId, conversation.postType);
     
@@ -313,20 +316,25 @@ export default function ChatScreen() {
     const time = timeDisplay(item.createdAt);
 
     // Determine message status icon (WhatsApp-style)
-    // 1 tick = sent, 2 ticks = delivered, 2 blue ticks = read
+    // 1 tick = sent (no deliveredAt or readAt)
+    // 2 gray ticks = delivered (has deliveredAt but no readAt)
+    // 2 blue ticks = read (has readAt)
     let statusIcon = null;
     let statusColor = 'rgba(255, 255, 255, 0.7)';
     
     if (isOwnMessage) {
       if (item.readAt) {
+        // Read: 2 blue ticks
         statusIcon = '✓✓';
-        statusColor = '#3B82F6'; // Blue for read
+        statusColor = '#3B82F6';
       } else if (item.deliveredAt) {
+        // Delivered: 2 gray ticks
         statusIcon = '✓✓';
-        statusColor = 'rgba(255, 255, 255, 0.7)'; // Gray for delivered
+        statusColor = 'rgba(255, 255, 255, 0.7)';
       } else {
+        // Sent: 1 gray tick
         statusIcon = '✓';
-        statusColor = 'rgba(255, 255, 255, 0.7)'; // Gray for sent
+        statusColor = 'rgba(255, 255, 255, 0.7)';
       }
     }
 
@@ -394,6 +402,7 @@ export default function ChatScreen() {
           <TouchableOpacity 
             style={styles.postReferenceCard}
             onPress={handleViewPost}
+            activeOpacity={0.7}
           >
             <Text style={styles.postReferenceEmoji}>{postEmoji}</Text>
             <Text style={styles.postReferenceTitle} numberOfLines={1} ellipsizeMode="tail">
