@@ -15,7 +15,10 @@ export default function IndexScreen() {
       user: user?.id, 
       profile: profile?.name, 
       loading, 
-      profileLoading
+      profileLoading,
+      username: profile?.username,
+      city: profile?.city,
+      gdprConsent: profile?.gdprConsentAccepted
     });
     
     if (loading || profileLoading) {
@@ -28,12 +31,17 @@ export default function IndexScreen() {
       if (!user) {
         console.log('[IndexScreen] No user, redirecting to auth');
         router.replace('/auth');
-      } else if (!profile || !profile.username || !profile.city || !profile.gdprConsentAccepted) {
-        console.log('[IndexScreen] User authenticated but profile incomplete, redirecting to personal-details');
-        router.replace('/personal-details');
       } else {
-        console.log('[IndexScreen] User authenticated with complete profile, redirecting to tabs');
-        router.replace('/(tabs)/sublet');
+        // Check if profile is complete: username, city, and gdprConsentAccepted must all be present
+        const isProfileComplete = profile && profile.username && profile.city && profile.gdprConsentAccepted;
+        
+        if (!isProfileComplete) {
+          console.log('[IndexScreen] User authenticated but profile incomplete, redirecting to personal-details');
+          router.replace('/personal-details');
+        } else {
+          console.log('[IndexScreen] User authenticated with complete profile, redirecting to home');
+          router.replace('/(tabs)/sublet');
+        }
       }
     }, 100);
 

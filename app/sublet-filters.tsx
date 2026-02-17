@@ -21,9 +21,9 @@ export default function SubletFiltersScreen() {
   const [maxRent, setMaxRent] = useState('');
   const [cityRegistration, setCityRegistration] = useState<boolean | null>(null);
 
-  console.log('[SubletFiltersScreen] Rendering', { subletType, city, minRent, maxRent });
+  console.log('[SubletFiltersScreen] Rendering', { subletType, city, minRent, maxRent, cityRegistration });
   
-  // Load existing filters from params
+  // Load existing filters from params on mount
   useEffect(() => {
     console.log('[SubletFiltersScreen] Loading filters from params', params.filters);
     if (params.filters) {
