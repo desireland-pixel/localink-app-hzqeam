@@ -291,7 +291,7 @@ export function registerSubletRoutes(app: App) {
       tags: ['sublets'],
       body: {
         type: 'object',
-        required: ['type', 'title', 'city', 'availableFrom', 'availableTo'],
+        required: ['type', 'title', 'city', 'availableFrom', 'availableTo', 'independentArrangementConsent'],
         properties: {
           type: { type: 'string', enum: ['offering', 'seeking'] },
           title: { type: 'string' },
@@ -305,6 +305,7 @@ export function registerSubletRoutes(app: App) {
           pincode: { type: 'string' },
           cityRegistrationRequired: { type: 'boolean' },
           deposit: { type: 'string' },
+          independentArrangementConsent: { type: 'boolean' },
         },
       },
     },
