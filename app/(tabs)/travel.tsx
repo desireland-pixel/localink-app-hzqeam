@@ -193,7 +193,8 @@ export default function TravelScreen() {
             
             // Determine label and icons
             let label = '';
-            let icons = '';
+            let iconCompanionship = false;
+            let iconAlly = false;
             
             if (post.type === 'offering') {
               label = 'Offering';
@@ -201,21 +202,23 @@ export default function TravelScreen() {
               const hasCarry = post.canCarryItems;
               
               if (hasCompanionship && hasCarry) {
-                icons = '👥, 📦';
+                iconCompanionship = true;
+                iconAlly = true;
               } else if (hasCompanionship) {
-                icons = '👥';
+                iconCompanionship = true;
               } else if (hasCarry) {
-                icons = '📦';
+                iconAlly = true;
               } else {
                 // If neither flag is set, show both as default
-                icons = '👥, 📦';
+                iconCompanionship = true;
+                iconAlly = true;
               }
             } else if (post.type === 'seeking') {
               label = 'Seeking';
-              icons = '👥';
+              iconCompanionship = true;
             } else if (post.type === 'seeking-ally') {
               label = 'Seeking';
-              icons = '📦';
+              iconAlly = true;
             }
             
             const authorName = post.user?.username || post.user?.name || 'Unknown';
@@ -235,8 +238,14 @@ export default function TravelScreen() {
                         <Text style={styles.typeTagText}>{label}</Text>
                       </View>
                     )}
-                    {icons && (
-                      <Text style={styles.iconText}>{icons}</Text>
+                    {iconCompanionship && (
+                      <Text style={styles.iconText}>👥</Text>
+                    )}
+                    {iconCompanionship && iconAlly && (
+                      <Text style={styles.iconSeparator}>, </Text>
+                    )}
+                    {iconAlly && (
+                      <Text style={styles.iconText}>📦</Text>
                     )}
                   </View>
                   <TouchableOpacity 
@@ -396,7 +405,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   iconText: {
+    fontSize: 16,
+    lineHeight: 20,
+  },
+  iconSeparator: {
     fontSize: 14,
+    color: colors.textSecondary,
   },
   likeButton: {
     padding: spacing.xs,

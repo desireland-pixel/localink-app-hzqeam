@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, FlatList, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TextInput, ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { apiGet } from '@/utils/api';
 
@@ -88,20 +88,21 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
       
       {showSuggestions && suggestions.length > 0 && (
         <View style={styles.suggestionsContainer}>
-          <FlatList
-            data={suggestions}
-            keyExtractor={(item, index) => `${item}-${index}`}
-            renderItem={({ item }) => (
+          <ScrollView 
+            style={styles.suggestionsList}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled={true}
+          >
+            {suggestions.map((item, index) => (
               <TouchableOpacity
+                key={`${item}-${index}`}
                 style={styles.suggestionItem}
                 onPress={() => handleSelectCity(item)}
               >
                 <Text style={styles.suggestionText}>{item}</Text>
               </TouchableOpacity>
-            )}
-            style={styles.suggestionsList}
-            keyboardShouldPersistTaps="handled"
-          />
+            ))}
+          </ScrollView>
         </View>
       )}
     </View>

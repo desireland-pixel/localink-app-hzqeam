@@ -245,6 +245,7 @@ export default function PostSubletScreen() {
         rent: rent.trim() || undefined,
         type: subletType,
         imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+        independentArrangementConsent: consentChecked,
       };
 
       // Add offering-specific fields
