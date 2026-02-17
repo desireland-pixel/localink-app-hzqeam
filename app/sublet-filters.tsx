@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { CitySearchInput } from '@/components/CitySearchInput';
@@ -20,67 +20,82 @@ export default function SubletFiltersScreen() {
   const [minRent, setMinRent] = useState('');
   const [maxRent, setMaxRent] = useState('');
   const [cityRegistration, setCityRegistration] = useState<boolean | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
-  console.log('[SubletFiltersScreen] Rendering', { subletType, city, minRent, maxRent, cityRegistration });
+  console.log('[SubletFiltersScreen] Rendering', { subletType, city, minRent, maxRent, cityRegistration, hydrated });
   
-  // Load existing filters from params on mount
-  useEffect(() => {
-    console.log('[SubletFiltersScreen] Loading filters from params', params.filters);
-    if (params.filters) {
-      const filterString = params.filters as string;
-      const urlParams = new URLSearchParams(filterString);
+  // Use useFocusEffect to reinitialize filter state every time screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[SubletFiltersScreen] Screen focused, hydrating filters from params', params.filters);
+      setHydrated(false);
       
-      const type = urlParams.get('type');
-      if (type === 'offering' || type === 'seeking') {
-        console.log('[SubletFiltersScreen] Setting subletType:', type);
-        setSubletType(type);
+      // Reset all filters first
+      setSubletType(null);
+      setCity('');
+      setDateStart(null);
+      setDateEnd(null);
+      setMinRent('');
+      setMaxRent('');
+      setCityRegistration(null);
+      
+      if (params.filters) {
+        const filterString = params.filters as string;
+        const urlParams = new URLSearchParams(filterString);
+        
+        const type = urlParams.get('type');
+        if (type === 'offering' || type === 'seeking') {
+          console.log('[SubletFiltersScreen] Setting subletType:', type);
+          setSubletType(type);
+        }
+        
+        const cityParam = urlParams.get('city');
+        if (cityParam) {
+          console.log('[SubletFiltersScreen] Setting city:', cityParam);
+          setCity(cityParam);
+        }
+        
+        const fromDate = urlParams.get('availableFrom');
+        if (fromDate) {
+          console.log('[SubletFiltersScreen] Setting dateStart:', fromDate);
+          setDateStart(new Date(fromDate));
+        }
+        
+        const toDate = urlParams.get('availableTo');
+        if (toDate) {
+          console.log('[SubletFiltersScreen] Setting dateEnd:', toDate);
+          setDateEnd(new Date(toDate));
+        }
+        
+        const minRentParam = urlParams.get('minRent');
+        if (minRentParam) {
+          console.log('[SubletFiltersScreen] Setting minRent:', minRentParam);
+          setMinRent(minRentParam);
+        }
+        
+        const maxRentParam = urlParams.get('maxRent');
+        if (maxRentParam) {
+          console.log('[SubletFiltersScreen] Setting maxRent:', maxRentParam);
+          setMaxRent(maxRentParam);
+        }
+        
+        const cityReg = urlParams.get('cityRegistrationRequired');
+        if (cityReg === 'yes') {
+          console.log('[SubletFiltersScreen] Setting cityRegistration: true');
+          setCityRegistration(true);
+        } else if (cityReg === 'no') {
+          console.log('[SubletFiltersScreen] Setting cityRegistration: false');
+          setCityRegistration(false);
+        }
       }
       
-      const cityParam = urlParams.get('city');
-      if (cityParam) {
-        console.log('[SubletFiltersScreen] Setting city:', cityParam);
-        setCity(cityParam);
-      }
-      
-      const fromDate = urlParams.get('availableFrom');
-      if (fromDate) {
-        console.log('[SubletFiltersScreen] Setting dateStart:', fromDate);
-        setDateStart(new Date(fromDate));
-      }
-      
-      const toDate = urlParams.get('availableTo');
-      if (toDate) {
-        console.log('[SubletFiltersScreen] Setting dateEnd:', toDate);
-        setDateEnd(new Date(toDate));
-      }
-      
-      const minRentParam = urlParams.get('minRent');
-      if (minRentParam) {
-        console.log('[SubletFiltersScreen] Setting minRent:', minRentParam);
-        setMinRent(minRentParam);
-      }
-      
-      const maxRentParam = urlParams.get('maxRent');
-      if (maxRentParam) {
-        console.log('[SubletFiltersScreen] Setting maxRent:', maxRentParam);
-        setMaxRent(maxRentParam);
-      }
-      
-      const cityReg = urlParams.get('cityRegistrationRequired');
-      if (cityReg === 'yes') {
-        console.log('[SubletFiltersScreen] Setting cityRegistration: true');
-        setCityRegistration(true);
-      } else if (cityReg === 'no') {
-        console.log('[SubletFiltersScreen] Setting cityRegistration: false');
-        setCityRegistration(false);
-      }
-    }
-  }, [params.filters]);
+      setHydrated(true);
+    }, [params.filters])
+  );
 
   const handleApply = () => {
     console.log('[SubletFiltersScreen] Applying filters', { subletType, city, dateStart, dateEnd, minRent, maxRent, cityRegistration });
     
-    // Validate dates
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -107,7 +122,6 @@ export default function SubletFiltersScreen() {
       }
     }
     
-    // Build query params
     const params = new URLSearchParams();
     if (subletType) params.append('type', subletType);
     if (city) params.append('city', city);
@@ -120,7 +134,6 @@ export default function SubletFiltersScreen() {
     const filterString = params.toString();
     console.log('[SubletFiltersScreen] Filter string:', filterString);
     
-    // Navigate back with filters - use replace to maintain filter state
     router.replace({
       pathname: '/(tabs)/sublet',
       params: { filters: filterString }
@@ -141,8 +154,16 @@ export default function SubletFiltersScreen() {
   const dateStartDisplay = dateStart ? formatDateToDDMMYYYY(dateStart) : '';
   const dateEndDisplay = dateEnd ? formatDateToDDMMYYYY(dateEnd) : '';
   
-  // Check if any filters are active
   const hasActiveFilters = subletType !== null || city !== '' || dateStart !== null || dateEnd !== null || minRent !== '' || maxRent !== '' || cityRegistration !== null;
+
+  // Don't render inputs until hydration is complete
+  if (!hydrated) {
+    return (
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <View style={styles.content} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>

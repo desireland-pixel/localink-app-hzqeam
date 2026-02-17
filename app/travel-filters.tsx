@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { CitySearchInput } from '@/components/CitySearchInput';
@@ -19,63 +19,77 @@ export default function TravelFiltersScreen() {
   const [dateEnd, setDateEnd] = useState<Date | null>(null);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
-  console.log('[TravelFiltersScreen] Rendering', { role, types: Array.from(types), fromCity, toCity });
+  console.log('[TravelFiltersScreen] Rendering', { role, types: Array.from(types), fromCity, toCity, hydrated });
   
-  // Load existing filters from params on mount
-  useEffect(() => {
-    console.log('[TravelFiltersScreen] Loading filters from params', params.filters);
-    if (params.filters) {
-      const filterString = params.filters as string;
-      const urlParams = new URLSearchParams(filterString);
+  // Use useFocusEffect to reinitialize filter state every time screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[TravelFiltersScreen] Screen focused, hydrating filters from params', params.filters);
+      setHydrated(false);
       
-      const roleParam = urlParams.get('role');
-      if (roleParam === 'offering' || roleParam === 'seeking') {
-        console.log('[TravelFiltersScreen] Setting role:', roleParam);
-        setRole(roleParam);
-      }
+      // Reset all filters first
+      setRole(null);
+      setTypes(new Set());
+      setFromCity('');
+      setToCity('');
+      setDateStart(null);
+      setDateEnd(null);
       
-      // Check for type parameter
-      const typeParam = urlParams.get('type');
-      if (typeParam) {
-        const newTypes = new Set<'companionship' | 'ally'>();
-        if (typeParam.includes('companionship')) {
-          newTypes.add('companionship');
+      if (params.filters) {
+        const filterString = params.filters as string;
+        const urlParams = new URLSearchParams(filterString);
+        
+        const roleParam = urlParams.get('role');
+        if (roleParam === 'offering' || roleParam === 'seeking') {
+          console.log('[TravelFiltersScreen] Setting role:', roleParam);
+          setRole(roleParam);
         }
-        if (typeParam.includes('ally')) {
-          newTypes.add('ally');
+        
+        const typeParam = urlParams.get('type');
+        if (typeParam) {
+          const newTypes = new Set<'companionship' | 'ally'>();
+          if (typeParam.includes('companionship')) {
+            newTypes.add('companionship');
+          }
+          if (typeParam.includes('ally')) {
+            newTypes.add('ally');
+          }
+          if (newTypes.size > 0) {
+            console.log('[TravelFiltersScreen] Setting types:', Array.from(newTypes));
+            setTypes(newTypes);
+          }
         }
-        if (newTypes.size > 0) {
-          console.log('[TravelFiltersScreen] Setting types:', Array.from(newTypes));
-          setTypes(newTypes);
+        
+        const from = urlParams.get('fromCity');
+        if (from) {
+          console.log('[TravelFiltersScreen] Setting fromCity:', from);
+          setFromCity(from);
+        }
+        
+        const to = urlParams.get('toCity');
+        if (to) {
+          console.log('[TravelFiltersScreen] Setting toCity:', to);
+          setToCity(to);
+        }
+        
+        const fromDate = urlParams.get('travelDateFrom');
+        if (fromDate) {
+          console.log('[TravelFiltersScreen] Setting dateStart:', fromDate);
+          setDateStart(new Date(fromDate));
+        }
+        
+        const toDate = urlParams.get('travelDateTo');
+        if (toDate) {
+          console.log('[TravelFiltersScreen] Setting dateEnd:', toDate);
+          setDateEnd(new Date(toDate));
         }
       }
       
-      const from = urlParams.get('fromCity');
-      if (from) {
-        console.log('[TravelFiltersScreen] Setting fromCity:', from);
-        setFromCity(from);
-      }
-      
-      const to = urlParams.get('toCity');
-      if (to) {
-        console.log('[TravelFiltersScreen] Setting toCity:', to);
-        setToCity(to);
-      }
-      
-      const fromDate = urlParams.get('travelDateFrom');
-      if (fromDate) {
-        console.log('[TravelFiltersScreen] Setting dateStart:', fromDate);
-        setDateStart(new Date(fromDate));
-      }
-      
-      const toDate = urlParams.get('travelDateTo');
-      if (toDate) {
-        console.log('[TravelFiltersScreen] Setting dateEnd:', toDate);
-        setDateEnd(new Date(toDate));
-      }
-    }
-  }, [params.filters]);
+      setHydrated(true);
+    }, [params.filters])
+  );
 
   const toggleType = (type: 'companionship' | 'ally') => {
     const newTypes = new Set(types);
@@ -90,15 +104,12 @@ export default function TravelFiltersScreen() {
   const handleApply = () => {
     console.log('[TravelFiltersScreen] Applying filters', { role, types: Array.from(types), fromCity, toCity, dateStart, dateEnd });
     
-    // Build query params
     const params = new URLSearchParams();
     
-    // Add role filter
     if (role) {
       params.append('role', role);
     }
     
-    // Add type filter - send as comma-separated string
     if (types.size > 0) {
       const typeArray = Array.from(types);
       params.append('type', typeArray.join(','));
@@ -112,7 +123,6 @@ export default function TravelFiltersScreen() {
     const filterString = params.toString();
     console.log('[TravelFiltersScreen] Filter string:', filterString);
     
-    // Navigate back with filters - use replace to maintain filter state
     router.replace({
       pathname: '/(tabs)/travel',
       params: { filters: filterString }
@@ -132,8 +142,16 @@ export default function TravelFiltersScreen() {
   const dateStartDisplay = dateStart ? formatDateToDDMMYYYY(dateStart) : '';
   const dateEndDisplay = dateEnd ? formatDateToDDMMYYYY(dateEnd) : '';
   
-  // Check if any filters are active
   const hasActiveFilters = role !== null || types.size > 0 || fromCity !== '' || toCity !== '' || dateStart !== null || dateEnd !== null;
+
+  // Don't render inputs until hydration is complete
+  if (!hydrated) {
+    return (
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <View style={styles.content} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>

@@ -16,12 +16,16 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Modal from '@/components/ui/Modal';
 import { authenticatedPut } from '@/utils/api';
+import { IconSymbol } from '@/components/IconSymbol';
 
 export default function EditPasswordScreen() {
   const router = useRouter();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -89,44 +93,83 @@ export default function EditPasswordScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Old Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your current password"
-                placeholderTextColor={colors.textLight}
-                value={oldPassword}
-                onChangeText={setOldPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                editable={!loading}
-              />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your current password"
+                  placeholderTextColor={colors.textLight}
+                  value={oldPassword}
+                  onChangeText={setOldPassword}
+                  secureTextEntry={!showOldPassword}
+                  autoCapitalize="none"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowOldPassword(!showOldPassword)}
+                >
+                  <IconSymbol
+                    ios_icon_name={showOldPassword ? "eye.slash" : "eye"}
+                    android_material_icon_name={showOldPassword ? "visibility-off" : "visibility"}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>New Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your new password"
-                placeholderTextColor={colors.textLight}
-                value={newPassword}
-                onChangeText={setNewPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                editable={!loading}
-              />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your new password"
+                  placeholderTextColor={colors.textLight}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry={!showNewPassword}
+                  autoCapitalize="none"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowNewPassword(!showNewPassword)}
+                >
+                  <IconSymbol
+                    ios_icon_name={showNewPassword ? "eye.slash" : "eye"}
+                    android_material_icon_name={showNewPassword ? "visibility-off" : "visibility"}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Confirm Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Re-enter your new password"
-                placeholderTextColor={colors.textLight}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                editable={!loading}
-              />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Re-enter your new password"
+                  placeholderTextColor={colors.textLight}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <IconSymbol
+                    ios_icon_name={showConfirmPassword ? "eye.slash" : "eye"}
+                    android_material_icon_name={showConfirmPassword ? "visibility-off" : "visibility"}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <TouchableOpacity
@@ -193,15 +236,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: spacing.xs,
   },
+  passwordContainer: {
+    position: 'relative',
+  },
   input: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
+    paddingRight: 48,
     borderWidth: 1,
     borderColor: colors.border,
     ...typography.body,
     color: colors.text,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: spacing.md,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 32,
   },
   button: {
     backgroundColor: colors.primary,

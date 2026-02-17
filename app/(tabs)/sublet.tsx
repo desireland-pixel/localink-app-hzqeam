@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
@@ -52,14 +53,12 @@ export default function SubletScreen() {
       console.log('SubletScreen: API call with params:', filterParams);
       const data = await authenticatedGet<Sublet[]>(`/api/sublets${filterParams}`);
       console.log('SubletScreen: Fetched sublets', data);
-      // Ensure data is an array before sorting
       const dataArray = Array.isArray(data) ? data : [];
-      // Sort by createdAt descending (newest first)
       const sortedData = dataArray.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setSublets(sortedData);
     } catch (error) {
       console.error('SubletScreen: Error fetching sublets', error);
-      setSublets([]); // Set empty array on error
+      setSublets([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -81,7 +80,6 @@ export default function SubletScreen() {
     console.log('SubletScreen: Toggle favorite', postId);
     const isFavorited = favorites.has(postId);
     
-    // Optimistic update
     const newFavorites = new Set(favorites);
     if (isFavorited) {
       newFavorites.delete(postId);
@@ -98,7 +96,6 @@ export default function SubletScreen() {
       }
     } catch (error) {
       console.error('SubletScreen: Error toggling favorite', error);
-      // Revert on error
       setFavorites(favorites);
     }
   };
@@ -116,11 +113,13 @@ export default function SubletScreen() {
   };
 
   const handleFilters = () => {
-    console.log('SubletScreen: Navigate to filters');
-    router.push('/sublet-filters');
+    console.log('SubletScreen: Navigate to filters with current filters:', params.filters);
+    router.push({
+      pathname: '/sublet-filters',
+      params: { filters: params.filters || '' }
+    });
   };
   
-  // Check if filters are active
   const hasActiveFilters = params.filters && params.filters.toString().length > 0;
 
   const filteredSublets = sublets.filter(sublet =>
@@ -190,7 +189,7 @@ export default function SubletScreen() {
             const fromDisplay = formatDateToDDMMYYYY(sublet.availableFrom);
             const toDisplay = formatDateToDDMMYYYY(sublet.availableTo);
             const label = sublet.type === 'offering' ? 'Offering' : 'Seeking';
-            const hasImage = sublet.imageUrls && sublet.imageUrls.length > 0;
+            const imageUrl = sublet.imageUrls?.[0];
             const isFavorited = favorites.has(sublet.id);
             
             return (
@@ -202,8 +201,13 @@ export default function SubletScreen() {
                 <View style={styles.cardContent}>
                   <View style={styles.leftColumn}>
                     <View style={styles.imageContainer}>
-                      {hasImage ? (
-                        <Image source={{ uri: sublet.imageUrls![0] }} style={styles.cardImage} />
+                      {imageUrl ? (
+                        <Image 
+                          source={{ uri: imageUrl }} 
+                          style={styles.cardImage}
+                          cachePolicy="disk"
+                          contentFit="cover"
+                        />
                       ) : (
                         <View style={styles.imagePlaceholder}>
                           <IconSymbol
