@@ -50,11 +50,15 @@ export function registerProfileRoutes(app: App) {
     }
 
     app.logger.info({ userId: session.user.id }, 'Profile fetched successfully');
+
+    // Check profile completion: needs username, city, AND gdprConsentAccepted
+    const isProfileComplete = !!(profile.username && profile.city && profile.gdprConsentAccepted);
+
     return {
       ...profile,
       userId: profile.userId,
       email: session.user.email,
-      isProfileComplete: !!(profile.username && profile.city),
+      isProfileComplete,
     };
   });
 
@@ -93,9 +97,9 @@ export function registerProfileRoutes(app: App) {
     const session = await requireAuth(request, reply);
     if (!session) return;
 
-    const { name, username, city, photoUrl } = request.body as { name?: string; username?: string; city?: string; photoUrl?: string };
+    const { name, username, city, photoUrl, gdprConsentAccepted } = request.body as { name?: string; username?: string; city?: string; photoUrl?: string; gdprConsentAccepted?: boolean };
 
-    app.logger.info({ userId: session.user.id, username, city, hasPhoto: !!photoUrl }, 'Updating user profile');
+    app.logger.info({ userId: session.user.id, username, city, hasPhoto: !!photoUrl, gdprConsentAccepted }, 'Updating user profile');
 
     try {
       // Validate city if provided
@@ -127,6 +131,12 @@ export function registerProfileRoutes(app: App) {
         if (username !== undefined) updateData.username = username || null;
         if (city !== undefined) updateData.city = city;
         if (photoUrl !== undefined) updateData.photoUrl = photoUrl;
+        if (gdprConsentAccepted !== undefined) {
+          updateData.gdprConsentAccepted = gdprConsentAccepted;
+          if (gdprConsentAccepted) {
+            updateData.gdprConsentAcceptedAt = new Date();
+          }
+        }
 
         const [updated] = await app.db
           .update(schema.profiles)
@@ -134,8 +144,8 @@ export function registerProfileRoutes(app: App) {
           .where(eq(schema.profiles.userId, session.user.id))
           .returning();
 
-        // Check if profile is now complete (has username and city)
-        const isProfileComplete = !!(updated.username && updated.city);
+        // Check if profile is now complete (has username, city, AND gdprConsentAccepted)
+        const isProfileComplete = !!(updated.username && updated.city && updated.gdprConsentAccepted);
 
         // Update profile_completed flag in auth user if profile is now complete
         if (isProfileComplete) {
@@ -172,11 +182,13 @@ export function registerProfileRoutes(app: App) {
             username: username || null,
             city,
             photoUrl: photoUrl || null,
+            gdprConsentAccepted: gdprConsentAccepted || false,
+            gdprConsentAcceptedAt: gdprConsentAccepted ? new Date() : null,
           })
           .returning();
 
-        // Check if profile is complete (has username and city)
-        const isProfileComplete = !!(newProfile.username && newProfile.city);
+        // Check if profile is complete (has username, city, AND gdprConsentAccepted)
+        const isProfileComplete = !!(newProfile.username && newProfile.city && newProfile.gdprConsentAccepted);
 
         // Update profile_completed flag in auth user if profile is complete
         if (isProfileComplete) {
