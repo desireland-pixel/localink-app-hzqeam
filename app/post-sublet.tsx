@@ -198,6 +198,13 @@ export default function PostSubletScreen() {
       }
     }
 
+    if (subletType === 'seeking') {
+      if (cityRegistration === null) {
+        setError('Please select city registration requirement');
+        return;
+      }
+    }
+
     if (!consentChecked) {
       setError('Please accept the consent information');
       return;
@@ -246,13 +253,13 @@ export default function PostSubletScreen() {
         type: subletType,
         imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
         independentArrangementConsent: consentChecked,
+        cityRegistrationRequired: cityRegistration, // Backend now accepts this for BOTH offering and seeking
       };
 
       // Add offering-specific fields
       if (subletType === 'offering') {
         postData.address = address.trim();
         postData.pincode = pincode.trim();
-        postData.cityRegistrationRequired = cityRegistration;
         postData.deposit = deposit.trim() || undefined;
       }
 
@@ -582,6 +589,29 @@ export default function PostSubletScreen() {
                 onChangeText={setRent}
                 keyboardType="numeric"
               />
+
+              <Text style={styles.label}>City Registration *</Text>
+              <View style={styles.radioButtons}>
+                <TouchableOpacity
+                  style={styles.radioOption}
+                  onPress={() => setCityRegistration(true)}
+                >
+                  <View style={styles.radioCircle}>
+                    {cityRegistration === true && <View style={styles.radioCircleSelected} />}
+                  </View>
+                  <Text style={styles.radioText}>Yes</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.radioOption}
+                  onPress={() => setCityRegistration(false)}
+                >
+                  <View style={styles.radioCircle}>
+                    {cityRegistration === false && <View style={styles.radioCircleSelected} />}
+                  </View>
+                  <Text style={styles.radioText}>No</Text>
+                </TouchableOpacity>
+              </View>
 
               <TouchableOpacity
                 style={styles.consentContainer}
