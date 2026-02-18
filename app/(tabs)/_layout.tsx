@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Tabs } from 'expo-router';
+import { Platform } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,8 +20,8 @@ export default function TabLayout() {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: 68,
-          paddingBottom: 10,
+          height: Platform.OS === 'android' ? 80 : 68,
+          paddingBottom: Platform.OS === 'android' ? 16 : 10,
           paddingTop: 10,
         },
         tabBarLabelStyle: {

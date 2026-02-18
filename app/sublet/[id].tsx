@@ -76,7 +76,6 @@ export default function SubletDetailsScreen() {
     console.log('SubletDetailsScreen: Contact user', sublet.userId);
     
     try {
-      // Ensure we have valid UUIDs
       const postId = typeof id === 'string' ? id : String(id);
       const recipientId = sublet.userId;
       
@@ -92,7 +91,6 @@ export default function SubletDetailsScreen() {
       );
       console.log('SubletDetailsScreen: Conversation created', response);
       
-      // Backend returns { id: ... } not { conversationId: ... }
       const conversationId = response.conversationId || response.id;
       
       if (!conversationId) {
@@ -103,7 +101,6 @@ export default function SubletDetailsScreen() {
     } catch (error: any) {
       console.error('SubletDetailsScreen: Error creating conversation', error);
       const errorMsg = error.message || 'Failed to start conversation';
-      // Check if it's a UUID validation error
       if (errorMsg.includes('uuid') || errorMsg.includes('UUID')) {
         setError('Unable to start conversation. Please try again later.');
       } else {
@@ -129,7 +126,6 @@ export default function SubletDetailsScreen() {
       });
     } catch (error: any) {
       console.error('SubletDetailsScreen: Error sharing', error);
-      // Fallback to basic share
       const shareMessage = `Check out this sublet: ${sublet.title} in ${sublet.city}`;
       await Share.share({
         message: shareMessage,
@@ -168,6 +164,12 @@ export default function SubletDetailsScreen() {
     }
   };
 
+  const handleScroll = (event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(contentOffsetX / SCREEN_WIDTH);
+    setCurrentImageIndex(index);
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -196,27 +198,6 @@ export default function SubletDetailsScreen() {
   const typeLabel = sublet.type === 'offering' ? 'Offering' : 'Seeking';
   const displayId = sublet.shortId || sublet.id.substring(0, 8);
 
-  const handleScroll = (event: any) => {
-    const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffsetX / SCREEN_WIDTH);
-    setCurrentImageIndex(index);
-  };
-
-  const renderImageItem = ({ item, index }: { item: string; index: number }) => {
-    const imageUrl = sublet?.imageUrls?.[index];
-    if (!imageUrl) return null;
-    
-    return (
-      <Image 
-        source={{ uri: imageUrl }} 
-        style={styles.image} 
-        contentFit="cover"
-        cachePolicy="disk"
-        transition={200}
-      />
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
@@ -226,8 +207,16 @@ export default function SubletDetailsScreen() {
               <FlatList
                 ref={flatListRef}
                 data={sublet.imageUrls}
-                renderItem={({ item, index }) => renderImageItem({ item, index })}
-                keyExtractor={(item, index) => `image-${index}`}
+                renderItem={({ item }) => (
+                  <Image 
+                    source={{ uri: item }} 
+                    style={styles.image} 
+                    contentFit="cover"
+                    cachePolicy="disk"
+                    transition={200}
+                  />
+                )}
+                keyExtractor={(item) => item}
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
@@ -236,9 +225,9 @@ export default function SubletDetailsScreen() {
               />
               {imageCount > 1 && (
                 <View style={styles.imageIndicatorContainer}>
-                  {sublet.imageUrls!.map((_, index) => (
+                  {sublet.imageUrls!.map((url, index) => (
                     <View
-                      key={`indicator-${index}`}
+                      key={url}
                       style={[
                         styles.imageIndicator,
                         index === currentImageIndex && styles.imageIndicatorActive,
