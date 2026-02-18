@@ -4,6 +4,7 @@ import { eq, and, or, gte, lte, isNull, isNotNull, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { generateShortId } from '../utils/short-id.js';
 import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '../utils/date-format.js';
+import { regenerateSignedUrls } from '../utils/image-url-regenerator.js';
 
 interface SubletFilters {
   type?: 'offering' | 'seeking';
@@ -149,13 +150,17 @@ export function registerSubletRoutes(app: App) {
         .orderBy(desc(schema.sublets.createdAt));
 
       // Transform to include user object and format dates
-      const result = sublets.map(sublet => {
+      const result = await Promise.all(sublets.map(async (sublet) => {
         // Dates come as strings from database in YYYY-MM-DD format
         const fromDate = String(sublet.availableFrom);
         const toDate = String(sublet.availableTo);
 
+        // Regenerate fresh signed URLs for images
+        const freshImageUrls = await regenerateSignedUrls(app, sublet.imageUrls);
+
         return {
           ...sublet,
+          imageUrls: freshImageUrls,
           availableFrom: formatDateToDDMMYYYY(fromDate),
           availableTo: formatDateToDDMMYYYY(toDate),
           user: {
@@ -164,7 +169,7 @@ export function registerSubletRoutes(app: App) {
           },
           username: undefined, // Remove flat username field
         };
-      });
+      }));
 
       app.logger.info({ count: result.length, filters }, 'Sublets listed successfully');
       return result;
@@ -229,8 +234,12 @@ export function registerSubletRoutes(app: App) {
       const fromDate = String(sublet.availableFrom);
       const toDate = String(sublet.availableTo);
 
+      // Regenerate fresh signed URLs for images
+      const freshImageUrls = await regenerateSignedUrls(app, sublet.imageUrls);
+
       const response = {
         ...sublet,
+        imageUrls: freshImageUrls,
         availableFrom: formatDateToDDMMYYYY(fromDate),
         availableTo: formatDateToDDMMYYYY(toDate),
         shortId: generateShortId(sublet.id),

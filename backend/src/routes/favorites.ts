@@ -4,6 +4,7 @@ import { eq, and } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { formatDateToDDMMYYYY } from '../utils/date-format.js';
 import { formatTravelPostTitle, getTravelPostTypeEmojis } from '../utils/travel-post-formatter.js';
+import { regenerateSignedUrls } from '../utils/image-url-regenerator.js';
 
 interface CreateFavoriteBody {
   postId: string;
@@ -262,8 +263,13 @@ export function registerFavoriteRoutes(app: App) {
               const s = sublet[0];
               const fromDate = String(s.availableFrom);
               const toDate = String(s.availableTo);
+
+              // Regenerate fresh signed URLs for images
+              const freshImageUrls = await regenerateSignedUrls(app, s.imageUrls);
+
               post = {
                 ...s,
+                imageUrls: freshImageUrls,
                 postType: 'sublet',
                 availableFrom: formatDateToDDMMYYYY(fromDate),
                 availableTo: formatDateToDDMMYYYY(toDate),
