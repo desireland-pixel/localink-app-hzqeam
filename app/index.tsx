@@ -18,7 +18,8 @@ export default function IndexScreen() {
       profileLoading,
       username: profile?.username,
       city: profile?.city,
-      gdprConsent: profile?.gdprConsentAccepted
+      gdprConsent: profile?.gdprConsentAccepted,
+      profileCompleted: profile?.profileCompleted
     });
     
     if (loading || profileLoading) {
@@ -32,8 +33,14 @@ export default function IndexScreen() {
         console.log('[IndexScreen] No user, redirecting to auth');
         router.replace('/auth');
       } else {
-        // Check if profile is complete (username, city, and GDPR consent)
-        const isProfileComplete = profile && profile.username && profile.city && profile.gdprConsentAccepted;
+        // Use isProfileComplete from backend if available, otherwise calculate it
+        // The backend returns isProfileComplete based on: username, city, and gdprConsentAccepted
+        const isProfileComplete = profile?.profileCompleted === true;
+        
+        console.log('[IndexScreen] Profile completion check:', {
+          profileCompleted: profile?.profileCompleted,
+          isProfileComplete
+        });
         
         if (isProfileComplete) {
           // Profile is complete, go to home page

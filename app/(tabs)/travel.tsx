@@ -290,7 +290,7 @@ export default function TravelScreen() {
                     <Text style={styles.cardAuthor}>{authorName}</Text>
                     <Text style={styles.cardDate}> • {createdDate}</Text>
                   </View>
-                  {post.incentiveAmount && (
+                  {post.incentiveAmount && post.incentiveAmount > 0 && (
                     <View style={styles.incentiveTag}>
                       <Text style={styles.incentiveTagText}>Incentive</Text>
                     </View>
