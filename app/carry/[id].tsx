@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, authenticatedDelete, authenticatedPatch } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
@@ -83,7 +83,6 @@ export default function CommunityDetailsScreen() {
       });
       console.log('[CommunityDetails] Reply posted successfully');
       
-      // Clear input and refresh
       setReplyText('');
       await fetchTopic();
     } catch (err) {
@@ -91,6 +90,51 @@ export default function CommunityDetailsScreen() {
       setError(err instanceof Error ? err.message : 'Failed to post reply');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEdit = () => {
+    if (!topic) return;
+    console.log('CommunityDetailsScreen: Edit topic', id);
+    router.push({
+      pathname: '/post-community-topic',
+      params: {
+        editId: id,
+        editData: JSON.stringify(topic),
+      },
+    });
+  };
+
+  const handleDelete = async () => {
+    if (!topic) return;
+    
+    const isClosed = topic.status === 'closed';
+    const actionText = isClosed ? 'delete' : 'close';
+    
+    console.log(`CommunityDetailsScreen: ${actionText} topic`, id);
+    setDeleting(true);
+    
+    try {
+      const response = await authenticatedDelete<{ success: boolean; action: string; message: string }>(
+        `/api/community/topics/${id}`,
+        {}
+      );
+      console.log('CommunityDetailsScreen: Topic action completed', response);
+      
+      setShowDeleteModal(false);
+      
+      if (response.action === 'deleted') {
+        // Topic was permanently deleted, navigate back to my posts
+        router.replace('/my-posts');
+      } else if (response.action === 'closed') {
+        // Topic was closed, refresh to show updated status
+        await fetchTopic();
+      }
+    } catch (error: any) {
+      console.error('CommunityDetailsScreen: Error with topic action', error);
+      setError(error.message || `Failed to ${actionText} topic`);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -118,36 +162,12 @@ export default function CommunityDetailsScreen() {
   const createdDate = formatDateToDDMMYYYY(topic.createdAt);
   const authorName = topic.user.username || topic.user.name;
   const postedByText = `${authorName} • ${createdDate}`;
-
-  const handleEdit = () => {
-    if (!topic) return;
-    console.log('CommunityDetailsScreen: Edit topic', id);
-    router.push({
-      pathname: '/post-community-topic',
-      params: {
-        editId: id,
-        editData: JSON.stringify(topic),
-      },
-    });
-  };
-
-  const handleDelete = async () => {
-    if (!topic) return;
-    console.log('CommunityDetailsScreen: Delete topic', id);
-    setDeleting(true);
-    
-    try {
-      await authenticatedDelete(`/api/community/topics/${id}`, {});
-      console.log('CommunityDetailsScreen: Topic deleted successfully');
-      setShowDeleteModal(false);
-      router.replace('/my-posts');
-    } catch (error: any) {
-      console.error('CommunityDetailsScreen: Error deleting topic', error);
-      setError(error.message || 'Failed to delete topic');
-    } finally {
-      setDeleting(false);
-    }
-  };
+  const isClosed = topic.status === 'closed';
+  const deleteButtonText = isClosed ? 'Delete' : 'Close';
+  const deleteModalTitle = isClosed ? 'Delete Discussion' : 'Close Discussion';
+  const deleteModalMessage = isClosed 
+    ? 'Are you sure you want to permanently delete this discussion? This action cannot be undone and will delete all replies.'
+    : 'Are you sure you want to close this discussion? You can delete it permanently after closing.';
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -182,7 +202,6 @@ export default function CommunityDetailsScreen() {
                 </>
               )}
               <TouchableOpacity style={styles.shareButton} onPress={() => {
-                // TODO: Implement share functionality
                 console.log('Share discussion');
               }}>
                 <IconSymbol
@@ -201,13 +220,19 @@ export default function CommunityDetailsScreen() {
 
           <View style={styles.metaContainer}>
             <Text style={styles.postedByText}>{postedByText}</Text>
-            <View style={[styles.tagBadge, { backgroundColor: colors.primary }]}>
-              <Text style={styles.tagBadgeText}>{topic.category}</Text>
+            <View style={styles.tagRow}>
+              <View style={[styles.tagBadge, { backgroundColor: colors.primary }]}>
+                <Text style={styles.tagBadgeText}>{topic.category}</Text>
+              </View>
+              {isClosed && (
+                <View style={[styles.tagBadge, { backgroundColor: '#FF3B30' }]}>
+                  <Text style={styles.tagBadgeText}>Closed</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
 
-        {/* Replies Section */}
         <View style={styles.repliesSection}>
           <Text style={styles.repliesTitle}>Replies ({topic.replies?.length || 0})</Text>
           
@@ -231,7 +256,6 @@ export default function CommunityDetailsScreen() {
           )}
         </View>
 
-        {/* Reply Input - Only show if discussion is open */}
         {topic.status === 'open' && (
           <View style={styles.replyInputSection}>
             <Text style={styles.replyInputLabel}>Add a comment</Text>
@@ -277,8 +301,8 @@ export default function CommunityDetailsScreen() {
 
       <Modal
         visible={showDeleteModal}
-        title="Delete Discussion"
-        message="Are you sure you want to permanently delete this discussion? This action cannot be undone and will delete all replies."
+        title={deleteModalTitle}
+        message={deleteModalMessage}
         onClose={() => setShowDeleteModal(false)}
         type="warning"
         actions={[
@@ -288,7 +312,7 @@ export default function CommunityDetailsScreen() {
             style: 'cancel',
           },
           {
-            text: deleting ? 'Deleting...' : 'Delete',
+            text: deleting ? `${deleteButtonText}ing...` : deleteButtonText,
             onPress: handleDelete,
             style: 'destructive',
             disabled: deleting,
@@ -389,6 +413,10 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     fontSize: 12,
     flex: 1,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
   },
   tagBadge: {
     paddingHorizontal: spacing.sm,

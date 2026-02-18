@@ -1,12 +1,13 @@
+
 import React from "react";
-import { StyleSheet, View, Text } from "react-native";
+import { StyleSheet, View, Text, Platform } from "react-native";
 import { useTheme } from "@react-navigation/native";
 
 export default function HomeScreen() {
   const theme = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: Platform.OS === 'android' ? 48 : 0 }]}>
       <Text style={[styles.title, { color: theme.colors.text }]}>
         Welcome to Natively
       </Text>

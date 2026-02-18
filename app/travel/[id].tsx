@@ -73,7 +73,6 @@ export default function TravelDetailsScreen() {
     setContacting(true);
 
     try {
-      // Ensure we have valid UUIDs
       const postId = typeof id === 'string' ? id : String(id);
       const recipientId = travelPost.userId;
       
@@ -89,19 +88,16 @@ export default function TravelDetailsScreen() {
       );
       console.log('[TravelDetails] Conversation created:', response);
       
-      // Backend returns { id: ... } not { conversationId: ... }
       const conversationId = response.conversationId || response.id;
       
       if (!conversationId) {
         throw new Error('No conversation ID returned from server');
       }
       
-      // Navigate to the chat
       router.push(`/chat/${conversationId}`);
     } catch (err) {
       console.error('[TravelDetails] Error creating conversation:', err);
       const errorMsg = err instanceof Error ? err.message : 'Failed to start conversation';
-      // Check if it's a UUID validation error
       if (errorMsg.includes('uuid') || errorMsg.includes('UUID')) {
         setError('Unable to start conversation. Please try again later.');
       } else {
@@ -129,7 +125,6 @@ export default function TravelDetailsScreen() {
       });
     } catch (error: any) {
       console.error('TravelDetailsScreen: Error sharing', error);
-      // Fallback to basic share
       const shareMessage = `Check out this travel post: ${travelPost.fromCity} ✈️ ${travelPost.toCity}`;
       await Share.share({
         message: shareMessage,
@@ -193,7 +188,6 @@ export default function TravelDetailsScreen() {
   const travelDateToDisplay = travelPost.travelDateTo ? formatDateToDDMMYYYY(travelPost.travelDateTo) : null;
   const displayId = travelPost.shortId || travelPost.id.substring(0, 8);
   
-  // Determine tag label and icons
   let tagLabel = '';
   let iconElements: React.ReactNode[] = [];
   
@@ -233,6 +227,7 @@ export default function TravelDetailsScreen() {
   }
   
   const titleText = `${travelPost.fromCity} ✈️ ${travelPost.toCity}`;
+  const incentiveAmountValue = travelPost.incentiveAmount ? travelPost.incentiveAmount.toFixed(2) : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -310,10 +305,10 @@ export default function TravelDetailsScreen() {
             </View>
           )}
 
-          {travelPost.incentiveAmount && (
+          {incentiveAmountValue && (
             <View style={styles.incentiveContainer}>
               <Text style={styles.incentiveLabel}>Incentive Offered:</Text>
-              <Text style={styles.incentiveValue}>€{travelPost.incentiveAmount.toFixed(2)}</Text>
+              <Text style={styles.incentiveValue}>€{incentiveAmountValue}</Text>
               <Text style={styles.incentiveDisclaimer}>
                 Incentives are voluntary. The platform only facilitates connections and does not handle payments. Users are solely responsible for legal, airline, and customs compliance.
               </Text>

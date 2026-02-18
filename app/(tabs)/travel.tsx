@@ -48,7 +48,6 @@ export default function TravelScreen() {
     fetchFavorites();
   }, [params.filters]);
 
-  // Auto-refresh when screen gains focus (after creating a post)
   useFocusEffect(
     React.useCallback(() => {
       console.log('TravelScreen: Screen focused, refreshing posts');
@@ -64,14 +63,12 @@ export default function TravelScreen() {
       const filterParams = params.filters ? `?${params.filters}` : '';
       const data = await authenticatedGet<TravelPost[]>(`/api/travel-posts${filterParams}`);
       console.log('TravelScreen: Fetched travel posts', data);
-      // Ensure data is an array before sorting
       const dataArray = Array.isArray(data) ? data : [];
-      // Sort by createdAt descending (newest first)
       const sortedData = dataArray.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setPosts(sortedData);
     } catch (error) {
       console.error('TravelScreen: Error fetching travel posts', error);
-      setPosts([]); // Set empty array on error
+      setPosts([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -93,7 +90,6 @@ export default function TravelScreen() {
     console.log('TravelScreen: Toggle favorite', postId);
     const isFavorited = favorites.has(postId);
     
-    // Optimistic update
     const newFavorites = new Set(favorites);
     if (isFavorited) {
       newFavorites.delete(postId);
@@ -110,7 +106,6 @@ export default function TravelScreen() {
       }
     } catch (error) {
       console.error('TravelScreen: Error toggling favorite', error);
-      // Revert on error
       setFavorites(favorites);
     }
   };
@@ -128,7 +123,6 @@ export default function TravelScreen() {
     (post.description && post.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
   
-  // Check if filters are active
   const hasActiveFilters = params.filters && params.filters.toString().length > 0;
 
   return (
@@ -204,7 +198,6 @@ export default function TravelScreen() {
             const dateDisplay = formatDateToDDMMYYYY(post.travelDate);
             const dateToDisplay = post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo) : null;
             
-            // Determine label and icons
             let label = '';
             let iconCompanionship = false;
             let iconAlly = false;
@@ -222,7 +215,6 @@ export default function TravelScreen() {
               } else if (hasCarry) {
                 iconAlly = true;
               } else {
-                // If neither flag is set, show both as default
                 iconCompanionship = true;
                 iconAlly = true;
               }
@@ -490,7 +482,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   incentiveTag: {
-    backgroundColor: '#34C759',
+    backgroundColor: '#10b981',
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,

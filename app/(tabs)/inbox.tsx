@@ -6,6 +6,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { colors, spacing, typography, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, BACKEND_URL, getBearerToken } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
+import Modal from '@/components/ui/Modal';
 
 interface Conversation {
   id: string;
@@ -40,10 +41,10 @@ export default function InboxScreen() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   console.log('[InboxScreen] Rendering', { conversationsCount: conversations.length });
 
-  // Refresh conversations when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       console.log('[InboxScreen] Screen focused, refreshing conversations');
@@ -71,11 +72,7 @@ export default function InboxScreen() {
         return;
       }
 
-      // Convert https:// to wss:// or http:// to ws://
       const wsUrl = BACKEND_URL.replace(/^https?:/, BACKEND_URL.startsWith('https') ? 'wss:' : 'ws:');
-      
-      // Note: WebSocket in React Native doesn't support custom headers in the constructor
-      // The backend should validate the session from cookies or query params
       const ws = new WebSocket(`${wsUrl}/ws/messages`);
 
       ws.onopen = () => {
@@ -88,7 +85,6 @@ export default function InboxScreen() {
           console.log('[InboxScreen] WebSocket message received', data);
 
           if (data.type === 'new_message') {
-            // Refresh conversations to update last message and unread count
             fetchConversations();
           }
         } catch (error) {
@@ -113,20 +109,29 @@ export default function InboxScreen() {
   const fetchConversations = async () => {
     console.log('[InboxScreen] Fetching conversations');
     setLoading(true);
+    setError(null);
     try {
       const data = await authenticatedGet<Conversation[]>('/api/conversations');
       console.log('[InboxScreen] Fetched conversations', data);
-      // Sort by last message time descending (newest first)
+      
+      if (!Array.isArray(data)) {
+        console.error('[InboxScreen] Invalid conversations data format', data);
+        setConversations([]);
+        setError('Invalid data format received from server');
+        return;
+      }
+      
       const sortedData = data.sort((a, b) => {
         const aTime = a.lastMessage?.createdAt || a.createdAt;
         const bTime = b.lastMessage?.createdAt || b.createdAt;
         return new Date(bTime).getTime() - new Date(aTime).getTime();
       });
       setConversations(sortedData);
-      // Refresh unread count after fetching conversations
       await fetchUnreadCount();
-    } catch (error) {
+    } catch (error: any) {
       console.error('[InboxScreen] Error fetching conversations', error);
+      setConversations([]);
+      setError(error.message || 'Failed to load conversations');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -210,15 +215,12 @@ export default function InboxScreen() {
             const lastMessageTime = conversation.lastMessage?.createdAt || conversation.createdAt;
             const hasUnread = conversation.unreadCount > 0;
             
-            // Safely extract participant name with multiple fallbacks
             let participantName = 'Unknown User';
             if (conversation.otherParticipant) {
               participantName = conversation.otherParticipant.username || conversation.otherParticipant.name || 'Unknown User';
             }
             
             const timeText = timeDisplay(lastMessageTime);
-            
-            // Extract post information
             const postTitle = conversation.post?.title || 'Post';
             const postType = conversation.post?.type || conversation.postType;
             const emoji = postTypeEmoji(postType);
@@ -271,6 +273,14 @@ export default function InboxScreen() {
           })}
         </ScrollView>
       )}
+
+      <Modal
+        visible={!!error}
+        title="Error"
+        message={error || ''}
+        onClose={() => setError(null)}
+        type="error"
+      />
     </SafeAreaView>
   );
 }
