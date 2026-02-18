@@ -26,10 +26,11 @@ interface SubletBody {
   availableTo: string;
   rent?: string;
   imageUrls?: string[];
+  // Common fields
+  cityRegistrationRequired?: boolean;
   // Offering-specific fields
   address?: string;
   pincode?: string;
-  cityRegistrationRequired?: boolean;
   deposit?: string;
   // Consent field
   independentArrangementConsent?: boolean;
@@ -109,47 +110,11 @@ export function registerSubletRoutes(app: App) {
       }
 
       // Handle cityRegistrationRequired filter
-      // This filter should only apply to offering posts
-      // If a type filter is provided, apply cityRegistrationRequired only to that type
-      // If no type filter is provided, apply cityRegistrationRequired only to offering posts
+      // Apply to both offering and seeking posts
       if (filters.cityRegistrationRequired === 'yes') {
-        if (filters.type) {
-          // Type filter exists, so apply cityRegistrationRequired to the filtered type
-          if (filters.type === 'offering') {
-            conditions.push(eq(schema.sublets.cityRegistrationRequired, true));
-          }
-          // For 'seeking' type, ignore cityRegistrationRequired filter (seeking posts don't have this property)
-        } else {
-          // No type filter, apply cityRegistrationRequired only to offering posts
-          conditions.push(
-            or(
-              and(
-                eq(schema.sublets.type, 'offering'),
-                eq(schema.sublets.cityRegistrationRequired, true)
-              )!,
-              eq(schema.sublets.type, 'seeking')
-            )!
-          );
-        }
+        conditions.push(eq(schema.sublets.cityRegistrationRequired, true));
       } else if (filters.cityRegistrationRequired === 'no') {
-        if (filters.type) {
-          // Type filter exists, so apply cityRegistrationRequired to the filtered type
-          if (filters.type === 'offering') {
-            conditions.push(eq(schema.sublets.cityRegistrationRequired, false));
-          }
-          // For 'seeking' type, ignore cityRegistrationRequired filter (seeking posts don't have this property)
-        } else {
-          // No type filter, apply cityRegistrationRequired only to offering posts
-          conditions.push(
-            or(
-              and(
-                eq(schema.sublets.type, 'offering'),
-                eq(schema.sublets.cityRegistrationRequired, false)
-              )!,
-              eq(schema.sublets.type, 'seeking')
-            )!
-          );
-        }
+        conditions.push(eq(schema.sublets.cityRegistrationRequired, false));
       }
 
       const limit = parseInt(filters.limit || '20');

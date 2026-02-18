@@ -48,10 +48,11 @@ export const sublets = pgTable('sublets', {
   availableTo: date('available_to').notNull(),
   rent: numeric('rent'),
   imageUrls: text('image_urls').array(),
+  // Common fields
+  cityRegistrationRequired: boolean('city_registration_required'),
   // Offering-specific fields
   address: text('address'),
   pincode: text('pincode'),
-  cityRegistrationRequired: boolean('city_registration_required'),
   deposit: text('deposit'),
   // Consent field for independent arrangement acknowledgment
   independentArrangementConsent: boolean('independent_arrangement_consent').default(false).notNull(),
