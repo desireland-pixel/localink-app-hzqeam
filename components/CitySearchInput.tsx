@@ -42,6 +42,7 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
   };
 
   const handleSelectCity = (city: string) => {
+    console.log('[CitySearchInput] City selected:', city);
     setQuery(city);
     onChangeText(city);
     setShowSuggestions(false);
@@ -49,14 +50,14 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
   };
 
   const handleBlur = () => {
-    // Delay to allow tap on suggestion
+    // Delay to allow tap on suggestion - increased delay for better reliability
     setTimeout(() => {
       setShowSuggestions(false);
       // Update parent with current query even if not from suggestions
       if (query !== value) {
         onChangeText(query);
       }
-    }, 200);
+    }, 500);
   };
 
   const handleFocus = async () => {
@@ -90,7 +91,7 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
         <View style={styles.suggestionsContainer}>
           <ScrollView 
             style={styles.suggestionsList}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="always"
             nestedScrollEnabled={true}
           >
             {suggestions.map((item, index) => (
@@ -98,6 +99,7 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
                 key={`${item}-${index}`}
                 style={styles.suggestionItem}
                 onPress={() => handleSelectCity(item)}
+                activeOpacity={0.7}
               >
                 <Text style={styles.suggestionText}>{item}</Text>
               </TouchableOpacity>

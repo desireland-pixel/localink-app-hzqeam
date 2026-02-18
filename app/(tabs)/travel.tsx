@@ -142,7 +142,10 @@ export default function TravelScreen() {
         </View>
         <TouchableOpacity
           style={[styles.iconButton, hasActiveFilters && styles.iconButtonActive]}
-          onPress={() => router.push('/travel-filters')}
+          onPress={() => router.push({
+            pathname: '/travel-filters',
+            params: { filters: params.filters || '' }
+          })}
         >
           <IconSymbol
             ios_icon_name="line.3.horizontal.decrease.circle"

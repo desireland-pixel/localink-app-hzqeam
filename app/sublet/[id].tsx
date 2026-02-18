@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Share, Platform, FlatList, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Platform, FlatList, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -201,9 +202,20 @@ export default function SubletDetailsScreen() {
     setCurrentImageIndex(index);
   };
 
-  const renderImageItem = ({ item }: { item: string }) => (
-    <Image source={{ uri: item }} style={styles.image} resizeMode="cover" />
-  );
+  const renderImageItem = ({ item, index }: { item: string; index: number }) => {
+    const imageUrl = sublet?.imageUrls?.[index];
+    if (!imageUrl) return null;
+    
+    return (
+      <Image 
+        source={{ uri: imageUrl }} 
+        style={styles.image} 
+        contentFit="cover"
+        cachePolicy="disk"
+        transition={200}
+      />
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -214,7 +226,7 @@ export default function SubletDetailsScreen() {
               <FlatList
                 ref={flatListRef}
                 data={sublet.imageUrls}
-                renderItem={renderImageItem}
+                renderItem={({ item, index }) => renderImageItem({ item, index })}
                 keyExtractor={(item, index) => `image-${index}`}
                 horizontal
                 pagingEnabled

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
@@ -101,7 +101,11 @@ export default function PersonalDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView style={styles.content}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+      <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Full Name</Text>
         <TextInput
           style={[styles.input, styles.inputDisabled]}
@@ -183,6 +187,7 @@ export default function PersonalDetailsScreen() {
           )}
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <Modal
         visible={!!error}
@@ -207,6 +212,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  keyboardView: {
+    flex: 1,
   },
   content: {
     flex: 1,
