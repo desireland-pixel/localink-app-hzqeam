@@ -6,6 +6,7 @@ import { TRAVEL_CITIES } from '../cities.js';
 import { generateShortId } from '../utils/short-id.js';
 import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '../utils/date-format.js';
 import { formatTravelPostTitle, getTravelPostTypeEmojis } from '../utils/travel-post-formatter.js';
+import { regenerateSignedUrls } from '../utils/image-url-regenerator.js';
 
 interface TravelPostFilters {
   role?: 'offering' | 'seeking'; // Single role filter
@@ -260,7 +261,7 @@ export function registerTravelPostRoutes(app: App) {
         .orderBy(desc(schema.travelPosts.createdAt));
 
       // Transform to include user object, format dates, and add formatted title
-      const result = posts.map(post => {
+      const result = await Promise.all(posts.map(async (post) => {
         // Convert dates to strings in YYYY-MM-DD format from database
         const travelDate = String(post.travelDate);
         const travelDateTo = post.travelDateTo ? String(post.travelDateTo) : null;
@@ -295,7 +296,7 @@ export function registerTravelPostRoutes(app: App) {
           byline: `by ${post.username || 'Unknown User'} on ${formattedCreatedDate}`,
           username: undefined,
         };
-      });
+      }));
 
       app.logger.info({ count: result.length, filters }, 'Travel posts listed successfully');
       return result;
