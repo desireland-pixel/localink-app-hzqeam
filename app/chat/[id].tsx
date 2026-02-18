@@ -47,6 +47,7 @@ export default function ChatScreen() {
   const { user, fetchUnreadCount } = useAuth();
   const flatListRef = useRef<FlatList>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [newMessage, setNewMessage] = useState('');
@@ -68,12 +69,17 @@ export default function ChatScreen() {
       fetchConversation();
       fetchMessages();
       setupWebSocket();
+      startPolling();
     }
 
     return () => {
       if (wsRef.current) {
         console.log('ChatScreen: Closing WebSocket connection');
         wsRef.current.close();
+      }
+      if (pollingIntervalRef.current) {
+        console.log('ChatScreen: Stopping polling');
+        clearInterval(pollingIntervalRef.current);
       }
     };
   }, [id]);
@@ -96,6 +102,34 @@ export default function ChatScreen() {
     } catch (error) {
       console.error('ChatScreen: Error marking messages as read', error);
     }
+  };
+
+  const startPolling = () => {
+    // Poll for new messages every 3 seconds as a fallback
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        console.log('[ChatScreen] Polling for new messages');
+        const data = await authenticatedGet<{ messages: Message[]; conversation: Conversation }>(`/api/conversations/${id}/messages`);
+        
+        if (data && data.messages && Array.isArray(data.messages)) {
+          const sortedMessages = [...data.messages].sort((a, b) => {
+            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          });
+          
+          // Only update if there are new messages
+          setMessages(prev => {
+            if (prev.length !== sortedMessages.length) {
+              console.log('[ChatScreen] New messages detected via polling');
+              markMessagesAsRead();
+              return sortedMessages;
+            }
+            return prev;
+          });
+        }
+      } catch (error) {
+        console.error('[ChatScreen] Error polling for messages:', error);
+      }
+    }, 3000);
   };
 
   const setupWebSocket = async () => {

@@ -1,141 +1,135 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { CitySearchInput } from '@/components/CitySearchInput';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { formatDateToDDMMYYYY } from '@/utils/cities';
+
+const CATEGORIES = [
+  'Visa',
+  'Travel Insurance',
+  'Housing',
+  'Jobs',
+  'Healthcare',
+  'Banking',
+  'Education',
+  'General',
+];
 
 export default function CarryFiltersScreen() {
   const router = useRouter();
-  const [fromCity, setFromCity] = useState('');
-  const [toCity, setToCity] = useState('');
-  const [dateStart, setDateStart] = useState<Date | null>(null);
-  const [dateEnd, setDateEnd] = useState<Date | null>(null);
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-  const [carryType, setCarryType] = useState<'all' | 'request' | 'traveler'>('all');
+  const params = useLocalSearchParams();
+  const [category, setCategory] = useState<string | null>(null);
+  const [status, setStatus] = useState<'open' | 'closed' | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
-  console.log('[CarryFiltersScreen] Rendering', { fromCity, toCity, carryType });
+  console.log('[CarryFiltersScreen] Rendering', { category, status, hydrated });
+
+  // Use useFocusEffect to reinitialize filter state every time screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[CarryFiltersScreen] Screen focused, hydrating filters from params', params.filters);
+      setHydrated(false);
+      
+      // Reset all filters first
+      setCategory(null);
+      setStatus(null);
+      
+      if (params.filters) {
+        const filterString = params.filters as string;
+        const urlParams = new URLSearchParams(filterString);
+        
+        const categoryParam = urlParams.get('category');
+        if (categoryParam && CATEGORIES.includes(categoryParam)) {
+          console.log('[CarryFiltersScreen] Setting category:', categoryParam);
+          setCategory(categoryParam);
+        }
+        
+        const statusParam = urlParams.get('status');
+        if (statusParam === 'open' || statusParam === 'closed') {
+          console.log('[CarryFiltersScreen] Setting status:', statusParam);
+          setStatus(statusParam);
+        }
+      }
+      
+      setHydrated(true);
+    }, [params.filters])
+  );
 
   const handleApply = () => {
-    console.log('[CarryFiltersScreen] Applying filters', { fromCity, toCity, dateStart, dateEnd, carryType });
+    console.log('[CarryFiltersScreen] Applying filters', { category, status });
     
-    // Build query params
     const params = new URLSearchParams();
-    if (fromCity) params.append('fromCity', fromCity);
-    if (toCity) params.append('toCity', toCity);
-    if (dateStart) params.append('travelDate', dateStart.toISOString().split('T')[0]);
-    if (carryType !== 'all') params.append('type', carryType);
     
-    // Navigate back with filters
-    router.back();
-    router.setParams({ filters: params.toString() });
+    if (category) {
+      params.append('category', category);
+    }
+    
+    if (status) {
+      params.append('status', status);
+    }
+    
+    const filterString = params.toString();
+    console.log('[CarryFiltersScreen] Filter string:', filterString);
+    
+    router.replace({
+      pathname: '/(tabs)/carry',
+      params: { filters: filterString }
+    });
   };
 
   const handleReset = () => {
     console.log('[CarryFiltersScreen] Resetting filters');
-    setFromCity('');
-    setToCity('');
-    setDateStart(null);
-    setDateEnd(null);
-    setCarryType('all');
+    setCategory(null);
+    setStatus(null);
   };
 
-  const dateStartDisplay = dateStart ? formatDateToDDMMYYYY(dateStart) : '';
-  const dateEndDisplay = dateEnd ? formatDateToDDMMYYYY(dateEnd) : '';
+  // Don't render inputs until hydration is complete
+  if (!hydrated) {
+    return (
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <View style={styles.content} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
-        <Text style={styles.sectionTitle}>From</Text>
-        <CitySearchInput
-          value={fromCity}
-          onChangeText={setFromCity}
-          placeholder="Search city..."
-        />
-
-        <Text style={styles.sectionTitle}>To</Text>
-        <CitySearchInput
-          value={toCity}
-          onChangeText={setToCity}
-          placeholder="Search city..."
-        />
-
-        <Text style={styles.sectionTitle}>Date</Text>
-        <View style={styles.row}>
-          <View style={styles.halfWidth}>
-            <TouchableOpacity 
-              style={styles.dateButton}
-              onPress={() => setShowStartPicker(true)}
+        <Text style={styles.sectionTitle}>Category</Text>
+        <View style={styles.categoryGrid}>
+          {CATEGORIES.map((cat) => (
+            <TouchableOpacity
+              key={cat}
+              style={[styles.categoryOption, category === cat && styles.categoryOptionActive]}
+              onPress={() => setCategory(cat)}
             >
-              <Text style={[styles.dateButtonText, !dateStartDisplay && styles.dateButtonPlaceholder]}>
-                {dateStartDisplay || 'dd.mm.yyyy'}
+              <Text style={[styles.categoryText, category === cat && styles.categoryTextActive]}>
+                {cat}
               </Text>
             </TouchableOpacity>
-            {showStartPicker && (
-              <DateTimePicker
-                value={dateStart || new Date()}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowStartPicker(false);
-                  if (selectedDate) setDateStart(selectedDate);
-                }}
-              />
-            )}
-          </View>
-          <View style={styles.separator} />
-          <View style={styles.halfWidth}>
-            <TouchableOpacity 
-              style={styles.dateButton}
-              onPress={() => setShowEndPicker(true)}
-            >
-              <Text style={[styles.dateButtonText, !dateEndDisplay && styles.dateButtonPlaceholder]}>
-                {dateEndDisplay || 'dd.mm.yyyy'}
-              </Text>
-            </TouchableOpacity>
-            {showEndPicker && (
-              <DateTimePicker
-                value={dateEnd || new Date()}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowEndPicker(false);
-                  if (selectedDate) setDateEnd(selectedDate);
-                }}
-              />
-            )}
-          </View>
+          ))}
         </View>
 
-        <Text style={styles.sectionTitle}>Type</Text>
-        <TouchableOpacity
-          style={[styles.typeOption, carryType === 'all' && styles.typeOptionActive]}
-          onPress={() => setCarryType('all')}
-        >
-          <Text style={[styles.typeText, carryType === 'all' && styles.typeTextActive]}>
-            All Types
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.typeOption, carryType === 'request' && styles.typeOptionActive]}
-          onPress={() => setCarryType('request')}
-        >
-          <Text style={[styles.typeText, carryType === 'request' && styles.typeTextActive]}>
-            Requests
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.typeOption, carryType === 'traveler' && styles.typeOptionActive]}
-          onPress={() => setCarryType('traveler')}
-        >
-          <Text style={[styles.typeText, carryType === 'traveler' && styles.typeTextActive]}>
-            Travelers
-          </Text>
-        </TouchableOpacity>
+        <Text style={styles.sectionTitle}>Status</Text>
+        <View style={styles.radioButtons}>
+          <TouchableOpacity
+            style={[styles.typeOption, status === 'open' && styles.typeOptionActive]}
+            onPress={() => setStatus('open')}
+          >
+            <Text style={[styles.typeText, status === 'open' && styles.typeTextActive]}>
+              Open
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.typeOption, status === 'closed' && styles.typeOptionActive]}
+            onPress={() => setStatus('closed')}
+          >
+            <Text style={[styles.typeText, status === 'closed' && styles.typeTextActive]}>
+              Closed
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -161,45 +155,53 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   sectionTitle: {
-    ...typography.h3,
+    ...typography.body,
+    fontSize: 14,
     color: colors.text,
     marginBottom: spacing.sm,
     marginTop: spacing.md,
+    fontWeight: '600',
   },
-  row: {
+  categoryGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
-  halfWidth: {
-    flex: 1,
-  },
-  separator: {
-    width: spacing.md,
-  },
-  dateButton: {
+  categoryOption: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  dateButtonText: {
-    ...typography.body,
-    color: colors.text,
+  categoryOptionActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
-  dateButtonPlaceholder: {
-    color: colors.textLight,
+  categoryText: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  categoryTextActive: {
+    color: '#FFFFFF',
+  },
+  radioButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
   typeOption: {
+    flex: 1,
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: spacing.sm,
+    alignItems: 'center',
   },
   typeOptionActive: {
     backgroundColor: colors.primary,
@@ -207,6 +209,7 @@ const styles = StyleSheet.create({
   },
   typeText: {
     ...typography.body,
+    fontSize: 14,
     color: colors.text,
   },
   typeTextActive: {

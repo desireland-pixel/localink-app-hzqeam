@@ -60,6 +60,8 @@ export default function PostTravelScreen() {
   const [showFromCityPicker, setShowFromCityPicker] = useState(false);
   const [showToCityPicker, setShowToCityPicker] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
+  const [incentiveEnabled, setIncentiveEnabled] = useState(false);
+  const [incentiveAmount, setIncentiveAmount] = useState('');
 
   console.log('PostTravelScreen: Rendering', { travelMode, isEditing, editId, consentAccepted });
 
@@ -87,6 +89,12 @@ export default function PostTravelScreen() {
         setToCity(data.toCity || '');
         setDescription(data.description || '');
         setConsentAccepted(true); // Pre-check consent for editing
+        
+        // Load incentive data
+        if (data.incentiveAmount) {
+          setIncentiveEnabled(true);
+          setIncentiveAmount(data.incentiveAmount.toString());
+        }
         
         // Parse dates
         if (data.travelDate) {
@@ -193,10 +201,24 @@ export default function PostTravelScreen() {
         if (travelDateTo) {
           postData.travelDateTo = dateToISOString(travelDateTo);
         }
+        // Add incentive for seeking companionship
+        if (incentiveEnabled && incentiveAmount) {
+          const amount = parseFloat(incentiveAmount);
+          if (!isNaN(amount) && amount >= 0.01 && amount <= 99.99) {
+            postData.incentiveAmount = amount;
+          }
+        }
       } else if (travelMode === 'seeking-ally') {
         postData.type = 'seeking-ally';
         postData.item = item.trim();
         postData.allyConsent = consentAccepted;
+        // Add incentive for seeking ally
+        if (incentiveEnabled && incentiveAmount) {
+          const amount = parseFloat(incentiveAmount);
+          if (!isNaN(amount) && amount >= 0.01 && amount <= 99.99) {
+            postData.incentiveAmount = amount;
+          }
+        }
       }
 
       if (isEditing && editId) {
@@ -536,6 +558,39 @@ export default function PostTravelScreen() {
                 numberOfLines={4}
               />
 
+              <View style={styles.incentiveContainer}>
+                <TouchableOpacity
+                  style={styles.incentiveRadioRow}
+                  onPress={() => {
+                    setIncentiveEnabled(!incentiveEnabled);
+                    if (incentiveEnabled) {
+                      setIncentiveAmount('');
+                    }
+                  }}
+                >
+                  <View style={styles.radioCircle}>
+                    {incentiveEnabled && <View style={styles.radioCircleSelected} />}
+                  </View>
+                  <Text style={styles.incentiveLabel}>I&apos;d like to offer an incentive (optional): €</Text>
+                </TouchableOpacity>
+                {incentiveEnabled && (
+                  <TextInput
+                    style={styles.incentiveInput}
+                    value={incentiveAmount}
+                    onChangeText={(text) => {
+                      // Regex to allow xx.xx format (00.01 to 99.99)
+                      if (/^\d{0,2}(\.\d{0,2})?$/.test(text) || text === '') {
+                        setIncentiveAmount(text);
+                      }
+                    }}
+                    keyboardType="decimal-pad"
+                    placeholder="00.00"
+                    placeholderTextColor={colors.textLight}
+                    maxLength={5}
+                  />
+                )}
+              </View>
+
               <TouchableOpacity
                 style={styles.consentContainer}
                 onPress={() => setConsentAccepted(!consentAccepted)}
@@ -647,6 +702,39 @@ export default function PostTravelScreen() {
                 multiline
                 numberOfLines={4}
               />
+
+              <View style={styles.incentiveContainer}>
+                <TouchableOpacity
+                  style={styles.incentiveRadioRow}
+                  onPress={() => {
+                    setIncentiveEnabled(!incentiveEnabled);
+                    if (incentiveEnabled) {
+                      setIncentiveAmount('');
+                    }
+                  }}
+                >
+                  <View style={styles.radioCircle}>
+                    {incentiveEnabled && <View style={styles.radioCircleSelected} />}
+                  </View>
+                  <Text style={styles.incentiveLabel}>I&apos;d like to offer an incentive (optional): €</Text>
+                </TouchableOpacity>
+                {incentiveEnabled && (
+                  <TextInput
+                    style={styles.incentiveInput}
+                    value={incentiveAmount}
+                    onChangeText={(text) => {
+                      // Regex to allow xx.xx format (00.01 to 99.99)
+                      if (/^\d{0,2}(\.\d{0,2})?$/.test(text) || text === '') {
+                        setIncentiveAmount(text);
+                      }
+                    }}
+                    keyboardType="decimal-pad"
+                    placeholder="00.00"
+                    placeholderTextColor={colors.textLight}
+                    maxLength={5}
+                  />
+                )}
+              </View>
 
               <TouchableOpacity
                 style={styles.consentContainer}
@@ -938,5 +1026,30 @@ const styles = StyleSheet.create({
   buttonText: {
     ...typography.button,
     color: '#FFFFFF',
+  },
+  incentiveContainer: {
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+  },
+  incentiveRadioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  incentiveLabel: {
+    ...typography.body,
+    color: colors.text,
+    flex: 1,
+  },
+  incentiveInput: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...typography.body,
+    color: colors.text,
+    marginLeft: 36,
   },
 });

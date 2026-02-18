@@ -32,25 +32,17 @@ export default function IndexScreen() {
         console.log('[IndexScreen] No user, redirecting to auth');
         router.replace('/auth');
       } else {
-        // Check if GDPR consent is accepted
-        const hasGdprConsent = profile && profile.gdprConsentAccepted;
+        // Check if profile is complete (username, city, and GDPR consent)
+        const isProfileComplete = profile && profile.username && profile.city && profile.gdprConsentAccepted;
         
-        if (hasGdprConsent) {
-          // If GDPR consent is accepted, go directly to home page
-          console.log('[IndexScreen] User authenticated with GDPR consent, redirecting to home');
+        if (isProfileComplete) {
+          // Profile is complete, go to home page
+          console.log('[IndexScreen] User authenticated with complete profile, redirecting to home');
           router.replace('/(tabs)/sublet');
         } else {
-          // If no GDPR consent, check if profile is complete
-          const isProfileComplete = profile && profile.username && profile.city;
-          
-          if (!isProfileComplete) {
-            console.log('[IndexScreen] User authenticated but profile incomplete, redirecting to personal-details');
-            router.replace('/personal-details');
-          } else {
-            // Profile complete but no GDPR consent - still go to personal details to accept GDPR
-            console.log('[IndexScreen] User authenticated with complete profile but no GDPR consent, redirecting to personal-details');
-            router.replace('/personal-details');
-          }
+          // Profile is incomplete, go to personal details
+          console.log('[IndexScreen] User authenticated but profile incomplete, redirecting to personal-details');
+          router.replace('/personal-details');
         }
       }
     }, 100);

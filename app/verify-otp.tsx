@@ -246,12 +246,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
     alignItems: 'center',
     marginTop: spacing.md,
+    width: '100%',
   },
   primaryButtonText: {
     ...typography.button,
     color: '#FFFFFF',
+    fontSize: 18,
   },
   buttonDisabled: {
     opacity: 0.6,
