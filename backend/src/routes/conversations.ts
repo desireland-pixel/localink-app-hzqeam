@@ -3,6 +3,7 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 import { eq, and, or, desc, inArray, ne, isNull } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { wsManager } from '../websocket-manager.js';
+import { sendPushNotification } from '../utils/push-notifications.js';
 
 interface CreateConversationBody {
   postId: string;
@@ -521,6 +522,20 @@ export function registerConversationRoutes(app: App) {
         conversationId: id,
         message: messageWithSender,
       });
+
+      // Send push notification to recipient
+      const recipientProfile = await app.db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, recipientId),
+      });
+
+      sendPushNotification(app, {
+        to: '',
+        title: `New message from ${senderName || 'Someone'}`,
+        body: content.substring(0, 100),
+        data: {
+          conversationId: id,
+        },
+      }, recipientId);
 
       return messageWithSender;
     } catch (error) {

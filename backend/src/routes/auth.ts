@@ -469,12 +469,15 @@ export function registerAuthRoutes(app: App) {
 
       const authData = await authResponse.json() as Record<string, any>;
 
-      // Get user to check profile_completed status
-      const user = await app.db.query.user.findFirst({
-        where: eq(authSchema.user.id, authData.user?.id),
-      });
+      // Get user to check profile_completed status by email (for both new and existing users)
+      const userEmail = authData.user?.email;
+      const user = userEmail
+        ? await app.db.query.user.findFirst({
+            where: eq(authSchema.user.email, userEmail),
+          })
+        : null;
 
-      app.logger.info({ provider, userId: user?.id, profileCompleted: user?.profileCompleted }, 'OAuth sign-in successful');
+      app.logger.info({ provider, userId: user?.id, email: userEmail, profileCompleted: user?.profileCompleted }, 'OAuth sign-in successful');
 
       return {
         ...authData,
