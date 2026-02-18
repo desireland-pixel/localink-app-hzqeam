@@ -681,13 +681,25 @@ export function registerCommunityRoutes(app: App) {
         return reply.status(403).send({ error: 'You can only delete your own topics' });
       }
 
-      // Delete topic (cascade delete will handle replies due to database constraint)
-      await app.db
-        .delete(schema.discussionTopics)
-        .where(eq(schema.discussionTopics.id, id));
+      // Two-step delete process
+      if (topic.status === 'open') {
+        // First delete: close the topic instead of permanently deleting
+        await app.db
+          .update(schema.discussionTopics)
+          .set({ status: 'closed', updatedAt: new Date() })
+          .where(eq(schema.discussionTopics.id, id));
 
-      app.logger.info({ topicId: id, userId: session.user.id }, 'Discussion topic and all replies deleted successfully');
-      return { success: true };
+        app.logger.info({ topicId: id, userId: session.user.id }, 'Discussion topic closed successfully');
+        return { success: true, action: 'closed', message: 'Topic closed successfully' };
+      } else {
+        // Second delete: permanently delete the topic and all replies
+        await app.db
+          .delete(schema.discussionTopics)
+          .where(eq(schema.discussionTopics.id, id));
+
+        app.logger.info({ topicId: id, userId: session.user.id }, 'Discussion topic and all replies deleted permanently');
+        return { success: true, action: 'deleted', message: 'Topic deleted successfully' };
+      }
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, topicId: id }, 'Failed to delete discussion topic');
       return reply.status(500).send({ error: 'Failed to delete discussion topic' });
