@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { Image } from 'expo-image';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -44,6 +44,15 @@ export default function SubletScreen() {
     fetchPosts();
     fetchFavorites();
   }, [params.filters]);
+
+  // Auto-refresh when screen gains focus (after creating a post)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('SubletScreen: Screen focused, refreshing posts');
+      fetchPosts();
+      fetchFavorites();
+    }, [params.filters])
+  );
 
   const fetchPosts = async () => {
     console.log('SubletScreen: Fetching sublets with filters:', params.filters);

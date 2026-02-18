@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedGet, authenticatedPost } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
@@ -47,6 +47,8 @@ export default function CommunityDetailsScreen() {
   const [replyText, setReplyText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   console.log('CommunityDetailsScreen: Viewing topic', { id });
 
@@ -129,6 +131,24 @@ export default function CommunityDetailsScreen() {
     });
   };
 
+  const handleDelete = async () => {
+    if (!topic) return;
+    console.log('CommunityDetailsScreen: Delete topic', id);
+    setDeleting(true);
+    
+    try {
+      await authenticatedDelete(`/api/community/topics/${id}`, {});
+      console.log('CommunityDetailsScreen: Topic deleted successfully');
+      setShowDeleteModal(false);
+      router.replace('/my-posts');
+    } catch (error: any) {
+      console.error('CommunityDetailsScreen: Error deleting topic', error);
+      setError(error.message || 'Failed to delete topic');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView 
@@ -140,27 +160,39 @@ export default function CommunityDetailsScreen() {
         <View style={styles.card}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>{topic.title}</Text>
-            {isOwnPost && (
-              <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+            <View style={styles.actionButtons}>
+              {isOwnPost && (
+                <>
+                  <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                    <IconSymbol
+                      ios_icon_name="pencil"
+                      android_material_icon_name="edit"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.deleteButton} onPress={() => setShowDeleteModal(true)}>
+                    <IconSymbol
+                      ios_icon_name="trash"
+                      android_material_icon_name="delete"
+                      size={20}
+                      color="#FF3B30"
+                    />
+                  </TouchableOpacity>
+                </>
+              )}
+              <TouchableOpacity style={styles.shareButton} onPress={() => {
+                // TODO: Implement share functionality
+                console.log('Share discussion');
+              }}>
                 <IconSymbol
-                  ios_icon_name="pencil"
-                  android_material_icon_name="edit"
+                  ios_icon_name="square.and.arrow.up"
+                  android_material_icon_name="share"
                   size={20}
-                  color={colors.primary}
+                  color={colors.text}
                 />
               </TouchableOpacity>
-            )}
-            <TouchableOpacity style={styles.shareButton} onPress={() => {
-              // TODO: Implement share functionality
-              console.log('Share discussion');
-            }}>
-              <IconSymbol
-                ios_icon_name="square.and.arrow.up"
-                android_material_icon_name="share"
-                size={20}
-                color={colors.text}
-              />
-            </TouchableOpacity>
+            </View>
           </View>
 
           {topic.description && (
@@ -242,6 +274,27 @@ export default function CommunityDetailsScreen() {
         message={error || ''}
         type="error"
       />
+
+      <Modal
+        visible={showDeleteModal}
+        title="Delete Discussion"
+        message="Are you sure you want to permanently delete this discussion? This action cannot be undone and will delete all replies."
+        onClose={() => setShowDeleteModal(false)}
+        type="warning"
+        actions={[
+          {
+            text: 'Cancel',
+            onPress: () => setShowDeleteModal(false),
+            style: 'cancel',
+          },
+          {
+            text: deleting ? 'Deleting...' : 'Delete',
+            onPress: handleDelete,
+            style: 'destructive',
+            disabled: deleting,
+          },
+        ]}
+      />
     </SafeAreaView>
   );
 }
@@ -292,13 +345,23 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
     fontSize: 18,
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
   editButton: {
     padding: spacing.xs,
     backgroundColor: colors.background,
     borderRadius: borderRadius.sm,
     borderWidth: 1,
     borderColor: colors.border,
-    marginRight: spacing.xs,
+  },
+  deleteButton: {
+    padding: spacing.xs,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   shareButton: {
     padding: spacing.xs,

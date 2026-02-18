@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -22,6 +22,7 @@ interface TravelPost {
   canOfferCompanionship?: boolean;
   canCarryItems?: boolean;
   item?: string;
+  incentiveAmount?: number;
   status: string;
   createdAt: string;
   user?: {
@@ -46,6 +47,15 @@ export default function TravelScreen() {
     fetchPosts();
     fetchFavorites();
   }, [params.filters]);
+
+  // Auto-refresh when screen gains focus (after creating a post)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('TravelScreen: Screen focused, refreshing posts');
+      fetchPosts();
+      fetchFavorites();
+    }, [params.filters])
+  );
 
   const fetchPosts = async () => {
     console.log('TravelScreen: Fetching travel posts');
@@ -283,9 +293,16 @@ export default function TravelScreen() {
                     {post.description}
                   </Text>
                 )}
-                <View style={styles.authorDateRow}>
-                  <Text style={styles.cardAuthor}>{authorName}</Text>
-                  <Text style={styles.cardDate}> • {createdDate}</Text>
+                <View style={styles.cardFooterRow}>
+                  <View style={styles.authorDateRow}>
+                    <Text style={styles.cardAuthor}>{authorName}</Text>
+                    <Text style={styles.cardDate}> • {createdDate}</Text>
+                  </View>
+                  {post.incentiveAmount && (
+                    <View style={styles.incentiveTag}>
+                      <Text style={styles.incentiveTagText}>Incentive</Text>
+                    </View>
+                  )}
                 </View>
               </TouchableOpacity>
             );
@@ -452,9 +469,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     lineHeight: 20,
   },
+  cardFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   authorDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   cardAuthor: {
     ...typography.bodySmall,
@@ -465,5 +488,17 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 11,
+  },
+  incentiveTag: {
+    backgroundColor: '#34C759',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  incentiveTagText: {
+    ...typography.bodySmall,
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
   },
 });

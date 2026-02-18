@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -44,22 +44,30 @@ export default function CommunityScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
-  console.log('CommunityScreen: Rendering', { topicsCount: topics.length, loading, selectedCategory });
+  console.log('CommunityScreen: Rendering', { topicsCount: topics.length, loading });
 
   useEffect(() => {
     fetchTopics();
     fetchFavorites();
-  }, [selectedCategory]);
+  }, [params.filters]);
+
+  // Auto-refresh when screen gains focus (after creating a post)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('CommunityScreen: Screen focused, refreshing topics');
+      fetchTopics();
+      fetchFavorites();
+    }, [params.filters])
+  );
 
   const fetchTopics = async () => {
     console.log('CommunityScreen: Fetching community topics');
     setLoading(true);
     try {
-      const categoryParam = selectedCategory !== 'All' ? `?category=${encodeURIComponent(selectedCategory)}` : '';
-      const data = await authenticatedGet<CommunityTopic[]>(`/api/community/topics${categoryParam}`);
+      const filterParams = params.filters ? `?${params.filters}` : '';
+      const data = await authenticatedGet<CommunityTopic[]>(`/api/community/topics${filterParams}`);
       console.log('CommunityScreen: Fetched community topics', data);
       // Ensure data is an array before sorting
       const dataArray = Array.isArray(data) ? data : [];
@@ -145,6 +153,20 @@ export default function CommunityScreen() {
           />
         </View>
         <TouchableOpacity
+          style={[styles.iconButton, params.filters && styles.iconButtonActive]}
+          onPress={() => router.push({
+            pathname: '/carry-filters',
+            params: { filters: params.filters || '' }
+          })}
+        >
+          <IconSymbol
+            ios_icon_name="line.3.horizontal.decrease.circle"
+            android_material_icon_name="filter-list"
+            size={24}
+            color={params.filters ? colors.primary : colors.text}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
           style={styles.iconButton}
           onPress={() => {
             console.log('CommunityScreen: Navigate to post community topic');
@@ -159,31 +181,6 @@ export default function CommunityScreen() {
           />
         </TouchableOpacity>
       </View>
-
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesContainer}
-        contentContainerStyle={styles.categoriesContent}
-      >
-        {CATEGORIES.map((category) => (
-          <TouchableOpacity
-            key={category}
-            style={[
-              styles.categoryChip,
-              selectedCategory === category && styles.categoryChipActive
-            ]}
-            onPress={() => setSelectedCategory(category)}
-          >
-            <Text style={[
-              styles.categoryChipText,
-              selectedCategory === category && styles.categoryChipTextActive
-            ]}>
-              {category}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -315,35 +312,11 @@ const styles = StyleSheet.create({
   iconButton: {
     padding: spacing.xs,
   },
-  categoriesContainer: {
-    maxHeight: 50,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  categoriesContent: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
-  },
-  categoryChip: {
+  iconButtonActive: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
     borderWidth: 1,
-    borderColor: colors.border,
-  },
-  categoryChipActive: {
-    backgroundColor: colors.primary,
     borderColor: colors.primary,
-  },
-  categoryChipText: {
-    ...typography.bodySmall,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  categoryChipTextActive: {
-    color: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,

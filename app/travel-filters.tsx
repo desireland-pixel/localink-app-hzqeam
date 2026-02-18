@@ -19,6 +19,7 @@ export default function TravelFiltersScreen() {
   const [dateEnd, setDateEnd] = useState<Date | null>(null);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const [incentive, setIncentive] = useState<boolean | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   console.log('[TravelFiltersScreen] Rendering', { role, types: Array.from(types), fromCity, toCity, hydrated });
@@ -36,6 +37,7 @@ export default function TravelFiltersScreen() {
       setToCity('');
       setDateStart(null);
       setDateEnd(null);
+      setIncentive(null);
       
       if (params.filters) {
         const filterString = params.filters as string;
@@ -85,6 +87,15 @@ export default function TravelFiltersScreen() {
           console.log('[TravelFiltersScreen] Setting dateEnd:', toDate);
           setDateEnd(new Date(toDate));
         }
+        
+        const incentiveParam = urlParams.get('incentive');
+        if (incentiveParam === 'true') {
+          console.log('[TravelFiltersScreen] Setting incentive: true');
+          setIncentive(true);
+        } else if (incentiveParam === 'false') {
+          console.log('[TravelFiltersScreen] Setting incentive: false');
+          setIncentive(false);
+        }
       }
       
       setHydrated(true);
@@ -119,6 +130,7 @@ export default function TravelFiltersScreen() {
     if (toCity) params.append('toCity', toCity);
     if (dateStart) params.append('travelDateFrom', dateStart.toISOString().split('T')[0]);
     if (dateEnd) params.append('travelDateTo', dateEnd.toISOString().split('T')[0]);
+    if (incentive !== null) params.append('incentive', String(incentive));
     
     const filterString = params.toString();
     console.log('[TravelFiltersScreen] Filter string:', filterString);
@@ -137,12 +149,13 @@ export default function TravelFiltersScreen() {
     setToCity('');
     setDateStart(null);
     setDateEnd(null);
+    setIncentive(null);
   };
 
   const dateStartDisplay = dateStart ? formatDateToDDMMYYYY(dateStart) : '';
   const dateEndDisplay = dateEnd ? formatDateToDDMMYYYY(dateEnd) : '';
   
-  const hasActiveFilters = role !== null || types.size > 0 || fromCity !== '' || toCity !== '' || dateStart !== null || dateEnd !== null;
+  const hasActiveFilters = role !== null || types.size > 0 || fromCity !== '' || toCity !== '' || dateStart !== null || dateEnd !== null || incentive !== null;
 
   // Don't render inputs until hydration is complete
   if (!hydrated) {
@@ -265,6 +278,26 @@ export default function TravelFiltersScreen() {
               />
             )}
           </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Incentive</Text>
+        <View style={styles.radioButtons}>
+          <TouchableOpacity
+            style={[styles.typeOption, incentive === true && styles.typeOptionActive]}
+            onPress={() => setIncentive(true)}
+          >
+            <Text style={[styles.typeText, incentive === true && styles.typeTextActive]}>
+              Yes
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.typeOption, incentive === false && styles.typeOptionActive]}
+            onPress={() => setIncentive(false)}
+          >
+            <Text style={[styles.typeText, incentive === false && styles.typeTextActive]}>
+              No
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
       </KeyboardAvoidingView>

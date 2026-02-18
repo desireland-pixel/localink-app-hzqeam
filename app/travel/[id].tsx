@@ -25,6 +25,7 @@ interface TravelPost {
   canOfferCompanionship?: boolean;
   canCarryItems?: boolean;
   item?: string;
+  incentiveAmount?: number;
   status: string;
   createdAt: string;
   user: {
@@ -309,6 +310,16 @@ export default function TravelDetailsScreen() {
             </View>
           )}
 
+          {travelPost.incentiveAmount && (
+            <View style={styles.incentiveContainer}>
+              <Text style={styles.incentiveLabel}>Incentive Offered:</Text>
+              <Text style={styles.incentiveValue}>€{travelPost.incentiveAmount.toFixed(2)}</Text>
+              <Text style={styles.incentiveDisclaimer}>
+                Incentives are voluntary. The platform only facilitates connections and does not handle payments. Users are solely responsible for legal, airline, and customs compliance.
+              </Text>
+            </View>
+          )}
+
           <View style={styles.userContainer}>
             <View style={styles.userHeader}>
               <View>
@@ -579,5 +590,31 @@ const styles = StyleSheet.create({
   ownPostText: {
     ...typography.body,
     color: colors.textSecondary,
+  },
+  incentiveContainer: {
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  incentiveLabel: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  incentiveValue: {
+    ...typography.h3,
+    color: '#34C759',
+    fontWeight: '700',
+    marginBottom: spacing.sm,
+  },
+  incentiveDisclaimer: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 10,
+    lineHeight: 14,
+    fontStyle: 'italic',
   },
 });
