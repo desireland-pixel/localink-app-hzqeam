@@ -3,6 +3,7 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 import { eq, and, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { generateShortId } from '../utils/short-id.js';
+import { sendPushNotification } from '../utils/push-notifications.js';
 
 interface DiscussionTopicFilters {
   category?: string;
@@ -350,6 +351,22 @@ export function registerCommunityRoutes(app: App) {
         .set({ repliesCount: newCount.toString() })
         .where(eq(schema.discussionTopics.id, id));
 
+      // Send push notification to topic author if different from reply author
+      if (topic.userId !== session.user.id) {
+        const replyAuthorProfile = await app.db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, session.user.id),
+        });
+
+        sendPushNotification(app, {
+          to: '',
+          title: 'New reply to your post',
+          body: body.content.substring(0, 100),
+          data: {
+            topicId: id,
+          },
+        }, topic.userId);
+      }
+
       app.logger.info({ replyId: newReply.id, topicId: id, userId: session.user.id }, 'Discussion reply created successfully');
       return newReply;
     } catch (error) {
@@ -618,6 +635,62 @@ export function registerCommunityRoutes(app: App) {
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id }, 'Failed to fetch user discussion topics');
       return reply.status(500).send({ error: 'Failed to fetch user discussion topics' });
+    }
+  });
+
+  // Delete a discussion topic (owner only, cascades to all replies)
+  app.fastify.delete('/api/community/topics/:id', {
+    schema: {
+      description: 'Delete own discussion topic and all its replies',
+      tags: ['community'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+        },
+        required: ['id'],
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    const { id } = request.params as { id: string };
+    app.logger.info({ userId: session.user.id, topicId: id }, 'Deleting discussion topic');
+
+    try {
+      const topic = await app.db.query.discussionTopics.findFirst({
+        where: eq(schema.discussionTopics.id, id),
+      });
+
+      if (!topic) {
+        app.logger.warn({ topicId: id }, 'Discussion topic not found');
+        return reply.status(404).send({ error: 'Discussion topic not found' });
+      }
+
+      if (topic.userId !== session.user.id) {
+        app.logger.warn({ userId: session.user.id, topicId: id }, 'Unauthorized topic delete attempt');
+        return reply.status(403).send({ error: 'You can only delete your own topics' });
+      }
+
+      // Delete topic (cascade delete will handle replies due to database constraint)
+      await app.db
+        .delete(schema.discussionTopics)
+        .where(eq(schema.discussionTopics.id, id));
+
+      app.logger.info({ topicId: id, userId: session.user.id }, 'Discussion topic and all replies deleted successfully');
+      return { success: true };
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id, topicId: id }, 'Failed to delete discussion topic');
+      return reply.status(500).send({ error: 'Failed to delete discussion topic' });
     }
   });
 }

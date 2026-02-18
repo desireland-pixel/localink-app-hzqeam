@@ -15,6 +15,7 @@ interface TravelPostFilters {
   travelDate?: string;
   travelDateFrom?: string;
   travelDateTo?: string;
+  incentive?: string; // 'true' or 'false'
   limit?: string;
   offset?: string;
 }
@@ -35,6 +36,8 @@ interface TravelPostBody {
   canCarryItems?: boolean;
   // Offering-specific field
   alsoPostAsAlly?: boolean;
+  // Incentive field (in euros, 0.01 to 99.99, optional)
+  incentiveAmount?: number;
   // Consent fields
   companionshipConsent?: boolean;
   allyConsent?: boolean;
@@ -106,6 +109,7 @@ export function registerTravelPostRoutes(app: App) {
           travelDate: { type: 'string' },
           travelDateFrom: { type: 'string' },
           travelDateTo: { type: 'string' },
+          incentive: { type: 'string', enum: ['true', 'false'] },
           limit: { type: 'string' },
           offset: { type: 'string' },
         },
@@ -206,6 +210,11 @@ export function registerTravelPostRoutes(app: App) {
         conditions.push(lte(schema.travelPosts.travelDate, filters.travelDateTo));
       }
 
+      // Filter by incentive
+      if (filters.incentive === 'true') {
+        conditions.push(isNotNull(schema.travelPosts.incentiveAmount));
+      }
+
       const limit = parseInt(filters.limit || '20');
       const offset = parseInt(filters.offset || '0');
 
@@ -223,6 +232,7 @@ export function registerTravelPostRoutes(app: App) {
           item: schema.travelPosts.item,
           canOfferCompanionship: schema.travelPosts.canOfferCompanionship,
           canCarryItems: schema.travelPosts.canCarryItems,
+          incentiveAmount: schema.travelPosts.incentiveAmount,
           status: schema.travelPosts.status,
           createdAt: schema.travelPosts.createdAt,
           updatedAt: schema.travelPosts.updatedAt,
@@ -313,6 +323,7 @@ export function registerTravelPostRoutes(app: App) {
           item: schema.travelPosts.item,
           canOfferCompanionship: schema.travelPosts.canOfferCompanionship,
           canCarryItems: schema.travelPosts.canCarryItems,
+          incentiveAmount: schema.travelPosts.incentiveAmount,
           status: schema.travelPosts.status,
           createdAt: schema.travelPosts.createdAt,
           updatedAt: schema.travelPosts.updatedAt,
@@ -390,6 +401,7 @@ export function registerTravelPostRoutes(app: App) {
           canOfferCompanionship: { type: 'boolean' },
           canCarryItems: { type: 'boolean' },
           alsoPostAsAlly: { type: 'boolean' },
+          incentiveAmount: { type: 'number', minimum: 0.01, maximum: 99.99 },
           companionshipConsent: { type: 'boolean' },
           seekingConsent: { type: 'boolean' },
           allyConsent: { type: 'boolean' },
@@ -490,6 +502,7 @@ export function registerTravelPostRoutes(app: App) {
           item: body.item,
           canOfferCompanionship: body.canOfferCompanionship,
           canCarryItems: body.canCarryItems,
+          incentiveAmount: body.incentiveAmount ? String(body.incentiveAmount) : null,
           companionshipConsent: body.companionshipConsent || false,
           allyConsent: body.allyConsent || false,
           seekingConsent: body.seekingConsent || false,
@@ -532,6 +545,7 @@ export function registerTravelPostRoutes(app: App) {
           item: { type: 'string' },
           canOfferCompanionship: { type: 'boolean' },
           canCarryItems: { type: 'boolean' },
+          incentiveAmount: { type: 'number', minimum: 0.01, maximum: 99.99 },
         },
       },
     },
@@ -605,6 +619,7 @@ export function registerTravelPostRoutes(app: App) {
       if (body.item !== undefined) updateData.item = body.item;
       if (body.canOfferCompanionship !== undefined) updateData.canOfferCompanionship = body.canOfferCompanionship;
       if (body.canCarryItems !== undefined) updateData.canCarryItems = body.canCarryItems;
+      if (body.incentiveAmount !== undefined) updateData.incentiveAmount = body.incentiveAmount ? String(body.incentiveAmount) : null;
 
       const [updated] = await app.db
         .update(schema.travelPosts)
