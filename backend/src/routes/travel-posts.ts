@@ -1,6 +1,6 @@
 import type { App} from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, or, gte, lte, between, desc, isNotNull } from 'drizzle-orm';
+import { eq, and, or, gte, lte, between, desc, isNotNull, isNull, ne } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { TRAVEL_CITIES } from '../cities.js';
 import { generateShortId } from '../utils/short-id.js';
@@ -212,7 +212,21 @@ export function registerTravelPostRoutes(app: App) {
 
       // Filter by incentive
       if (filters.incentive === 'true') {
-        conditions.push(isNotNull(schema.travelPosts.incentiveAmount));
+        // Show only posts WITH incentives (incentiveAmount IS NOT NULL AND != '0')
+        conditions.push(
+          and(
+            isNotNull(schema.travelPosts.incentiveAmount),
+            ne(schema.travelPosts.incentiveAmount, '0')
+          )!
+        );
+      } else if (filters.incentive === 'false') {
+        // Show only posts WITHOUT incentives (incentiveAmount IS NULL OR = '0')
+        conditions.push(
+          or(
+            isNull(schema.travelPosts.incentiveAmount),
+            eq(schema.travelPosts.incentiveAmount, '0')
+          )!
+        );
       }
 
       const limit = parseInt(filters.limit || '20');
