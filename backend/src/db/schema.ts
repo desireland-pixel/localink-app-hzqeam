@@ -78,6 +78,8 @@ export const travelPosts = pgTable('travel_posts', {
   // Offering-specific fields
   canOfferCompanionship: boolean('can_offer_companionship'),
   canCarryItems: boolean('can_carry_items'),
+  // Incentive field (in euros, optional)
+  incentiveAmount: numeric('incentive_amount'),
   // Consent fields
   companionshipConsent: boolean('companionship_consent').default(false).notNull(), // For offering companionship
   allyConsent: boolean('ally_consent').default(false).notNull(), // For seeking ally
@@ -195,6 +197,15 @@ export const discussionReplies = pgTable('discussion_replies', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 });
 
+// Push notification tokens
+export const pushTokens = pgTable('push_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  platform: text('platform', { enum: ['ios', 'android'] }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Relations for community
 export const discussionTopicsRelations = relations(discussionTopics, ({ one, many }) => ({
   user: one(user, {
@@ -211,6 +222,13 @@ export const discussionRepliesRelations = relations(discussionReplies, ({ one })
   }),
   user: one(user, {
     fields: [discussionReplies.userId],
+    references: [user.id],
+  }),
+}));
+
+export const pushTokensRelations = relations(pushTokens, ({ one }) => ({
+  user: one(user, {
+    fields: [pushTokens.userId],
     references: [user.id],
   }),
 }));

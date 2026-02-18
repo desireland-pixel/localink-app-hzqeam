@@ -12,6 +12,7 @@ import { registerFavoriteRoutes } from './routes/favorites.js';
 import { registerUploadRoutes } from './routes/upload.js';
 import { registerShareRoutes } from './routes/share.js';
 import { registerCommunityRoutes } from './routes/community.js';
+import { registerPushTokenRoutes } from './routes/push-tokens.js';
 
 const schema = { ...appSchema, ...authSchema };
 
@@ -62,6 +63,7 @@ registerFavoriteRoutes(app);
 registerUploadRoutes(app);
 registerShareRoutes(app);
 registerCommunityRoutes(app);
+registerPushTokenRoutes(app);
 
 await app.run();
 app.logger.info('Localink API running');
