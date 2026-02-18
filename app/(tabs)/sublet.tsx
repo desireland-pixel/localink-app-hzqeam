@@ -214,7 +214,7 @@ export default function SubletScreen() {
                         <Image 
                           source={{ uri: imageUrl }} 
                           style={styles.cardImage}
-                          cachePolicy="memory-disk"
+                          cachePolicy="none"
                           contentFit="cover"
                           transition={200}
                           placeholder={require('@/assets/images/e0ef75c7-f2f2-4978-a582-c04be452d5cf.png')}
