@@ -227,7 +227,13 @@ export default function TravelDetailsScreen() {
   }
   
   const titleText = `${travelPost.fromCity} ✈️ ${travelPost.toCity}`;
-  const incentiveAmountValue = travelPost.incentiveAmount ? travelPost.incentiveAmount.toFixed(2) : null;
+  
+  // Fix: Safely handle incentiveAmount - check if it exists and is a number greater than 0
+  const hasIncentive = travelPost.incentiveAmount !== undefined && 
+                       travelPost.incentiveAmount !== null && 
+                       typeof travelPost.incentiveAmount === 'number' && 
+                       travelPost.incentiveAmount > 0;
+  const incentiveAmountValue = hasIncentive ? Number(travelPost.incentiveAmount).toFixed(2) : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -601,7 +607,7 @@ const styles = StyleSheet.create({
   },
   incentiveValue: {
     ...typography.h3,
-    color: '#34C759',
+    color: '#10b981',
     fontWeight: '700',
     marginBottom: spacing.sm,
   },

@@ -177,13 +177,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log('[AuthContext] Fetching user profile');
       setProfileLoading(true);
-      const response = await authenticatedGet<Profile>('/api/profile');
+      const response = await authenticatedGet<Profile & { isProfileComplete?: boolean }>('/api/profile');
       console.log('[AuthContext] Profile fetched successfully:', response);
       
-      // Use isProfileComplete from backend if available, otherwise calculate it
-      const profileCompleted = response.isProfileComplete !== undefined 
-        ? response.isProfileComplete 
-        : !!(response.username && response.city && response.gdprConsentAccepted);
+      // Use isProfileComplete from backend (it's the source of truth)
+      const profileCompleted = response.isProfileComplete === true;
       
       console.log('[AuthContext] Profile completed status:', profileCompleted, {
         username: !!response.username,

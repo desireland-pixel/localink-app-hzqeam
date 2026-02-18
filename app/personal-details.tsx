@@ -18,7 +18,6 @@ export default function PersonalDetailsScreen() {
   const [city, setCity] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [gdprConsent, setGdprConsent] = useState(false);
   const [gdprConsentDisabled, setGdprConsentDisabled] = useState(false);
 
@@ -60,7 +59,6 @@ export default function PersonalDetailsScreen() {
 
     setLoading(true);
     setError('');
-    setSuccess('');
 
     try {
       const updateData: any = {
@@ -69,21 +67,20 @@ export default function PersonalDetailsScreen() {
         gdprConsentAccepted: gdprConsent,
       };
       
-      await authenticatedPut('/api/profile', updateData);
-      setSuccess('Personal details updated successfully');
+      const response = await authenticatedPut('/api/profile', updateData);
+      console.log('PersonalDetailsScreen: Profile update response:', response);
       
       // Disable GDPR consent checkbox after successful save
       if (gdprConsent) {
         setGdprConsentDisabled(true);
       }
       
+      // Refresh profile to get updated isProfileComplete status from backend
       await refreshProfile();
       
-      // Navigate to home page after successful save
+      // Navigate to home page after successful save (no modal, direct redirect)
       console.log('PersonalDetailsScreen: Profile saved, redirecting to home page');
-      setTimeout(() => {
-        router.replace('/(tabs)/sublet');
-      }, 1000);
+      router.replace('/(tabs)/sublet');
     } catch (err: any) {
       console.error('PersonalDetailsScreen: Error updating details', err);
       setError(err.message || 'Failed to update personal details');
@@ -195,14 +192,6 @@ export default function PersonalDetailsScreen() {
         message={error}
         onClose={() => setError('')}
         type="error"
-      />
-
-      <Modal
-        visible={!!success}
-        title="Success"
-        message={success}
-        onClose={() => setSuccess('')}
-        type="success"
       />
     </SafeAreaView>
   );

@@ -207,16 +207,22 @@ export default function SubletDetailsScreen() {
               <FlatList
                 ref={flatListRef}
                 data={sublet.imageUrls}
-                renderItem={({ item }) => (
+                renderItem={({ item, index }) => (
                   <Image 
                     source={{ uri: item }} 
                     style={styles.image} 
                     contentFit="cover"
-                    cachePolicy="disk"
+                    cachePolicy="memory-disk"
                     transition={200}
+                    placeholder={require('@/assets/images/e0ef75c7-f2f2-4978-a582-c04be452d5cf.png')}
+                    placeholderContentFit="contain"
+                    priority={index === 0 ? 'high' : 'normal'}
+                    onError={(error) => {
+                      console.error('[SubletDetails] Image load error:', item, error);
+                    }}
                   />
                 )}
-                keyExtractor={(item) => item}
+                keyExtractor={(item, index) => `${item}-${index}`}
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
