@@ -97,6 +97,7 @@ export const conversations = pgTable('conversations', {
   postId: uuid('post_id'),
   postType: text('post_type', { enum: ['sublet', 'travel'] }),
   lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
+  hasSentMessages: boolean('has_sent_messages').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
