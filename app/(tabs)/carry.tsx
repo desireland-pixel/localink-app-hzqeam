@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
     marginBottom: spacing.xs,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
   cardDescription: {
