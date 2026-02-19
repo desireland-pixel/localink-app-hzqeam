@@ -280,11 +280,6 @@ export default function TravelScreen() {
                     {dateToDisplay && <Text style={styles.dateText}>{dateToDisplay}</Text>}
                   </View>
                 )}
-                {post.description && (
-                  <Text style={styles.cardDescription} numberOfLines={2}>
-                    {post.description}
-                  </Text>
-                )}
                 {post.type === 'seeking' && post.companionshipFor && (
                   <View style={styles.companionshipForContainer}>
                     <Text style={styles.companionshipForLabel}>for: </Text>
@@ -293,6 +288,11 @@ export default function TravelScreen() {
                 )}
                 {post.type === 'seeking-ally' && post.item && (
                   <Text style={styles.itemName}>{post.item}</Text>
+                )}
+                {post.description && (
+                  <Text style={styles.cardDescription} numberOfLines={2}>
+                    {post.description}
+                  </Text>
                 )}
                 <View style={styles.cardFooterRow}>
                   <View style={styles.authorDateRow}>
@@ -464,12 +464,6 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textSecondary,
   },
-  cardDescription: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-    lineHeight: 20,
-  },
   companionshipForContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -492,6 +486,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     marginBottom: spacing.sm,
+  },
+  cardDescription: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+    lineHeight: 20,
   },
   cardFooterRow: {
     flexDirection: 'row',
