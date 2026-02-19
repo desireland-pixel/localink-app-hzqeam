@@ -36,7 +36,7 @@ export default function TravelScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [posts, setPosts] = useState<TravelPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -58,7 +58,9 @@ export default function TravelScreen() {
 
   const fetchPosts = async () => {
     console.log('TravelScreen: Fetching travel posts');
-    setLoading(true);
+    if (posts.length === 0) {
+      setLoading(true);
+    }
     try {
       const filterParams = params.filters ? `?${params.filters}` : '';
       const data = await authenticatedGet<TravelPost[]>(`/api/travel-posts${filterParams}`);
@@ -68,7 +70,9 @@ export default function TravelScreen() {
       setPosts(sortedData);
     } catch (error) {
       console.error('TravelScreen: Error fetching travel posts', error);
-      setPosts([]);
+      if (posts.length === 0) {
+        setPosts([]);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -171,7 +175,7 @@ export default function TravelScreen() {
         </TouchableOpacity>
       </View>
 
-      {loading ? (
+      {loading && posts.length === 0 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>

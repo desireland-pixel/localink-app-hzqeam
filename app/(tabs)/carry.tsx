@@ -41,7 +41,7 @@ export default function CommunityScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [topics, setTopics] = useState<CommunityTopic[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -64,7 +64,9 @@ export default function CommunityScreen() {
 
   const fetchTopics = async () => {
     console.log('CommunityScreen: Fetching community topics');
-    setLoading(true);
+    if (topics.length === 0) {
+      setLoading(true);
+    }
     try {
       const filterParams = params.filters ? `?${params.filters}` : '';
       const data = await authenticatedGet<CommunityTopic[]>(`/api/community/topics${filterParams}`);
@@ -76,7 +78,9 @@ export default function CommunityScreen() {
       setTopics(sortedData);
     } catch (error) {
       console.error('CommunityScreen: Error fetching community topics', error);
-      setTopics([]); // Set empty array on error
+      if (topics.length === 0) {
+        setTopics([]);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -182,7 +186,7 @@ export default function CommunityScreen() {
         </TouchableOpacity>
       </View>
 
-      {loading ? (
+      {loading && topics.length === 0 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
