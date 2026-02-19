@@ -79,11 +79,14 @@ export function registerConversationRoutes(app: App) {
     app.logger.info({ userId: session.user.id }, 'Fetching user conversations');
 
     try {
-      // Get conversations where user is a participant
+      // Get conversations where user is a participant AND messages have been sent
       const conversations = await app.db.query.conversations.findMany({
-        where: or(
-          eq(schema.conversations.participant1Id, session.user.id),
-          eq(schema.conversations.participant2Id, session.user.id)
+        where: and(
+          or(
+            eq(schema.conversations.participant1Id, session.user.id),
+            eq(schema.conversations.participant2Id, session.user.id)
+          ),
+          eq(schema.conversations.hasSentMessages, true)
         ),
         orderBy: [desc(schema.conversations.lastMessageAt), desc(schema.conversations.createdAt)],
         with: {
@@ -495,10 +498,10 @@ export function registerConversationRoutes(app: App) {
         ? fullConversation?.participant1.name
         : fullConversation?.participant2.name;
 
-      // Update conversation lastMessageAt
+      // Update conversation: set lastMessageAt and hasSentMessages to true
       await app.db
         .update(schema.conversations)
-        .set({ lastMessageAt: new Date() })
+        .set({ lastMessageAt: new Date(), hasSentMessages: true })
         .where(eq(schema.conversations.id, id));
 
       const messageWithSender = {
