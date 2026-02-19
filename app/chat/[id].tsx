@@ -140,8 +140,17 @@ export default function ChatScreen() {
         return;
       }
 
-      const wsUrl = BACKEND_URL.replace(/^https?:/, BACKEND_URL.startsWith('https') ? 'wss:' : 'ws:');
-      const ws = new WebSocket(`${wsUrl}/ws/messages`);
+      if (!BACKEND_URL) {
+        console.warn('ChatScreen: No backend URL, skipping WebSocket setup');
+        return;
+      }
+
+      const wsUrl = BACKEND_URL.startsWith('https')
+        ? BACKEND_URL.replace(/^https:/, 'wss:')
+        : BACKEND_URL.replace(/^http:/, 'ws:');
+
+      // Pass token as query param since WebSocket headers aren't supported in all environments
+      const ws = new WebSocket(`${wsUrl}/ws/messages?token=${encodeURIComponent(token)}`);
 
       ws.onopen = () => {
         console.log('ChatScreen: WebSocket connected');
@@ -180,7 +189,8 @@ export default function ChatScreen() {
       };
 
       ws.onerror = (error) => {
-        console.error('ChatScreen: WebSocket error', error);
+        // Silently log - polling handles message sync as fallback
+        console.log('ChatScreen: WebSocket unavailable, using polling fallback');
       };
 
       ws.onclose = () => {
@@ -189,26 +199,15 @@ export default function ChatScreen() {
 
       wsRef.current = ws;
     } catch (error) {
-      console.error('ChatScreen: Error setting up WebSocket', error);
+      // Silently handle - polling will handle message sync
+      console.log('ChatScreen: WebSocket setup skipped, using polling fallback');
     }
   };
 
   const fetchConversation = async () => {
-    console.log('ChatScreen: Fetching conversation details', id);
-    try {
-      const conversations = await authenticatedGet<Conversation[]>('/api/conversations');
-      const conv = conversations.find(c => c.id === id);
-      if (conv) {
-        console.log('ChatScreen: Found conversation in list', conv);
-        setConversation(conv);
-      } else {
-        console.error('ChatScreen: Conversation not found in list');
-        setError('Conversation not found');
-      }
-    } catch (error: any) {
-      console.error('ChatScreen: Error fetching conversation', error);
-      setError('Failed to load conversation details');
-    }
+    // Conversation details are fetched via the messages endpoint which works
+    // regardless of hasSentMessages status (so new/empty chats still load correctly)
+    console.log('ChatScreen: Conversation details will be loaded via fetchMessages', id);
   };
 
   const fetchMessages = async () => {
