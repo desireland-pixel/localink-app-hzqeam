@@ -335,13 +335,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: Platform.OS === 'android' ? spacing.xs : spacing.sm,
     gap: spacing.sm,
+    height: Platform.OS === 'android' ? 40 : undefined,
   },
   searchInput: {
     flex: 1,
     ...typography.body,
     color: colors.text,
+    paddingVertical: 0,
   },
   iconButton: {
     padding: spacing.xs,

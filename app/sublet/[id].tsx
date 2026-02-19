@@ -197,6 +197,7 @@ export default function SubletDetailsScreen() {
   const imageCount = sublet.imageUrls?.length || 0;
   const typeLabel = sublet.type === 'offering' ? 'Offering' : 'Seeking';
   const displayId = sublet.shortId || sublet.id.substring(0, 8);
+  const postedDate = formatDateToDDMMYYYY(sublet.createdAt);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -340,7 +341,10 @@ export default function SubletDetailsScreen() {
           <View style={styles.authorHeader}>
             <View>
               <Text style={styles.authorLabel}>Posted by</Text>
-              <Text style={styles.authorName}>{sublet.user.username || sublet.user.name}</Text>
+              <View style={styles.authorNameRow}>
+                <Text style={styles.authorName}>{sublet.user.username || sublet.user.name}</Text>
+                <Text style={styles.postedDate}> • {postedDate}</Text>
+              </View>
             </View>
             {isOwnPost ? (
               <View style={styles.ownerActions}>
@@ -590,10 +594,19 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.xs,
   },
+  authorNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   authorName: {
     ...typography.body,
     color: colors.text,
     fontWeight: '600',
+  },
+  postedDate: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontSize: 11,
   },
   ownerActions: {
     flexDirection: 'row',

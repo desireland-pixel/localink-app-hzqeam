@@ -191,6 +191,7 @@ export default function TravelDetailsScreen() {
   const travelDateDisplay = formatDateToDDMMYYYY(travelPost.travelDate);
   const travelDateToDisplay = travelPost.travelDateTo ? formatDateToDDMMYYYY(travelPost.travelDateTo) : null;
   const displayId = travelPost.shortId || travelPost.id.substring(0, 8);
+  const postedDate = formatDateToDDMMYYYY(travelPost.createdAt);
   
   let tagLabel = '';
   let iconElements: React.ReactNode[] = [];
@@ -319,23 +320,27 @@ export default function TravelDetailsScreen() {
             </View>
           )}
 
-          {hasIncentive && incentiveDisplayText && incentiveDisclaimer && (
+          {hasIncentive && incentiveDisplayText && (
             <View style={styles.incentiveContainer}>
-              <View style={styles.incentiveHeader}>
-                <Text style={styles.incentiveLabel}>Incentive:</Text>
-                <Text style={styles.incentiveAmount}>{incentiveDisplayText}</Text>
-              </View>
-              <Text style={styles.incentiveDisclaimer}>
-                {incentiveDisclaimer}
-              </Text>
+              <Text style={styles.incentiveLabel}>Incentive:</Text>
+              <Text style={styles.incentiveAmount}>{incentiveDisplayText}</Text>
             </View>
+          )}
+
+          {hasIncentive && incentiveDisclaimer && (
+            <Text style={styles.incentiveDisclaimer}>
+              {incentiveDisclaimer}
+            </Text>
           )}
 
           <View style={styles.userContainer}>
             <View style={styles.userHeader}>
               <View>
                 <Text style={styles.userLabel}>Posted by:</Text>
-                <Text style={styles.userName}>{travelPost.user.username || travelPost.user.name}</Text>
+                <View style={styles.userNameRow}>
+                  <Text style={styles.userName}>{travelPost.user.username || travelPost.user.name}</Text>
+                  <Text style={styles.postedDate}> • {postedDate}</Text>
+                </View>
               </View>
               {isOwnPost && (
                 <View style={styles.ownerActions}>
@@ -521,12 +526,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: spacing.md,
+    gap: spacing.xs,
   },
   dateLabel: {
     ...typography.bodySmall,
     color: colors.textSecondary,
-    marginBottom: spacing.xs,
   },
   dateText: {
     ...typography.body,
@@ -546,36 +553,25 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   incentiveContainer: {
-    marginBottom: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: '#10b981',
-  },
-  incentiveHeader: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: spacing.sm,
+    alignItems: 'center',
+    marginBottom: spacing.xs,
     gap: spacing.xs,
   },
   incentiveLabel: {
     ...typography.bodySmall,
     color: colors.textSecondary,
-    fontSize: 13,
   },
   incentiveAmount: {
-    ...typography.h3,
-    color: '#10b981',
-    fontWeight: '700',
-    fontSize: 20,
+    ...typography.body,
+    color: colors.text,
   },
   incentiveDisclaimer: {
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 9,
     lineHeight: 12,
-    fontStyle: 'italic',
+    marginBottom: spacing.md,
   },
   userContainer: {
     marginTop: spacing.md,
@@ -593,10 +589,19 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.xs,
   },
+  userNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   userName: {
     ...typography.body,
     color: colors.text,
     fontWeight: '600',
+  },
+  postedDate: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontSize: 11,
   },
   ownerActions: {
     flexDirection: 'row',

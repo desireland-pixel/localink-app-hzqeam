@@ -36,7 +36,7 @@ interface FavoritePost {
       name: string;
       username?: string;
     };
-  };
+  } | null;
 }
 
 export default function FavouritesScreen() {
@@ -59,7 +59,9 @@ export default function FavouritesScreen() {
     try {
       const data = await authenticatedGet<FavoritePost[]>('/api/favorites');
       console.log('FavouritesScreen: Fetched favorites', data);
-      setFavorites(data);
+      // Filter out favorites with null posts
+      const validFavorites = data.filter(f => f.post !== null && f.post !== undefined);
+      setFavorites(validFavorites);
     } catch (error: any) {
       console.error('FavouritesScreen: Error fetching favorites', error);
       setError(error.message || 'Failed to load favorites');
@@ -152,6 +154,12 @@ export default function FavouritesScreen() {
           ) : (
             filteredFavorites.map((favorite) => {
               const post = favorite.post;
+              
+              // Safety check - skip if post is null
+              if (!post) {
+                console.warn('FavouritesScreen: Skipping favorite with null post', favorite.id);
+                return null;
+              }
               
               return (
                 <TouchableOpacity
