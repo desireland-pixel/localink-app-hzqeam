@@ -72,8 +72,17 @@ export default function InboxScreen() {
         return;
       }
 
-      const wsUrl = BACKEND_URL.replace(/^https?:/, BACKEND_URL.startsWith('https') ? 'wss:' : 'ws:');
-      const ws = new WebSocket(`${wsUrl}/ws/messages`);
+      if (!BACKEND_URL) {
+        console.warn('[InboxScreen] No backend URL, skipping WebSocket setup');
+        return;
+      }
+
+      const wsUrl = BACKEND_URL.startsWith('https')
+        ? BACKEND_URL.replace(/^https:/, 'wss:')
+        : BACKEND_URL.replace(/^http:/, 'ws:');
+
+      // Pass token as query param since WebSocket headers aren't supported in all environments
+      const ws = new WebSocket(`${wsUrl}/ws/messages?token=${encodeURIComponent(token)}`);
 
       ws.onopen = () => {
         console.log('[InboxScreen] WebSocket connected');
@@ -93,7 +102,8 @@ export default function InboxScreen() {
       };
 
       ws.onerror = (error) => {
-        console.error('[InboxScreen] WebSocket error', error);
+        // Silently log - inbox will refresh on focus as fallback
+        console.log('[InboxScreen] WebSocket unavailable, using focus-refresh fallback');
       };
 
       ws.onclose = () => {
@@ -102,7 +112,8 @@ export default function InboxScreen() {
 
       wsRef.current = ws;
     } catch (error) {
-      console.error('[InboxScreen] Error setting up WebSocket', error);
+      // Silently handle
+      console.log('[InboxScreen] WebSocket setup skipped');
     }
   };
 

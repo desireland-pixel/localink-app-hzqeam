@@ -390,15 +390,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   cardTitle: {
-    ...typography.h3,
+    ...typography.body,
     color: colors.text,
     marginBottom: spacing.xs,
+    fontSize: 13,
+    fontWeight: '600',
   },
   cardDescription: {
     ...typography.body,
     color: colors.textSecondary,
     marginBottom: spacing.sm,
-    lineHeight: 20,
+    lineHeight: 16,
+    fontSize: 11,
   },
   cardFooter: {
     flexDirection: 'row',

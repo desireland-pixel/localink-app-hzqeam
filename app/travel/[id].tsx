@@ -233,7 +233,7 @@ export default function TravelDetailsScreen() {
                        travelPost.incentiveAmount !== null && 
                        typeof travelPost.incentiveAmount === 'number' && 
                        travelPost.incentiveAmount > 0;
-  const incentiveAmountValue = hasIncentive ? Number(travelPost.incentiveAmount).toFixed(2) : null;
+  const incentiveAmountFormatted = hasIncentive ? Number(travelPost.incentiveAmount).toFixed(2) : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -311,10 +311,12 @@ export default function TravelDetailsScreen() {
             </View>
           )}
 
-          {incentiveAmountValue && (
+          {incentiveAmountFormatted && (
             <View style={styles.incentiveContainer}>
-              <Text style={styles.incentiveLabel}>Incentive Offered:</Text>
-              <Text style={styles.incentiveValue}>€{incentiveAmountValue}</Text>
+              <View style={styles.incentiveHeader}>
+                <Text style={styles.incentiveLabel}>Incentive:</Text>
+                <Text style={styles.incentiveAmount}>€ {incentiveAmountFormatted}</Text>
+              </View>
               <Text style={styles.incentiveDisclaimer}>
                 Incentives are voluntary. The platform only facilitates connections and does not handle payments. Users are solely responsible for legal, airline, and customs compliance.
               </Text>
@@ -535,6 +537,38 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 22,
   },
+  incentiveContainer: {
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: '#10b981',
+  },
+  incentiveHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
+  },
+  incentiveLabel: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontSize: 13,
+  },
+  incentiveAmount: {
+    ...typography.h3,
+    color: '#10b981',
+    fontWeight: '700',
+    fontSize: 20,
+  },
+  incentiveDisclaimer: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 9,
+    lineHeight: 12,
+    fontStyle: 'italic',
+  },
   userContainer: {
     marginTop: spacing.md,
     paddingTop: spacing.md,
@@ -591,31 +625,5 @@ const styles = StyleSheet.create({
   ownPostText: {
     ...typography.body,
     color: colors.textSecondary,
-  },
-  incentiveContainer: {
-    marginBottom: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  incentiveLabel: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  incentiveValue: {
-    ...typography.h3,
-    color: '#10b981',
-    fontWeight: '700',
-    marginBottom: spacing.sm,
-  },
-  incentiveDisclaimer: {
-    ...typography.bodySmall,
-    color: colors.textLight,
-    fontSize: 10,
-    lineHeight: 14,
-    fontStyle: 'italic',
   },
 });
