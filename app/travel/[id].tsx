@@ -375,7 +375,7 @@ export default function TravelDetailsScreen() {
             {contacting ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={styles.contactButtonText}>Contact Traveler</Text>
+              <Text style={styles.contactButtonText}>Contact</Text>
             )}
           </TouchableOpacity>
         )}
@@ -521,9 +521,8 @@ const styles = StyleSheet.create({
   },
   postIdValue: {
     ...typography.bodySmall,
-    color: colors.textLight,
+    color: colors.textSecondary,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 14,
   },
   dateContainer: {
     flexDirection: 'row',
@@ -532,7 +531,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   dateLabel: {
-    ...typography.bodySmall,
+    ...typography.body,
     color: colors.textSecondary,
   },
   dateText: {
@@ -543,7 +542,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   descriptionLabel: {
-    ...typography.bodySmall,
+    ...typography.body,
     color: colors.textSecondary,
     marginBottom: spacing.xs,
   },
@@ -559,7 +558,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   incentiveLabel: {
-    ...typography.bodySmall,
+    ...typography.body,
     color: colors.textSecondary,
   },
   incentiveAmount: {
@@ -599,9 +598,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   postedDate: {
-    ...typography.bodySmall,
+    ...typography.body,
     color: colors.textSecondary,
-    fontSize: 11,
+    fontWeight: '400',
   },
   ownerActions: {
     flexDirection: 'row',

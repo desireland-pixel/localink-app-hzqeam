@@ -155,7 +155,7 @@ export default function PostCommunityTopicScreen() {
             disabled={loading}
           >
             <Text style={styles.buttonText}>
-              {loading ? (isEditing ? 'Updating...' : 'Posting...') : (isEditing ? 'Update Discussion' : 'Post Discussion')}
+              {loading ? (isEditing ? 'Updating...' : 'Posting...') : (isEditing ? 'Update' : 'Post')}
             </Text>
           </TouchableOpacity>
         </ScrollView>
