@@ -7,6 +7,7 @@ import { generateShortId } from '../utils/short-id.js';
 import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '../utils/date-format.js';
 import { formatTravelPostTitle, getTravelPostTypeEmojis } from '../utils/travel-post-formatter.js';
 import { regenerateSignedUrls } from '../utils/image-url-regenerator.js';
+import { formatIncentiveAmount, getIncentiveDisclaimer } from '../utils/incentive-formatter.js';
 
 interface TravelPostFilters {
   role?: 'offering' | 'seeking'; // Single role filter
@@ -281,6 +282,7 @@ export function registerTravelPostRoutes(app: App) {
 
         const createdDate = new Date(post.createdAt);
         const formattedCreatedDate = createdDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
+        const formattedIncentive = formatIncentiveAmount(post.incentiveAmount);
 
         return {
           ...post,
@@ -289,6 +291,13 @@ export function registerTravelPostRoutes(app: App) {
           formattedTitle: title,
           tag: tag,
           typeEmojis: typeEmojis,
+          ...(formattedIncentive ? {
+            incentive: {
+              amount: formattedIncentive,
+              currency: '€',
+              displayText: `€ ${formattedIncentive}`,
+            }
+          } : {}),
           user: {
             id: post.userId,
             username: post.username || 'Unknown User',
@@ -373,6 +382,8 @@ export function registerTravelPostRoutes(app: App) {
         post.canCarryItems
       );
 
+      const formattedIncentive = formatIncentiveAmount(post.incentiveAmount);
+
       const response = {
         ...post,
         travelDate: formatDateToDDMMYYYY(travelDate),
@@ -381,6 +392,14 @@ export function registerTravelPostRoutes(app: App) {
         tag: tag,
         typeEmojis: typeEmojis,
         shortId: generateShortId(post.id),
+        ...(formattedIncentive ? {
+          incentive: {
+            amount: formattedIncentive,
+            currency: '€',
+            displayText: `€ ${formattedIncentive}`,
+            disclaimer: getIncentiveDisclaimer(),
+          }
+        } : {}),
         user: {
           id: post.userId,
           username: post.username || 'Unknown User',
