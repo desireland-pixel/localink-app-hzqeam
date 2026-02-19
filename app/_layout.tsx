@@ -140,7 +140,7 @@ export default function RootLayout() {
                   name="post-community-topic" 
                   options={{ 
                     headerShown: true,
-                    title: 'Start Discussion',
+                    title: 'Discussion',
                     headerBackTitle: 'Cancel'
                   }} 
                 />
@@ -189,7 +189,7 @@ export default function RootLayout() {
                   name="post-travel" 
                   options={{ 
                     headerShown: true,
-                    title: 'Travel buddy',
+                    title: 'Travel',
                     headerBackTitle: 'Cancel'
                   }} 
                 />

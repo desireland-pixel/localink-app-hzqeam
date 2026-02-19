@@ -346,7 +346,7 @@ export default function SubletDetailsScreen() {
                 <Text style={styles.postedDate}> • {postedDate}</Text>
               </View>
             </View>
-            {isOwnPost ? (
+            {isOwnPost && (
               <View style={styles.ownerActions}>
                 <TouchableOpacity style={styles.iconButton} onPress={handleEdit}>
                   <IconSymbol
@@ -365,16 +365,6 @@ export default function SubletDetailsScreen() {
                   />
                 </TouchableOpacity>
               </View>
-            ) : (
-              <TouchableOpacity style={styles.msgButton} onPress={handleContact}>
-                <IconSymbol
-                  ios_icon_name="message.fill"
-                  android_material_icon_name="message"
-                  size={20}
-                  color="#FFFFFF"
-                />
-                <Text style={styles.msgButtonText}>Message</Text>
-              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -535,9 +525,8 @@ const styles = StyleSheet.create({
   },
   postIdValue: {
     ...typography.bodySmall,
-    color: colors.textLight,
+    color: colors.textSecondary,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 14,
   },
   description: {
     ...typography.body,
@@ -604,9 +593,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   postedDate: {
-    ...typography.bodySmall,
+    ...typography.body,
     color: colors.textSecondary,
-    fontSize: 11,
+    fontWeight: '400',
   },
   ownerActions: {
     flexDirection: 'row',
