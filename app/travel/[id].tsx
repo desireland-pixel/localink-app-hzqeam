@@ -33,6 +33,10 @@ interface TravelPost {
     name: string;
     username?: string;
   };
+  incentive?: {
+    displayText: string;
+    disclaimer: string;
+  };
 }
 
 export default function TravelDetailsScreen() {
@@ -228,13 +232,10 @@ export default function TravelDetailsScreen() {
   
   const titleText = `${travelPost.fromCity} ✈️ ${travelPost.toCity}`;
   
-  // Fix: Safely handle incentiveAmount - check if it exists and is a number greater than 0
-  const hasIncentive = travelPost.incentiveAmount !== undefined && 
-                       travelPost.incentiveAmount !== null && 
-                       typeof travelPost.incentiveAmount === 'number' && 
-                       travelPost.incentiveAmount > 0;
-  const incentiveAmountFormatted = hasIncentive ? Number(travelPost.incentiveAmount).toFixed(2) : null;
-
+  const hasIncentive = travelPost.incentive !== undefined && travelPost.incentive !== null;
+  const incentiveDisplayText = hasIncentive ? travelPost.incentive?.displayText : null;
+  const incentiveDisclaimer = hasIncentive ? travelPost.incentive?.disclaimer : null;
+	
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
@@ -318,14 +319,14 @@ export default function TravelDetailsScreen() {
             </View>
           )}
 
-          {(hasIncentive || (travelPost.type === 'seeking' || travelPost.type === 'seeking-ally')) && incentiveAmountFormatted && (
+          {hasIncentive && incentiveDisplayText && incentiveDisclaimer && (
             <View style={styles.incentiveContainer}>
               <View style={styles.incentiveHeader}>
                 <Text style={styles.incentiveLabel}>Incentive:</Text>
-                <Text style={styles.incentiveAmount}>€ {incentiveAmountFormatted}</Text>
+                <Text style={styles.incentiveAmount}>{incentiveDisplayText}</Text>
               </View>
               <Text style={styles.incentiveDisclaimer}>
-                Incentives are voluntary. The platform only facilitates connections and does not handle payments. Users are solely responsible for legal, airline, and customs compliance.
+                {incentiveDisclaimer}
               </Text>
             </View>
           )}
