@@ -410,7 +410,7 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
         {conversation?.post && (
           <TouchableOpacity 
@@ -575,8 +575,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   inputContainerAndroid: {
-    paddingBottom: spacing.lg,
-    marginBottom: 16,
+    paddingBottom: spacing.xl,
+    marginBottom: 24,
   },
   input: {
     flex: 1,

@@ -33,7 +33,7 @@ export default function SubletScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [sublets, setSublets] = useState<Sublet[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -56,7 +56,9 @@ export default function SubletScreen() {
 
   const fetchPosts = async () => {
     console.log('SubletScreen: Fetching sublets with filters:', params.filters);
-    setLoading(true);
+    if (sublets.length === 0) {
+      setLoading(true);
+    }
     try {
       const filterParams = params.filters ? `?${params.filters}` : '';
       console.log('SubletScreen: API call with params:', filterParams);
@@ -67,7 +69,9 @@ export default function SubletScreen() {
       setSublets(sortedData);
     } catch (error) {
       console.error('SubletScreen: Error fetching sublets', error);
-      setSublets([]);
+      if (sublets.length === 0) {
+        setSublets([]);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -174,7 +178,7 @@ export default function SubletScreen() {
         </TouchableOpacity>
       </View>
 
-      {loading ? (
+      {loading && sublets.length === 0 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
