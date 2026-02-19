@@ -435,7 +435,10 @@ export default function ChatScreen() {
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />
 
-        <View style={styles.inputContainer}>
+        <View style={[
+          styles.inputContainer,
+          Platform.OS === 'android' && styles.inputContainerAndroid
+        ]}>
           <TextInput
             style={styles.input}
             placeholder="Type a message..."
@@ -570,6 +573,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.background,
+  },
+  inputContainerAndroid: {
+    paddingBottom: spacing.lg,
+    marginBottom: 16,
   },
   input: {
     flex: 1,

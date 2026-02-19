@@ -285,6 +285,15 @@ export default function TravelScreen() {
                     {post.description}
                   </Text>
                 )}
+                {post.type === 'seeking' && post.companionshipFor && (
+                  <View style={styles.companionshipForContainer}>
+                    <Text style={styles.companionshipForLabel}>for: </Text>
+                    <Text style={styles.companionshipForValue}>{post.companionshipFor}</Text>
+                  </View>
+                )}
+                {post.type === 'seeking-ally' && post.item && (
+                  <Text style={styles.itemName}>{post.item}</Text>
+                )}
                 <View style={styles.cardFooterRow}>
                   <View style={styles.authorDateRow}>
                     <Text style={styles.cardAuthor}>{authorName}</Text>
@@ -460,6 +469,29 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.sm,
     lineHeight: 20,
+  },
+  companionshipForContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  companionshipForLabel: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontSize: 13,
+  },
+  companionshipForValue: {
+    ...typography.body,
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  itemName: {
+    ...typography.body,
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: spacing.sm,
   },
   cardFooterRow: {
     flexDirection: 'row',

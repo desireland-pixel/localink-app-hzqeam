@@ -304,6 +304,13 @@ export default function TravelDetailsScreen() {
             </View>
           )}
 
+          {travelPost.item && travelPost.type === 'seeking-ally' && (
+            <View style={styles.dateContainer}>
+              <Text style={styles.dateLabel}>Item:</Text>
+              <Text style={styles.dateText}>{travelPost.item}</Text>
+            </View>
+          )}
+
           {travelPost.description && (
             <View style={styles.descriptionContainer}>
               <Text style={styles.descriptionLabel}>Description:</Text>
@@ -311,7 +318,7 @@ export default function TravelDetailsScreen() {
             </View>
           )}
 
-          {incentiveAmountFormatted && (
+          {(hasIncentive || (travelPost.type === 'seeking' || travelPost.type === 'seeking-ally')) && incentiveAmountFormatted && (
             <View style={styles.incentiveContainer}>
               <View style={styles.incentiveHeader}>
                 <Text style={styles.incentiveLabel}>Incentive:</Text>
