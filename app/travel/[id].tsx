@@ -49,6 +49,7 @@ export default function TravelDetailsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   console.log('TravelDetailsScreen: Viewing travel', { id });
 
@@ -57,11 +58,20 @@ export default function TravelDetailsScreen() {
   }, [id]);
 
   const fetchTravelPost = async () => {
+    // Only show full loading spinner on initial load
+    if (!initialLoadComplete) {
+      setLoading(true);
+    }
+    
     try {
       console.log('[TravelDetails] Fetching travel post:', id);
       const data = await authenticatedGet<TravelPost>(`/api/travel-posts/${id}`);
       console.log('[TravelDetails] Travel post fetched:', data);
       setTravelPost(data);
+      
+      if (!initialLoadComplete) {
+        setInitialLoadComplete(true);
+      }
     } catch (err) {
       console.error('[TravelDetails] Error fetching travel post:', err);
       setError(err instanceof Error ? err.message : 'Failed to load travel post');
@@ -167,7 +177,8 @@ export default function TravelDetailsScreen() {
     }
   };
 
-  if (loading) {
+  // Show loading spinner only on initial load
+  if (loading && !initialLoadComplete) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <View style={styles.loadingContainer}>

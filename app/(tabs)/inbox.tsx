@@ -42,6 +42,7 @@ export default function InboxScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   console.log('[InboxScreen] Rendering', { conversationsCount: conversations.length });
 
@@ -119,7 +120,12 @@ export default function InboxScreen() {
 
   const fetchConversations = async () => {
     console.log('[InboxScreen] Fetching conversations');
-    setLoading(true);
+    
+    // Only show full loading spinner on initial load
+    if (!initialLoadComplete) {
+      setLoading(true);
+    }
+    
     setError(null);
     try {
       const data = await authenticatedGet<Conversation[]>('/api/conversations');
@@ -139,6 +145,10 @@ export default function InboxScreen() {
       });
       setConversations(sortedData);
       await fetchUnreadCount();
+      
+      if (!initialLoadComplete) {
+        setInitialLoadComplete(true);
+      }
     } catch (error: any) {
       console.error('[InboxScreen] Error fetching conversations', error);
       setConversations([]);
@@ -187,17 +197,27 @@ export default function InboxScreen() {
     return '📝';
   };
 
+  // Show loading spinner only on initial load
+  if (loading && !initialLoadComplete) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Inbox</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Inbox</Text>
       </View>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : conversations.length === 0 ? (
+      {conversations.length === 0 ? (
         <ScrollView 
           style={styles.content} 
           contentContainerStyle={styles.contentContainer}
