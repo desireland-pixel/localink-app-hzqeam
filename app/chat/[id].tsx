@@ -437,7 +437,8 @@ export default function ChatScreen() {
 
         <View style={[
           styles.inputContainer,
-          Platform.OS === 'android' && styles.inputContainerAndroid
+          Platform.OS === 'android' && styles.inputContainerAndroid,
+          Platform.OS === 'ios' && styles.inputContainerIOS
         ]}>
           <TextInput
             style={styles.input}
@@ -575,8 +576,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   inputContainerAndroid: {
+    // Android: Move up 2-3mm (approximately 8-12 pixels)
     paddingBottom: spacing.xl,
-    marginBottom: 24,
+    marginBottom: 32,
+  },
+  inputContainerIOS: {
+    // iOS: Move up 4-5mm (approximately 16-20 pixels)
+    marginBottom: 18,
   },
   input: {
     flex: 1,

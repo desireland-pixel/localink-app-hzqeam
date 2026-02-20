@@ -47,6 +47,7 @@ export default function SubletDetailsScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   console.log('SubletDetailsScreen: Rendering', { id, sublet, imageCount: sublet?.imageUrls?.length });
 
@@ -58,11 +59,20 @@ export default function SubletDetailsScreen() {
 
   const fetchSublet = async () => {
     console.log('SubletDetailsScreen: Fetching sublet', id);
-    setLoading(true);
+    
+    // Only show full loading spinner on initial load
+    if (!initialLoadComplete) {
+      setLoading(true);
+    }
+    
     try {
       const data = await authenticatedGet<Sublet>(`/api/sublets/${id}`);
       console.log('SubletDetailsScreen: Fetched sublet', data);
       setSublet(data);
+      
+      if (!initialLoadComplete) {
+        setInitialLoadComplete(true);
+      }
     } catch (error: any) {
       console.error('SubletDetailsScreen: Error fetching sublet', error);
       setError(error.message || 'Failed to load sublet');
@@ -170,7 +180,8 @@ export default function SubletDetailsScreen() {
     setCurrentImageIndex(index);
   };
 
-  if (loading) {
+  // Show loading spinner only on initial load
+  if (loading && !initialLoadComplete) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>

@@ -19,8 +19,9 @@ export default function TabLayout() {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: 68,
-          paddingBottom: 10,
+          // iOS: Move up 2-3mm (approximately 8-12 pixels)
+          height: 76,
+          paddingBottom: 18,
           paddingTop: 10,
         },
         tabBarLabelStyle: {
