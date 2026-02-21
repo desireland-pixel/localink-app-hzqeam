@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   menuSection: {
-    marginTop: spacing.lg,
+    marginTop: spacing.xs,
   },
   menuItem: {
     flexDirection: 'row',

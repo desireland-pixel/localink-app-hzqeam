@@ -223,6 +223,13 @@ export default function MyPostsScreen() {
                 >
                   {selectedTab === 'sublet' && (
                     <>
+                      <View style={styles.postHeader}>
+                        <View style={[styles.typeTag, { backgroundColor: post.type === 'offering' ? '#D1FAE5' : '#DBEAFE' }]}>
+                          <Text style={[styles.typeTagText, { color: post.type === 'offering' ? '#065F46' : '#1E40AF' }]}>
+                            {post.type === 'offering' ? 'Offering' : 'Seeking'}
+                          </Text>
+                        </View>
+                      </View>
                       <Text style={styles.postTitle}>{post.title}</Text>
                       {post.description && (
                         <Text style={styles.postDescription} numberOfLines={2}>
@@ -248,6 +255,13 @@ export default function MyPostsScreen() {
                   
                   {selectedTab === 'travel' && (
                     <>
+                      <View style={styles.postHeader}>
+                        <View style={[styles.typeTag, { backgroundColor: post.type === 'offering' ? '#D1FAE5' : '#DBEAFE' }]}>
+                          <Text style={[styles.typeTagText, { color: post.type === 'offering' ? '#065F46' : '#1E40AF' }]}>
+                            {post.type === 'offering' ? 'Offering' : 'Seeking'}
+                          </Text>
+                        </View>
+                      </View>
                       <Text style={styles.postTitle}>
                         {post.title || `${post.fromCity} → ${post.toCity}`}
                       </Text>
@@ -266,6 +280,13 @@ export default function MyPostsScreen() {
                   
                   {selectedTab === 'community' && (
                     <>
+                      <View style={styles.postHeader}>
+                        <View style={[styles.categoryBadge, { backgroundColor: isClosed ? '#E5E7EB' : '#DBEAFE' }]}>
+                          <Text style={[styles.categoryBadgeText, { color: isClosed ? '#6B7280' : '#1E40AF' }]}>
+                            {(post as any).category || 'General'}
+                          </Text>
+                        </View>
+                      </View>
                       <Text style={styles.postTitle}>{post.title}</Text>
                       {post.description && (
                         <Text style={styles.postDescription} numberOfLines={2}>
@@ -453,15 +474,43 @@ const styles = StyleSheet.create({
   postCardClosed: {
     opacity: 0.6,
   },
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  typeTag: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  typeTagText: {
+    ...typography.bodySmall,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  categoryBadge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  categoryBadgeText: {
+    ...typography.bodySmall,
+    fontSize: 12,
+    fontWeight: '600',
+  },
   postTitle: {
     ...typography.h3,
     color: colors.text,
     marginBottom: spacing.xs,
+    fontSize: 16,
+    fontWeight: '600',
   },
   postDescription: {
     ...typography.body,
     color: colors.textSecondary,
     marginBottom: spacing.sm,
+    fontSize: 12,
   },
   postInfo: {
     flexDirection: 'row',
@@ -472,6 +521,7 @@ const styles = StyleSheet.create({
   postInfoText: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+    fontSize: 12,
   },
   postRent: {
     ...typography.body,

@@ -21,7 +21,6 @@ export default function PersonalDetailsScreen() {
   const [error, setError] = useState('');
   const [gdprConsent, setGdprConsent] = useState(false);
   const [gdprConsentDisabled, setGdprConsentDisabled] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   console.log('PersonalDetailsScreen: Rendering', { user: user?.id, profile: profile?.name, gdprConsent, gdprConsentDisabled });
 
@@ -135,27 +134,14 @@ export default function PersonalDetailsScreen() {
         />
 
         <Text style={styles.label}>Password *</Text>
-        <View style={styles.passwordRow}>
-          <TextInput
-            style={[styles.input, styles.passwordInput, styles.inputDisabled]}
-            placeholder="••••••••"
-            placeholderTextColor={colors.textLight}
-            value="••••••••"
-            editable={false}
-            secureTextEntry={!showPassword}
-          />
-          <TouchableOpacity
-            style={styles.eyeIconButton}
-            onPress={() => setShowPassword(!showPassword)}
-          >
-            <IconSymbol
-              ios_icon_name={showPassword ? "eye.slash.fill" : "eye.fill"}
-              android_material_icon_name={showPassword ? "visibility-off" : "visibility"}
-              size={20}
-              color={colors.textSecondary}
-            />
-          </TouchableOpacity>
-        </View>
+        <TextInput
+          style={[styles.input, styles.inputDisabled]}
+          placeholder="••••••••"
+          placeholderTextColor={colors.textLight}
+          value="••••••••"
+          editable={false}
+          secureTextEntry={true}
+        />
 
         <Text style={styles.label}>City *</Text>
         <CitySearchInput
@@ -237,20 +223,6 @@ const styles = StyleSheet.create({
   inputDisabled: {
     opacity: 0.6,
     backgroundColor: colors.border,
-  },
-  passwordRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  passwordInput: {
-    flex: 1,
-    paddingRight: 48,
-  },
-  eyeIconButton: {
-    position: 'absolute',
-    right: spacing.md,
-    padding: spacing.xs,
   },
   button: {
     backgroundColor: colors.primary,
