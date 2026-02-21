@@ -45,7 +45,6 @@ export default function SubletScreen() {
     fetchFavorites();
   }, [params.filters]);
 
-  // Auto-refresh when screen gains focus (after creating a post)
   useFocusEffect(
     React.useCallback(() => {
       console.log('SubletScreen: Screen focused, refreshing posts');
@@ -214,33 +213,48 @@ export default function SubletScreen() {
                 style={styles.card}
                 onPress={() => router.push(`/sublet/${sublet.id}`)}
               >
+                <View style={styles.cardHeader}>
+                  <View style={[styles.typeTag, { backgroundColor: tagBackgroundColor }]}>
+                    <Text style={[styles.typeTagText, { color: tagTextColor }]}>{label}</Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.likeButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(sublet.id);
+                    }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <View style={styles.heartIconContainer}>
+                      <IconSymbol
+                        ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                        android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                        size={20}
+                        color={isFavorited ? colors.primary : colors.textSecondary}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.cardContent}>
-                  <View style={styles.leftColumn}>
-                    <View style={styles.imageContainer}>
-                      {hasNoPhoto ? (
-                        <View style={styles.noPhotoContainer}>
-                          <Text style={styles.noPhotoText}>No Photo</Text>
-                        </View>
-                      ) : (
-                        <Image 
-                          source={{ uri: imageUrl }} 
-                          style={styles.cardImage}
-                          cachePolicy="none"
-                          contentFit="cover"
-                          transition={200}
-                          placeholder={require('@/assets/images/e0ef75c7-f2f2-4978-a582-c04be452d5cf.png')}
-                          placeholderContentFit="contain"
-                          onError={(error) => {
-                            console.error('[SubletScreen] Image load error:', imageUrl, error);
-                          }}
-                        />
-                      )}
-                    </View>
-                    <View style={styles.typeTagContainer}>
-                      <View style={[styles.typeTag, { backgroundColor: tagBackgroundColor }]}>
-                        <Text style={[styles.typeTagText, { color: tagTextColor }]}>{label}</Text>
+                  <View style={styles.imageContainer}>
+                    {hasNoPhoto ? (
+                      <View style={styles.noPhotoContainer}>
+                        <Text style={styles.noPhotoText}>No Photo</Text>
                       </View>
-                    </View>
+                    ) : (
+                      <Image 
+                        source={{ uri: imageUrl }} 
+                        style={styles.cardImage}
+                        cachePolicy="none"
+                        contentFit="cover"
+                        transition={200}
+                        placeholder={require('@/assets/images/e0ef75c7-f2f2-4978-a582-c04be452d5cf.png')}
+                        placeholderContentFit="contain"
+                        onError={(error) => {
+                          console.error('[SubletScreen] Image load error:', imageUrl, error);
+                        }}
+                      />
+                    )}
                   </View>
                   <View style={styles.cardTextContent}>
                     <Text style={styles.cardTitle} numberOfLines={1}>{sublet.title}</Text>
@@ -256,21 +270,6 @@ export default function SubletScreen() {
                       <Text style={styles.cardRent}>€{sublet.rent}/month</Text>
                     )}
                   </View>
-                  <TouchableOpacity 
-                    style={styles.likeButton}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(sublet.id);
-                    }}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <IconSymbol
-                      ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                      android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                      size={20}
-                      color={isFavorited ? colors.primary : colors.textSecondary}
-                    />
-                  </TouchableOpacity>
                 </View>
               </TouchableOpacity>
             );
@@ -350,7 +349,7 @@ const styles = StyleSheet.create({
   },
   requestButton: {
     backgroundColor: colors.primary,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
   },
@@ -371,17 +370,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  typeTag: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  typeTagText: {
+    ...typography.bodySmall,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  likeButton: {
+    padding: spacing.xs,
+  },
+  heartIconContainer: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 4,
+  },
   cardContent: {
     flexDirection: 'row',
     gap: spacing.md,
   },
-  leftColumn: {
-    alignItems: 'center',
-  },
   imageContainer: {
     width: 80,
     height: 80,
-    marginBottom: spacing.xs,
   },
   cardImage: {
     width: 80,
@@ -403,19 +423,6 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontSize: 12,
     fontWeight: '500',
-  },
-  typeTagContainer: {
-    alignItems: 'center',
-  },
-  typeTag: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  typeTagText: {
-    ...typography.bodySmall,
-    fontSize: 12,
-    fontWeight: '600',
   },
   cardTextContent: {
     flex: 1,
@@ -448,8 +455,5 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.primary,
     fontWeight: '600',
-  },
-  likeButton: {
-    padding: spacing.xs,
   },
 });
