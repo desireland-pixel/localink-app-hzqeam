@@ -205,9 +205,13 @@ export default function TravelScreen() {
             let label = '';
             let iconCompanionship = false;
             let iconAlly = false;
+            let tagBackgroundColor = '';
+            let tagTextColor = '';
             
             if (post.type === 'offering') {
               label = 'Offering';
+              tagBackgroundColor = '#D1FAE5';
+              tagTextColor = '#065F46';
               const hasCompanionship = post.canOfferCompanionship;
               const hasCarry = post.canCarryItems;
               
@@ -224,15 +228,20 @@ export default function TravelScreen() {
               }
             } else if (post.type === 'seeking') {
               label = 'Seeking';
+              tagBackgroundColor = '#DBEAFE';
+              tagTextColor = '#1E40AF';
               iconCompanionship = true;
             } else if (post.type === 'seeking-ally') {
               label = 'Seeking';
+              tagBackgroundColor = '#DBEAFE';
+              tagTextColor = '#1E40AF';
               iconAlly = true;
             }
             
             const authorName = post.user?.username || post.user?.name || 'Unknown';
             const createdDate = formatDateToDDMMYYYY(post.createdAt);
             const isFavorited = favorites.has(post.id);
+            const hasIncentive = post.incentiveAmount && post.incentiveAmount > 0;
             
             return (
               <TouchableOpacity
@@ -243,8 +252,8 @@ export default function TravelScreen() {
                 <View style={styles.cardHeader}>
                   <View style={styles.tagRow}>
                     {label && (
-                      <View style={styles.typeTag}>
-                        <Text style={styles.typeTagText}>{label}</Text>
+                      <View style={[styles.typeTag, { backgroundColor: tagBackgroundColor }]}>
+                        <Text style={[styles.typeTagText, { color: tagTextColor }]}>{label}</Text>
                       </View>
                     )}
                     {iconCompanionship && (
@@ -303,7 +312,7 @@ export default function TravelScreen() {
                     <Text style={styles.cardAuthor}>{authorName}</Text>
                     <Text style={styles.cardDate}> • {createdDate}</Text>
                   </View>
-                  {post.incentiveAmount && post.incentiveAmount > 0 && (
+                  {hasIncentive && (
                     <View style={styles.incentiveTag}>
                       <Text style={styles.incentiveTagText}>Incentive</Text>
                     </View>
@@ -420,15 +429,13 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   typeTag: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   typeTagText: {
     ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
   iconText: {
@@ -520,15 +527,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   incentiveTag: {
-    backgroundColor: '#10b981',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   incentiveTagText: {
     ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontSize: 10,
+    color: '#6B21A8',
+    fontSize: 12,
     fontWeight: '600',
   },
 });

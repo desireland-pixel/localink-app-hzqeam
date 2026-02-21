@@ -216,8 +216,33 @@ export default function CommunityScreen() {
             const authorName = topic.user?.username || topic.user?.name || 'Unknown';
             const createdDate = formatDateToDDMMYYYY(topic.createdAt);
             const statusText = topic.status === 'open' ? 'Open' : 'Closed';
-            const statusColor = topic.status === 'open' ? colors.primary : '#9E9E9E';
             const isFavorited = favorites.has(topic.id);
+            const isHousingCategory = topic.category.toLowerCase() === 'housing';
+            const isOpen = topic.status === 'open';
+            
+            let categoryBackgroundColor = '#FEF3C7';
+            let categoryTextColor = '#92400E';
+            
+            let statusBackgroundColor = '';
+            let statusTextColor = '';
+            
+            if (isHousingCategory) {
+              if (isOpen) {
+                statusBackgroundColor = '#D1FAE5';
+                statusTextColor = '#065F46';
+              } else {
+                statusBackgroundColor = '#E5E7EB';
+                statusTextColor = '#6B7280';
+              }
+            } else {
+              if (isOpen) {
+                statusBackgroundColor = '#D1FAE5';
+                statusTextColor = '#065F46';
+              } else {
+                statusBackgroundColor = '#E5E7EB';
+                statusTextColor = '#6B7280';
+              }
+            }
             
             return (
               <TouchableOpacity
@@ -229,8 +254,13 @@ export default function CommunityScreen() {
                 }}
               >
                 <View style={styles.cardHeader}>
-                  <View style={styles.categoryBadge}>
-                    <Text style={styles.categoryBadgeText}>{topic.category}</Text>
+                  <View style={styles.tagRow}>
+                    <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
+                      <Text style={[styles.categoryBadgeText, { color: categoryTextColor }]}>{topic.category}</Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: statusBackgroundColor }]}>
+                      <Text style={[styles.statusBadgeText, { color: statusTextColor }]}>{statusText}</Text>
+                    </View>
                   </View>
                   <TouchableOpacity 
                     style={styles.likeButton}
@@ -259,9 +289,6 @@ export default function CommunityScreen() {
                   <View style={styles.authorDateContainer}>
                     <Text style={styles.cardAuthor}>{authorName}</Text>
                     <Text style={styles.cardDate}> • {createdDate}</Text>
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-                    <Text style={styles.statusBadgeText}>{statusText}</Text>
                   </View>
                 </View>
                 {topic.replyCount !== undefined && topic.replyCount > 0 && (
@@ -380,19 +407,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
+  tagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   likeButton: {
     padding: spacing.xs,
   },
   categoryBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   categoryBadgeText: {
     ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  statusBadge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusBadgeText: {
+    ...typography.bodySmall,
+    fontSize: 12,
     fontWeight: '600',
   },
   cardTitle: {
@@ -429,17 +469,6 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 11,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-  },
-  statusBadgeText: {
-    ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '600',
   },
   replyCountContainer: {
     flexDirection: 'row',
