@@ -238,8 +238,6 @@ export default function TravelScreen() {
               iconAlly = true;
             }
             
-            const authorName = post.user?.username || post.user?.name || 'Unknown';
-            const createdDate = formatDateToDDMMYYYY(post.createdAt);
             const isFavorited = favorites.has(post.id);
             const hasIncentive = post.incentiveAmount && post.incentiveAmount > 0;
             
@@ -265,6 +263,11 @@ export default function TravelScreen() {
                     {iconAlly && (
                       <Text style={styles.iconText}>📦</Text>
                     )}
+                    {hasIncentive && (
+                      <View style={styles.incentiveTag}>
+                        <Text style={styles.incentiveTagText}>Incentive</Text>
+                      </View>
+                    )}
                   </View>
                   <TouchableOpacity 
                     style={styles.likeButton}
@@ -273,12 +276,14 @@ export default function TravelScreen() {
                       toggleFavorite(post.id);
                     }}
                   >
-                    <IconSymbol
-                      ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                      android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                      size={20}
-                      color={isFavorited ? colors.primary : colors.textSecondary}
-                    />
+                    <View style={styles.heartIconContainer}>
+                      <IconSymbol
+                        ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                        android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                        size={20}
+                        color={isFavorited ? colors.primary : colors.textSecondary}
+                      />
+                    </View>
                   </TouchableOpacity>
                 </View>
                 <View style={styles.routeContainer}>
@@ -307,17 +312,6 @@ export default function TravelScreen() {
                     {post.description}
                   </Text>
                 )}
-                <View style={styles.cardFooterRow}>
-                  <View style={styles.authorDateRow}>
-                    <Text style={styles.cardAuthor}>{authorName}</Text>
-                    <Text style={styles.cardDate}> • {createdDate}</Text>
-                  </View>
-                  {hasIncentive && (
-                    <View style={styles.incentiveTag}>
-                      <Text style={styles.incentiveTagText}>Incentive</Text>
-                    </View>
-                  )}
-                </View>
               </TouchableOpacity>
             );
           })}
@@ -396,7 +390,7 @@ const styles = StyleSheet.create({
   },
   requestButton: {
     backgroundColor: colors.primary,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
   },
@@ -427,6 +421,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    flex: 1,
   },
   typeTag: {
     paddingHorizontal: spacing.md,
@@ -446,8 +441,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
+  incentiveTag: {
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  incentiveTagText: {
+    ...typography.bodySmall,
+    color: '#6B21A8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   likeButton: {
     padding: spacing.xs,
+  },
+  heartIconContainer: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 4,
   },
   routeContainer: {
     flexDirection: 'row',
@@ -505,37 +518,5 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.sm,
     lineHeight: 20,
-  },
-  cardFooterRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  authorDateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  cardAuthor: {
-    ...typography.bodySmall,
-    color: colors.textLight,
-    fontSize: 11,
-  },
-  cardDate: {
-    ...typography.bodySmall,
-    color: colors.textLight,
-    fontSize: 11,
-  },
-  incentiveTag: {
-    backgroundColor: '#F3E8FF',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  incentiveTagText: {
-    ...typography.bodySmall,
-    color: '#6B21A8',
-    fontSize: 12,
-    fontWeight: '600',
   },
 });
