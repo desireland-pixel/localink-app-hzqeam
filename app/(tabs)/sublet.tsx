@@ -467,5 +467,6 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.primary,
     fontWeight: '600',
+    fontSize: 12,
   },
 });

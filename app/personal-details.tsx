@@ -8,6 +8,7 @@ import { authenticatedPut } from '@/utils/api';
 import { CitySearchInput } from '@/components/CitySearchInput';
 import { useRouter } from 'expo-router';
 import Modal from '@/components/ui/Modal';
+import { IconSymbol } from '@/components/IconSymbol';
 
 export default function PersonalDetailsScreen() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function PersonalDetailsScreen() {
   const [error, setError] = useState('');
   const [gdprConsent, setGdprConsent] = useState(false);
   const [gdprConsentDisabled, setGdprConsentDisabled] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   console.log('PersonalDetailsScreen: Rendering', { user: user?.id, profile: profile?.name, gdprConsent, gdprConsentDisabled });
 
@@ -103,7 +105,7 @@ export default function PersonalDetailsScreen() {
         style={styles.keyboardView}
       >
       <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.label}>Full Name</Text>
+        <Text style={styles.label}>Full Name *</Text>
         <TextInput
           style={[styles.input, styles.inputDisabled]}
           placeholder="Enter your full name"
@@ -112,7 +114,7 @@ export default function PersonalDetailsScreen() {
           editable={false}
         />
 
-        <Text style={styles.label}>Username</Text>
+        <Text style={styles.label}>Username *</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter your username"
@@ -123,7 +125,7 @@ export default function PersonalDetailsScreen() {
           editable={!loading}
         />
 
-        <Text style={styles.label}>Email</Text>
+        <Text style={styles.label}>Email *</Text>
         <TextInput
           style={[styles.input, styles.inputDisabled]}
           placeholder="Email address"
@@ -132,7 +134,7 @@ export default function PersonalDetailsScreen() {
           editable={false}
         />
 
-        <Text style={styles.label}>Password</Text>
+        <Text style={styles.label}>Password *</Text>
         <View style={styles.passwordRow}>
           <TextInput
             style={[styles.input, styles.passwordInput, styles.inputDisabled]}
@@ -140,17 +142,22 @@ export default function PersonalDetailsScreen() {
             placeholderTextColor={colors.textLight}
             value="••••••••"
             editable={false}
-            secureTextEntry
+            secureTextEntry={!showPassword}
           />
           <TouchableOpacity
-            style={styles.editPasswordButton}
-            onPress={handleEditPassword}
+            style={styles.eyeIconButton}
+            onPress={() => setShowPassword(!showPassword)}
           >
-            <Text style={styles.editPasswordText}>Edit</Text>
+            <IconSymbol
+              ios_icon_name={showPassword ? "eye.slash.fill" : "eye.fill"}
+              android_material_icon_name={showPassword ? "visibility-off" : "visibility"}
+              size={20}
+              color={colors.textSecondary}
+            />
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.label}>City</Text>
+        <Text style={styles.label}>City *</Text>
         <CitySearchInput
           value={city}
           onChangeText={setCity}
@@ -234,21 +241,16 @@ const styles = StyleSheet.create({
   passwordRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    position: 'relative',
   },
   passwordInput: {
     flex: 1,
+    paddingRight: 48,
   },
-  editPasswordButton: {
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  editPasswordText: {
-    ...typography.button,
-    color: '#FFFFFF',
-    fontSize: 14,
+  eyeIconButton: {
+    position: 'absolute',
+    right: spacing.md,
+    padding: spacing.xs,
   },
   button: {
     backgroundColor: colors.primary,

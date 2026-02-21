@@ -311,7 +311,10 @@ export default function TravelScreen() {
                   </View>
                 )}
                 {post.type === 'seeking-ally' && post.item && (
-                  <Text style={styles.itemName}>{post.item}</Text>
+                  <View style={styles.itemContainer}>
+                    <Text style={styles.bulletPoint}>•</Text>
+                    <Text style={styles.itemName}>{post.item}</Text>
+                  </View>
                 )}
                 {post.description && (
                   <Text style={styles.cardDescription} numberOfLines={2}>
@@ -514,18 +517,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+  itemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    marginTop: spacing.xs,
+    gap: spacing.xs,
+  },
+  bulletPoint: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
   itemName: {
     ...typography.body,
     color: colors.text,
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
-    marginTop: spacing.xs,
+    fontSize: 12,
+    fontWeight: '400',
   },
   cardDescription: {
     ...typography.body,
     color: colors.textSecondary,
     marginBottom: spacing.sm,
     lineHeight: 20,
+    fontSize: 12,
   },
 });

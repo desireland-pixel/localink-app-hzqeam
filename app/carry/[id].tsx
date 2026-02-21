@@ -221,12 +221,12 @@ export default function CommunityDetailsScreen() {
           <View style={styles.metaContainer}>
             <Text style={styles.postedByText}>{postedByText}</Text>
             <View style={styles.tagRow}>
-              <View style={[styles.tagBadge, { backgroundColor: colors.primary }]}>
-                <Text style={styles.tagBadgeText}>{topic.category}</Text>
+              <View style={[styles.tagBadge, { backgroundColor: isClosed ? '#E5E7EB' : colors.primary }]}>
+                <Text style={[styles.tagBadgeText, { color: isClosed ? '#6B7280' : '#FFFFFF' }]}>{topic.category}</Text>
               </View>
               {isClosed && (
-                <View style={[styles.tagBadge, { backgroundColor: '#FF3B30' }]}>
-                  <Text style={styles.tagBadgeText}>Closed</Text>
+                <View style={[styles.tagBadge, { backgroundColor: '#E5E7EB' }]}>
+                  <Text style={[styles.tagBadgeText, { color: '#6B7280' }]}>Closed</Text>
                 </View>
               )}
             </View>
@@ -400,12 +400,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 22,
     marginBottom: spacing.md,
+    fontSize: 14,
   },
   metaContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: spacing.md,
+    paddingTop: spacing.xs,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
@@ -420,24 +421,23 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   tagBadge: {
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
     paddingVertical: 4,
-    borderRadius: borderRadius.sm,
+    borderRadius: 12,
   },
   tagBadgeText: {
     ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
   repliesSection: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
     paddingHorizontal: spacing.lg,
   },
   repliesTitle: {
     ...typography.h3,
     color: colors.text,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     fontSize: 16,
   },
   replyCard: {
@@ -453,6 +453,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 20,
     marginBottom: spacing.xs,
+    fontSize: 13,
   },
   replyFooter: {
     flexDirection: 'row',

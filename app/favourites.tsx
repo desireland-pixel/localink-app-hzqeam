@@ -170,8 +170,10 @@ export default function FavouritesScreen() {
                   {selectedTab === 'sublet' && (
                     <>
                       <View style={styles.cardHeader}>
-                        <View style={styles.typeTag}>
-                          <Text style={styles.typeTagText}>{post.type === 'offering' ? 'Offering' : 'Seeking'}</Text>
+                        <View style={[styles.typeTag, { backgroundColor: post.type === 'offering' ? '#D1FAE5' : '#DBEAFE' }]}>
+                          <Text style={[styles.typeTagText, { color: post.type === 'offering' ? '#065F46' : '#1E40AF' }]}>
+                            {post.type === 'offering' ? 'Offering' : 'Seeking'}
+                          </Text>
                         </View>
                         <TouchableOpacity 
                           style={styles.likeButton}
@@ -218,8 +220,8 @@ export default function FavouritesScreen() {
                       <View style={styles.cardHeader}>
                         <View style={styles.tagRow}>
                           {post.type && (
-                            <View style={styles.typeTag}>
-                              <Text style={styles.typeTagText}>
+                            <View style={[styles.typeTag, { backgroundColor: post.type === 'offering' ? '#D1FAE5' : '#DBEAFE' }]}>
+                              <Text style={[styles.typeTagText, { color: post.type === 'offering' ? '#065F46' : '#1E40AF' }]}>
                                 {post.type === 'offering' ? 'Offering' : 'Seeking'}
                               </Text>
                             </View>
@@ -279,24 +281,33 @@ export default function FavouritesScreen() {
                     <>
                       <View style={styles.cardHeader}>
                         {post.category && (
-                          <View style={styles.categoryBadge}>
-                            <Text style={styles.categoryBadgeText}>{post.category}</Text>
+                          <View style={[styles.categoryBadge, { backgroundColor: post.status === 'closed' ? '#E5E7EB' : '#DBEAFE' }]}>
+                            <Text style={[styles.categoryBadgeText, { color: post.status === 'closed' ? '#6B7280' : '#1E40AF' }]}>
+                              {post.category}
+                            </Text>
                           </View>
                         )}
-                        <TouchableOpacity 
-                          style={styles.likeButton}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            handleRemoveFavorite(favorite.postId, 'community');
-                          }}
-                        >
-                          <IconSymbol
-                            ios_icon_name="heart.fill"
-                            android_material_icon_name="favorite"
-                            size={20}
-                            color={colors.primary}
-                          />
-                        </TouchableOpacity>
+                        <View style={styles.rightSection}>
+                          {post.status === 'closed' && (
+                            <View style={styles.closedBadge}>
+                              <Text style={styles.closedBadgeText}>Closed</Text>
+                            </View>
+                          )}
+                          <TouchableOpacity 
+                            style={styles.likeButton}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              handleRemoveFavorite(favorite.postId, 'community');
+                            }}
+                          >
+                            <IconSymbol
+                              ios_icon_name="heart.fill"
+                              android_material_icon_name="favorite"
+                              size={20}
+                              color={colors.primary}
+                            />
+                          </TouchableOpacity>
+                        </View>
                       </View>
                       <Text style={styles.postTitle}>{post.title}</Text>
                       {post.description && (
@@ -313,11 +324,6 @@ export default function FavouritesScreen() {
                             </>
                           )}
                         </View>
-                        {post.status && (
-                          <View style={[styles.statusBadge, { backgroundColor: post.status === 'open' ? colors.primary : '#9E9E9E' }]}>
-                            <Text style={styles.statusBadgeText}>{post.status === 'open' ? 'Open' : 'Closed'}</Text>
-                          </View>
-                        )}
                       </View>
                     </>
                   )}
@@ -411,31 +417,44 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   typeTag: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   typeTagText: {
     ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
   iconText: {
-    fontSize: 14,
+    fontSize: 16,
   },
   categoryBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   categoryBadgeText: {
     ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
+  },
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  closedBadge: {
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  closedBadgeText: {
+    ...typography.bodySmall,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   likeButton: {
     padding: spacing.xs,
@@ -444,12 +463,15 @@ const styles = StyleSheet.create({
     ...typography.h3,
     color: colors.text,
     marginBottom: spacing.xs,
+    fontSize: 16,
+    fontWeight: '600',
   },
   postDescription: {
     ...typography.body,
     color: colors.textSecondary,
     marginBottom: spacing.sm,
     lineHeight: 20,
+    fontSize: 12,
   },
   postInfo: {
     flexDirection: 'row',
@@ -460,6 +482,7 @@ const styles = StyleSheet.create({
   postInfoText: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+    fontSize: 12,
   },
   routeContainer: {
     flexDirection: 'row',
@@ -470,10 +493,13 @@ const styles = StyleSheet.create({
   routeText: {
     ...typography.h3,
     color: colors.text,
+    fontSize: 16,
+    fontWeight: '600',
   },
   routeArrow: {
     ...typography.h3,
     color: colors.textSecondary,
+    fontSize: 16,
   },
   dateRow: {
     flexDirection: 'row',
@@ -484,11 +510,12 @@ const styles = StyleSheet.create({
   dateText: {
     ...typography.bodySmall,
     color: colors.textSecondary,
-    fontSize: 11,
+    fontSize: 12,
   },
   dateSeparator: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+    fontSize: 12,
   },
   authorDateRow: {
     flexDirection: 'row',
@@ -503,16 +530,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-  },
-  statusBadgeText: {
-    ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '600',
   },
 });

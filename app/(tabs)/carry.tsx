@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.sm,
     lineHeight: 16,
-    fontSize: 11,
+    fontSize: 12,
   },
   cardFooter: {
     flexDirection: 'row',

@@ -281,8 +281,8 @@ export default function TravelDetailsScreen() {
           
           <View style={styles.tagIconRow}>
             {tagLabel && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{tagLabel}</Text>
+              <View style={[styles.badge, { backgroundColor: travelPost.type === 'offering' ? '#D1FAE5' : '#DBEAFE' }]}>
+                <Text style={[styles.badgeText, { color: travelPost.type === 'offering' ? '#065F46' : '#1E40AF' }]}>{tagLabel}</Text>
               </View>
             )}
           </View>
@@ -292,11 +292,6 @@ export default function TravelDetailsScreen() {
               {iconElements}
             </View>
           )}
-
-          <View style={styles.postIdContainer}>
-            <Text style={styles.postIdLabel}>Post ID:</Text>
-            <Text style={styles.postIdValue}>{displayId}</Text>
-          </View>
 
           <View style={styles.dateContainer}>
             <Text style={styles.dateLabel}>Travel Date:</Text>
@@ -347,10 +342,14 @@ export default function TravelDetailsScreen() {
           <View style={styles.userContainer}>
             <View style={styles.userHeader}>
               <View>
-                <Text style={styles.userLabel}>Posted by:</Text>
+                <Text style={styles.userLabel}>Posted by</Text>
                 <View style={styles.userNameRow}>
                   <Text style={styles.userName}>{travelPost.user.username || travelPost.user.name}</Text>
                   <Text style={styles.postedDate}> • {postedDate}</Text>
+                </View>
+                <View style={styles.postIdContainer}>
+                  <Text style={styles.postIdLabel}>Post ID: </Text>
+                  <Text style={styles.postIdValue}>{displayId}</Text>
                 </View>
               </View>
               {isOwnPost && (
@@ -490,14 +489,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   badge: {
-    backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   badgeText: {
     ...typography.bodySmall,
-    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '600',
   },
   iconBadgesContainer: {
@@ -510,7 +508,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -522,17 +520,17 @@ const styles = StyleSheet.create({
   postIdContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.md,
-    marginBottom: spacing.md,
-    gap: spacing.xs,
+    marginTop: spacing.xs,
   },
   postIdLabel: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+    fontSize: 12,
   },
   postIdValue: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+    fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   dateContainer: {
