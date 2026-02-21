@@ -293,6 +293,12 @@ export default function TravelScreen() {
                 </View>
                 {(dateDisplay || dateToDisplay) && (
                   <View style={styles.dateContainer}>
+                    <IconSymbol
+                      ios_icon_name="calendar"
+                      android_material_icon_name="calendar-today"
+                      size={14}
+                      color={colors.textSecondary}
+                    />
                     {dateDisplay && <Text style={styles.dateText}>{dateDisplay}</Text>}
                     {dateDisplay && dateToDisplay && <Text style={styles.dateSeparator}>-</Text>}
                     {dateToDisplay && <Text style={styles.dateText}>{dateToDisplay}</Text>}
@@ -467,29 +473,35 @@ const styles = StyleSheet.create({
   routeText: {
     ...typography.h3,
     color: colors.text,
+    fontSize: 16,
+    fontWeight: '600',
   },
   routeArrow: {
     ...typography.h3,
     color: colors.textSecondary,
+    fontSize: 16,
   },
   dateContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   dateText: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+    fontSize: 12,
   },
   dateSeparator: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+    fontSize: 12,
   },
   companionshipForContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
+    marginTop: spacing.xs,
   },
   companionshipForLabel: {
     ...typography.body,
@@ -507,7 +519,8 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 13,
     fontWeight: '700',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
+    marginTop: spacing.xs,
   },
   cardDescription: {
     ...typography.body,

@@ -428,10 +428,10 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   cardTitle: {
-    ...typography.body,
+    ...typography.h3,
     color: colors.text,
     marginBottom: spacing.xs,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
   },
   cardDescription: {

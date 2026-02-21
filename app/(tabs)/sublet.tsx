@@ -214,8 +214,17 @@ export default function SubletScreen() {
                 onPress={() => router.push(`/sublet/${sublet.id}`)}
               >
                 <View style={styles.cardHeader}>
-                  <View style={[styles.typeTag, { backgroundColor: tagBackgroundColor }]}>
-                    <Text style={[styles.typeTagText, { color: tagTextColor }]}>{label}</Text>
+                  <View style={styles.leftSection}>
+                    <View style={[styles.typeTag, { backgroundColor: tagBackgroundColor }]}>
+                      <Text style={[styles.typeTagText, { color: tagTextColor }]}>{label}</Text>
+                    </View>
+                    <IconSymbol
+                      ios_icon_name="location.fill"
+                      android_material_icon_name="location-on"
+                      size={14}
+                      color={colors.textSecondary}
+                    />
+                    <Text style={styles.cityText}>{sublet.city}</Text>
                   </View>
                   <TouchableOpacity 
                     onPress={(e) => {
@@ -255,9 +264,14 @@ export default function SubletScreen() {
                   </View>
                   <View style={styles.cardTextContent}>
                     <Text style={styles.cardTitle} numberOfLines={1}>{sublet.title}</Text>
-                    <Text style={styles.cardCity}>{sublet.city}</Text>
                     {fromDisplay && toDisplay && (
                       <View style={styles.cardDateRow}>
+                        <IconSymbol
+                          ios_icon_name="calendar"
+                          android_material_icon_name="calendar-today"
+                          size={14}
+                          color={colors.textSecondary}
+                        />
                         <Text style={styles.cardDateText}>{fromDisplay}</Text>
                         <Text style={styles.cardDateSeparator}>-</Text>
                         <Text style={styles.cardDateText}>{toDisplay}</Text>
@@ -373,6 +387,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
+  leftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    flex: 1,
+  },
   typeTag: {
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
@@ -382,6 +402,11 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     fontSize: 12,
     fontWeight: '600',
+  },
+  cityText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontSize: 12,
   },
   cardContent: {
     flexDirection: 'row',
@@ -419,11 +444,8 @@ const styles = StyleSheet.create({
     ...typography.h3,
     color: colors.text,
     marginBottom: spacing.xs,
-  },
-  cardCity: {
-    ...typography.body,
-    color: colors.text,
-    marginBottom: spacing.xs,
+    fontSize: 16,
+    fontWeight: '600',
   },
   cardDateRow: {
     flexDirection: 'row',
@@ -434,10 +456,12 @@ const styles = StyleSheet.create({
   cardDateText: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+    fontSize: 12,
   },
   cardDateSeparator: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+    fontSize: 12,
   },
   cardRent: {
     ...typography.body,

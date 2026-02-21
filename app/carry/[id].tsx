@@ -124,10 +124,8 @@ export default function CommunityDetailsScreen() {
       setShowDeleteModal(false);
       
       if (response.action === 'deleted') {
-        // Topic was permanently deleted, navigate back to my posts
         router.replace('/my-posts');
       } else if (response.action === 'closed') {
-        // Topic was closed, refresh to show updated status
         await fetchTopic();
       }
     } catch (error: any) {
@@ -168,6 +166,8 @@ export default function CommunityDetailsScreen() {
   const deleteModalMessage = isClosed 
     ? 'Are you sure you want to permanently delete this discussion? This action cannot be undone and will delete all replies.'
     : 'Are you sure you want to close this discussion? You can delete it permanently after closing.';
+  
+  const replyCountValue = topic.replies?.length || 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -234,7 +234,7 @@ export default function CommunityDetailsScreen() {
         </View>
 
         <View style={styles.repliesSection}>
-          <Text style={styles.repliesTitle}>Replies ({topic.replies?.length || 0})</Text>
+          <Text style={styles.repliesTitle}>Replies ({replyCountValue})</Text>
           
           {topic.replies && topic.replies.length > 0 ? (
             topic.replies.map((reply) => {
@@ -367,7 +367,8 @@ const styles = StyleSheet.create({
     color: colors.text,
     flex: 1,
     marginRight: spacing.sm,
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: '600',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -442,8 +443,8 @@ const styles = StyleSheet.create({
   replyCard: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
+    padding: spacing.sm,
+    marginBottom: spacing.xs,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -451,7 +452,7 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
     lineHeight: 20,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   replyFooter: {
     flexDirection: 'row',
