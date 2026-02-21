@@ -263,28 +263,28 @@ export default function TravelScreen() {
                     {iconAlly && (
                       <Text style={styles.iconText}>📦</Text>
                     )}
+                  </View>
+                  <View style={styles.rightSection}>
                     {hasIncentive && (
                       <View style={styles.incentiveTag}>
                         <Text style={styles.incentiveTagText}>Incentive</Text>
                       </View>
                     )}
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.likeButton}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(post.id);
-                    }}
-                  >
-                    <View style={styles.heartIconContainer}>
+                    <TouchableOpacity 
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(post.id);
+                      }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
                       <IconSymbol
                         ios_icon_name={isFavorited ? "heart.fill" : "heart"}
                         android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
                         size={20}
-                        color={isFavorited ? colors.primary : colors.textSecondary}
+                        color={isFavorited ? colors.primary : colors.border}
                       />
-                    </View>
-                  </TouchableOpacity>
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 <View style={styles.routeContainer}>
                   <Text style={styles.routeText}>{post.fromCity}</Text>
@@ -415,13 +415,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   tagRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
     flex: 1,
+  },
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   typeTag: {
     paddingHorizontal: spacing.md,
@@ -452,15 +457,6 @@ const styles = StyleSheet.create({
     color: '#6B21A8',
     fontSize: 12,
     fontWeight: '600',
-  },
-  likeButton: {
-    padding: spacing.xs,
-  },
-  heartIconContainer: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    padding: 4,
   },
   routeContainer: {
     flexDirection: 'row',

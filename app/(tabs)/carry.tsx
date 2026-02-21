@@ -244,30 +244,29 @@ export default function CommunityScreen() {
                     <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
                       <Text style={[styles.categoryBadgeText, { color: categoryTextColor }]}>{topic.category}</Text>
                     </View>
+                  </View>
+                  <View style={styles.rightSection}>
                     {!isOpen && (
                       <View style={styles.closedBadge}>
                         <Text style={styles.closedBadgeText}>Closed</Text>
                       </View>
                     )}
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.likeButton}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      console.log('CommunityScreen: Heart button pressed for', topic.id);
-                      toggleFavorite(topic.id);
-                    }}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <View style={styles.heartIconContainer}>
+                    <TouchableOpacity 
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        console.log('CommunityScreen: Heart button pressed for', topic.id);
+                        toggleFavorite(topic.id);
+                      }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
                       <IconSymbol
                         ios_icon_name={isFavorited ? "heart.fill" : "heart"}
                         android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
                         size={20}
-                        color={isFavorited ? colors.primary : colors.textSecondary}
+                        color={isFavorited ? colors.primary : colors.border}
                       />
-                    </View>
-                  </TouchableOpacity>
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 <Text style={styles.cardTitle}>{topic.title}</Text>
                 {topic.description && (
@@ -285,7 +284,7 @@ export default function CommunityScreen() {
                       ios_icon_name="bubble.left.fill"
                       android_material_icon_name="chat-bubble"
                       size={14}
-                      color={colors.textSecondary}
+                      color={colors.textLight}
                     />
                     <Text style={styles.replyCountText}>{replyCountValue}</Text>
                   </View>
@@ -393,7 +392,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   tagRow: {
     flexDirection: 'row',
@@ -401,14 +400,10 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     flex: 1,
   },
-  likeButton: {
-    padding: spacing.xs,
-  },
-  heartIconContainer: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    padding: 4,
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   categoryBadge: {
     paddingHorizontal: spacing.md,
@@ -473,7 +468,7 @@ const styles = StyleSheet.create({
   },
   replyCountText: {
     ...typography.bodySmall,
-    color: colors.textSecondary,
+    color: colors.textLight,
     fontSize: 11,
   },
 });

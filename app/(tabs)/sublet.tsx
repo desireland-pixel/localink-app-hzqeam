@@ -218,21 +218,18 @@ export default function SubletScreen() {
                     <Text style={[styles.typeTagText, { color: tagTextColor }]}>{label}</Text>
                   </View>
                   <TouchableOpacity 
-                    style={styles.likeButton}
                     onPress={(e) => {
                       e.stopPropagation();
                       toggleFavorite(sublet.id);
                     }}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <View style={styles.heartIconContainer}>
-                      <IconSymbol
-                        ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                        android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                        size={20}
-                        color={isFavorited ? colors.primary : colors.textSecondary}
-                      />
-                    </View>
+                    <IconSymbol
+                      ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                      android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                      size={20}
+                      color={isFavorited ? colors.primary : colors.border}
+                    />
                   </TouchableOpacity>
                 </View>
                 <View style={styles.cardContent}>
@@ -374,7 +371,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   typeTag: {
     paddingHorizontal: spacing.md,
@@ -385,15 +382,6 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     fontSize: 12,
     fontWeight: '600',
-  },
-  likeButton: {
-    padding: spacing.xs,
-  },
-  heartIconContainer: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    padding: 4,
   },
   cardContent: {
     flexDirection: 'row',
