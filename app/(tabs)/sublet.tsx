@@ -204,6 +204,9 @@ export default function SubletScreen() {
             const label = sublet.type === 'offering' ? 'Offering' : 'Seeking';
             const imageUrl = sublet.imageUrls?.[0];
             const isFavorited = favorites.has(sublet.id);
+            const hasNoPhoto = !imageUrl || imageUrl.length === 0;
+            const tagBackgroundColor = sublet.type === 'offering' ? '#D1FAE5' : '#DBEAFE';
+            const tagTextColor = sublet.type === 'offering' ? '#065F46' : '#1E40AF';
             
             return (
               <TouchableOpacity
@@ -214,7 +217,11 @@ export default function SubletScreen() {
                 <View style={styles.cardContent}>
                   <View style={styles.leftColumn}>
                     <View style={styles.imageContainer}>
-                      {imageUrl ? (
+                      {hasNoPhoto ? (
+                        <View style={styles.noPhotoContainer}>
+                          <Text style={styles.noPhotoText}>No Photo</Text>
+                        </View>
+                      ) : (
                         <Image 
                           source={{ uri: imageUrl }} 
                           style={styles.cardImage}
@@ -227,20 +234,11 @@ export default function SubletScreen() {
                             console.error('[SubletScreen] Image load error:', imageUrl, error);
                           }}
                         />
-                      ) : (
-                        <View style={styles.imagePlaceholder}>
-                          <IconSymbol
-                            ios_icon_name="photo"
-                            android_material_icon_name="image"
-                            size={32}
-                            color={colors.textLight}
-                          />
-                        </View>
                       )}
                     </View>
                     <View style={styles.typeTagContainer}>
-                      <View style={styles.typeTag}>
-                        <Text style={styles.typeTagText}>{label}</Text>
+                      <View style={[styles.typeTag, { backgroundColor: tagBackgroundColor }]}>
+                        <Text style={[styles.typeTagText, { color: tagTextColor }]}>{label}</Text>
                       </View>
                     </View>
                   </View>
@@ -390,27 +388,33 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: borderRadius.md,
   },
-  imagePlaceholder: {
+  noPhotoContainer: {
     width: 80,
     height: 80,
     borderRadius: borderRadius.md,
-    backgroundColor: colors.border,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  noPhotoText: {
+    ...typography.bodySmall,
+    color: '#9CA3AF',
+    fontSize: 12,
+    fontWeight: '500',
   },
   typeTagContainer: {
     alignItems: 'center',
   },
   typeTag: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   typeTagText: {
     ...typography.bodySmall,
-    color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '600',
   },
   cardTextContent: {
