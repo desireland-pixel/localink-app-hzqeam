@@ -251,20 +251,16 @@ export default function MyPostsScreen() {
                       <Text style={styles.postTitle}>
                         {post.title || `${post.fromCity} → ${post.toCity}`}
                       </Text>
+                      <View style={styles.postInfo}>
+                        <Text style={styles.postInfoText}>
+                          {post.travelDate && formatDateToDDMMYYYY(post.travelDate)}
+                        </Text>
+                      </View>
                       {post.description && (
                         <Text style={styles.postDescription} numberOfLines={2}>
                           {post.description}
                         </Text>
                       )}
-                      <View style={styles.postInfo}>
-                        <Text style={styles.postInfoText}>{post.fromCity}</Text>
-                        <Text style={styles.postInfoText}>→</Text>
-                        <Text style={styles.postInfoText}>{post.toCity}</Text>
-                        <Text style={styles.postInfoText}>•</Text>
-                        <Text style={styles.postInfoText}>
-                          {post.travelDate && formatDateToDDMMYYYY(post.travelDate)}
-                        </Text>
-                      </View>
                     </>
                   )}
                   

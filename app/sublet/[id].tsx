@@ -269,8 +269,8 @@ export default function SubletDetailsScreen() {
         </View>
 
         <View style={styles.headerActions}>
-          <View style={styles.typeTag}>
-            <Text style={styles.typeTagText}>{typeLabel}</Text>
+          <View style={[styles.typeTag, { backgroundColor: sublet.type === 'offering' ? '#D1FAE5' : '#DBEAFE' }]}>
+            <Text style={[styles.typeTagText, { color: sublet.type === 'offering' ? '#065F46' : '#1E40AF' }]}>{typeLabel}</Text>
           </View>
           {isOwnPost ? (
             <View style={styles.actionButtons}>
@@ -298,11 +298,6 @@ export default function SubletDetailsScreen() {
         </View>
 
         <Text style={styles.title}>{sublet.title}</Text>
-        
-        <View style={styles.postIdContainer}>
-          <Text style={styles.postIdLabel}>Post ID:</Text>
-          <Text style={styles.postIdValue}>{displayId}</Text>
-        </View>
         
         {sublet.description && (
           <Text style={styles.description}>{sublet.description}</Text>
@@ -355,6 +350,10 @@ export default function SubletDetailsScreen() {
               <View style={styles.authorNameRow}>
                 <Text style={styles.authorName}>{sublet.user.username || sublet.user.name}</Text>
                 <Text style={styles.postedDate}> • {postedDate}</Text>
+              </View>
+              <View style={styles.postIdContainer}>
+                <Text style={styles.postIdLabel}>Post ID: </Text>
+                <Text style={styles.postIdValue}>{displayId}</Text>
               </View>
             </View>
             {isOwnPost && (
@@ -495,14 +494,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   typeTag: {
-    backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   typeTagText: {
     ...typography.bodySmall,
-    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '600',
   },
   actionButtons: {
@@ -526,17 +524,17 @@ const styles = StyleSheet.create({
   postIdContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    gap: spacing.xs,
+    marginTop: spacing.xs,
   },
   postIdLabel: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+    fontSize: 12,
   },
   postIdValue: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+    fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   description: {
