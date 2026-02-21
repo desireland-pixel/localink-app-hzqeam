@@ -439,6 +439,7 @@ const styles = StyleSheet.create({
   },
   cardTextContent: {
     flex: 1,
+    justifyContent: 'flex-start',
   },
   cardTitle: {
     ...typography.h3,
@@ -446,6 +447,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
     fontSize: 16,
     fontWeight: '600',
+    marginTop: 0,
   },
   cardDateRow: {
     flexDirection: 'row',
@@ -467,6 +469,6 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.primary,
     fontWeight: '600',
-    fontSize: 12,
+    fontSize: 14,
   },
 });

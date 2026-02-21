@@ -8,6 +8,17 @@ import { authenticatedGet, authenticatedDelete } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
 
+const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
+  'Visa': { background: '#DBEAFE', text: '#1E40AF' },
+  'Travel Insurance': { background: '#FEF3C7', text: '#92400E' },
+  'Housing': { background: '#D1FAE5', text: '#065F46' },
+  'Jobs': { background: '#FCE7F3', text: '#9F1239' },
+  'Healthcare': { background: '#E0E7FF', text: '#3730A3' },
+  'Banking': { background: '#FED7AA', text: '#9A3412' },
+  'Education': { background: '#E9D5FF', text: '#6B21A8' },
+  'General': { background: '#E5E7EB', text: '#374151' },
+};
+
 interface FavoritePost {
   id: string;
   postId: string;
@@ -31,6 +42,9 @@ interface FavoritePost {
     status?: string;
     canOfferCompanionship?: boolean;
     canCarryItems?: boolean;
+    incentiveAmount?: number;
+    item?: string;
+    companionshipFor?: string;
     user?: {
       id: string;
       name: string;
@@ -236,20 +250,27 @@ export default function FavouritesScreen() {
                           {post.type === 'seeking' && <Text style={styles.iconText}>👥</Text>}
                           {post.type === 'seeking-ally' && <Text style={styles.iconText}>📦</Text>}
                         </View>
-                        <TouchableOpacity 
-                          style={styles.likeButton}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            handleRemoveFavorite(favorite.postId, favorite.postType);
-                          }}
-                        >
-                          <IconSymbol
-                            ios_icon_name="heart.fill"
-                            android_material_icon_name="favorite"
-                            size={20}
-                            color={colors.primary}
-                          />
-                        </TouchableOpacity>
+                        <View style={styles.rightSection}>
+                          {post.incentiveAmount && post.incentiveAmount > 0 && (
+                            <View style={styles.incentiveTag}>
+                              <Text style={styles.incentiveTagText}>Incentive</Text>
+                            </View>
+                          )}
+                          <TouchableOpacity 
+                            style={styles.likeButton}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              handleRemoveFavorite(favorite.postId, favorite.postType);
+                            }}
+                          >
+                            <IconSymbol
+                              ios_icon_name="heart.fill"
+                              android_material_icon_name="favorite"
+                              size={20}
+                              color={colors.primary}
+                            />
+                          </TouchableOpacity>
+                        </View>
                       </View>
                       <View style={styles.routeContainer}>
                         <Text style={styles.routeText}>{post.fromCity}</Text>
@@ -263,10 +284,17 @@ export default function FavouritesScreen() {
                           {post.travelDateTo && <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.travelDateTo)}</Text>}
                         </View>
                       )}
-                      {post.description && (
-                        <Text style={styles.postDescription} numberOfLines={2}>
-                          {post.description}
-                        </Text>
+                      {post.type === 'seeking-ally' && post.item && (
+                        <View style={styles.itemContainer}>
+                          <Text style={styles.itemLabel}>Item: </Text>
+                          <Text style={styles.itemText}>{post.item}</Text>
+                        </View>
+                      )}
+                      {post.type === 'seeking' && post.companionshipFor && (
+                        <View style={styles.itemContainer}>
+                          <Text style={styles.itemLabel}>For: </Text>
+                          <Text style={styles.itemText}>{post.companionshipFor}</Text>
+                        </View>
                       )}
                       {post.user && (
                         <View style={styles.authorDateRow}>
@@ -280,13 +308,19 @@ export default function FavouritesScreen() {
                   {selectedTab === 'community' && (
                     <>
                       <View style={styles.cardHeader}>
-                        {post.category && (
-                          <View style={[styles.categoryBadge, { backgroundColor: post.status === 'closed' ? '#E5E7EB' : '#DBEAFE' }]}>
-                            <Text style={[styles.categoryBadgeText, { color: post.status === 'closed' ? '#6B7280' : '#1E40AF' }]}>
-                              {post.category}
-                            </Text>
-                          </View>
-                        )}
+                        {post.category && (() => {
+                          const categoryColor = CATEGORY_COLORS[post.category] || CATEGORY_COLORS['General'];
+                          const categoryBackgroundColor = post.status === 'closed' ? '#E5E7EB' : categoryColor.background;
+                          const categoryTextColor = post.status === 'closed' ? '#6B7280' : categoryColor.text;
+                          
+                          return (
+                            <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
+                              <Text style={[styles.categoryBadgeText, { color: categoryTextColor }]}>
+                                {post.category}
+                              </Text>
+                            </View>
+                          );
+                        })()}
                         <View style={styles.rightSection}>
                           {post.status === 'closed' && (
                             <View style={styles.closedBadge}>
@@ -428,6 +462,34 @@ const styles = StyleSheet.create({
   },
   iconText: {
     fontSize: 16,
+  },
+  incentiveTag: {
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  incentiveTagText: {
+    ...typography.bodySmall,
+    color: '#6B21A8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  itemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  itemLabel: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
+  itemText: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '600',
   },
   categoryBadge: {
     paddingHorizontal: spacing.md,

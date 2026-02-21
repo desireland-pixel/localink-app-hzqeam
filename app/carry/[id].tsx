@@ -10,6 +10,17 @@ import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
 
+const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
+  'Visa': { background: '#DBEAFE', text: '#1E40AF' },
+  'Travel Insurance': { background: '#FEF3C7', text: '#92400E' },
+  'Housing': { background: '#D1FAE5', text: '#065F46' },
+  'Jobs': { background: '#FCE7F3', text: '#9F1239' },
+  'Healthcare': { background: '#E0E7FF', text: '#3730A3' },
+  'Banking': { background: '#FED7AA', text: '#9A3412' },
+  'Education': { background: '#E9D5FF', text: '#6B21A8' },
+  'General': { background: '#E5E7EB', text: '#374151' },
+};
+
 interface CommunityTopic {
   id: string;
   shortId?: string;
@@ -124,9 +135,9 @@ export default function CommunityDetailsScreen() {
       setShowDeleteModal(false);
       
       if (response.action === 'deleted') {
-        router.replace('/my-posts');
+        router.back();
       } else if (response.action === 'closed') {
-        await fetchTopic();
+        router.back();
       }
     } catch (error: any) {
       console.error('CommunityDetailsScreen: Error with topic action', error);
@@ -168,6 +179,10 @@ export default function CommunityDetailsScreen() {
     : 'Are you sure you want to close this discussion? You can delete it permanently after closing.';
   
   const replyCountValue = topic.replies?.length || 0;
+  
+  const categoryColor = CATEGORY_COLORS[topic.category] || CATEGORY_COLORS['General'];
+  const categoryBackgroundColor = isClosed ? '#E5E7EB' : categoryColor.background;
+  const categoryTextColor = isClosed ? '#6B7280' : categoryColor.text;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -183,14 +198,16 @@ export default function CommunityDetailsScreen() {
             <View style={styles.actionButtons}>
               {isOwnPost && (
                 <>
-                  <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-                    <IconSymbol
-                      ios_icon_name="pencil"
-                      android_material_icon_name="edit"
-                      size={20}
-                      color={colors.primary}
-                    />
-                  </TouchableOpacity>
+                  {!isClosed && (
+                    <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                      <IconSymbol
+                        ios_icon_name="pencil"
+                        android_material_icon_name="edit"
+                        size={20}
+                        color={colors.primary}
+                      />
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity style={styles.deleteButton} onPress={() => setShowDeleteModal(true)}>
                     <IconSymbol
                       ios_icon_name="trash"
@@ -221,8 +238,8 @@ export default function CommunityDetailsScreen() {
           <View style={styles.metaContainer}>
             <Text style={styles.postedByText}>{postedByText}</Text>
             <View style={styles.tagRow}>
-              <View style={[styles.tagBadge, { backgroundColor: isClosed ? '#E5E7EB' : colors.primary }]}>
-                <Text style={[styles.tagBadgeText, { color: isClosed ? '#6B7280' : '#FFFFFF' }]}>{topic.category}</Text>
+              <View style={[styles.tagBadge, { backgroundColor: categoryBackgroundColor }]}>
+                <Text style={[styles.tagBadgeText, { color: categoryTextColor }]}>{topic.category}</Text>
               </View>
               {isClosed && (
                 <View style={[styles.tagBadge, { backgroundColor: '#E5E7EB' }]}>
