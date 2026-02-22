@@ -51,13 +51,7 @@ export default function SubletDetailsScreen() {
 
   console.log('SubletDetailsScreen: Rendering', { id, sublet, imageCount: sublet?.imageUrls?.length });
 
-  useEffect(() => {
-    if (id) {
-      fetchSublet();
-    }
-  }, [id]);
-
-  const fetchSublet = async () => {
+  const fetchSublet = React.useCallback(async () => {
     console.log('SubletDetailsScreen: Fetching sublet', id);
     
     // Only show full loading spinner on initial load
@@ -79,7 +73,13 @@ export default function SubletDetailsScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, initialLoadComplete]);
+
+  useEffect(() => {
+    if (id) {
+      fetchSublet();
+    }
+  }, [id, fetchSublet]);
 
   const handleContact = async () => {
     if (!sublet) return;

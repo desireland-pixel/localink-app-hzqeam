@@ -59,20 +59,7 @@ export default function CommunityScreen() {
 
   console.log('CommunityScreen: Rendering', { topicsCount: topics.length, loading });
 
-  useEffect(() => {
-    fetchTopics();
-    fetchFavorites();
-  }, [params.filters]);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('CommunityScreen: Screen focused, refreshing topics');
-      fetchTopics();
-      fetchFavorites();
-    }, [params.filters])
-  );
-
-  const fetchTopics = async () => {
+  const fetchTopics = React.useCallback(async () => {
     console.log('CommunityScreen: Fetching community topics');
     if (topics.length === 0) {
       setLoading(true);
@@ -93,18 +80,31 @@ export default function CommunityScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [params.filters, topics.length]);
 
-  const fetchFavorites = async () => {
+  const fetchFavorites = React.useCallback(async () => {
     try {
       console.log('CommunityScreen: Fetching favorites');
-      const data = await authenticatedGet<Array<{ postId: string; postType: string }>>('/api/favorites');
+      const data = await authenticatedGet<{ postId: string; postType: string }[]>('/api/favorites');
       const communityFavorites = data.filter(f => f.postType === 'community').map(f => f.postId);
       setFavorites(new Set(communityFavorites));
     } catch (error) {
       console.error('CommunityScreen: Error fetching favorites', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchTopics();
+    fetchFavorites();
+  }, [fetchTopics, fetchFavorites]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('CommunityScreen: Screen focused, refreshing topics');
+      fetchTopics();
+      fetchFavorites();
+    }, [fetchTopics, fetchFavorites])
+  );
 
   const toggleFavorite = async (postId: string) => {
     console.log('CommunityScreen: Toggle favorite', postId);

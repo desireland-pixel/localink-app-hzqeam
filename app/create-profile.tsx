@@ -31,7 +31,7 @@ export default function CreateProfileScreen() {
       console.log('[CreateProfile] No user, redirecting to auth');
       router.replace('/auth');
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, router]);
 
   // Redirect if profile already complete
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function CreateProfileScreen() {
       console.log('[CreateProfile] Profile already complete, redirecting to main app');
       router.replace('/(tabs)/sublet');
     }
-  }, [profile]);
+  }, [profile, router]);
 
   const handleSubmit = async () => {
     console.log('[CreateProfile] Submit profile', { name, city });

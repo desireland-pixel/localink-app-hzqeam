@@ -46,26 +46,48 @@ export default function InboxScreen() {
 
   console.log('[InboxScreen] Rendering', { conversationsCount: conversations.length });
 
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('[InboxScreen] Screen focused, refreshing conversations');
-      fetchConversations();
-    }, [])
-  );
-
-  useEffect(() => {
-    fetchConversations();
-    setupWebSocket();
-
-    return () => {
-      if (wsRef.current) {
-        console.log('[InboxScreen] Closing WebSocket connection');
-        wsRef.current.close();
+  const fetchConversations = React.useCallback(async () => {
+    console.log('[InboxScreen] Fetching conversations');
+    
+    // Only show full loading spinner on initial load
+    if (!initialLoadComplete) {
+      setLoading(true);
+    }
+    
+    setError(null);
+    try {
+      const data = await authenticatedGet<Conversation[]>('/api/conversations');
+      console.log('[InboxScreen] Fetched conversations', data);
+      
+      if (!Array.isArray(data)) {
+        console.error('[InboxScreen] Invalid conversations data format', data);
+        setConversations([]);
+        setError('Invalid data format received from server');
+        return;
       }
-    };
-  }, []);
+      
+      const sortedData = data.sort((a, b) => {
+        const aTime = a.lastMessage?.createdAt || a.createdAt;
+        const bTime = b.lastMessage?.createdAt || b.createdAt;
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      });
+      setConversations(sortedData);
+      await fetchUnreadCount();
+      
+      if (!initialLoadComplete) {
+        setInitialLoadComplete(true);
+      }
+    } catch (error: any) {
+      console.error('[InboxScreen] Error fetching conversations', error);
+      setConversations([]);
+      setError(error.message || 'Failed to load conversations');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [fetchUnreadCount, initialLoadComplete]);
 
-  const setupWebSocket = async () => {
+  const setupWebSocket = React.useCallback(async () => {
     try {
       const token = await getBearerToken();
       if (!token) {
@@ -116,48 +138,26 @@ export default function InboxScreen() {
       // Silently handle
       console.log('[InboxScreen] WebSocket setup skipped');
     }
-  };
+  }, [fetchConversations]);
 
-  const fetchConversations = async () => {
-    console.log('[InboxScreen] Fetching conversations');
-    
-    // Only show full loading spinner on initial load
-    if (!initialLoadComplete) {
-      setLoading(true);
-    }
-    
-    setError(null);
-    try {
-      const data = await authenticatedGet<Conversation[]>('/api/conversations');
-      console.log('[InboxScreen] Fetched conversations', data);
-      
-      if (!Array.isArray(data)) {
-        console.error('[InboxScreen] Invalid conversations data format', data);
-        setConversations([]);
-        setError('Invalid data format received from server');
-        return;
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('[InboxScreen] Screen focused, refreshing conversations');
+      fetchConversations();
+    }, [fetchConversations])
+  );
+
+  useEffect(() => {
+    fetchConversations();
+    setupWebSocket();
+
+    return () => {
+      if (wsRef.current) {
+        console.log('[InboxScreen] Closing WebSocket connection');
+        wsRef.current.close();
       }
-      
-      const sortedData = data.sort((a, b) => {
-        const aTime = a.lastMessage?.createdAt || a.createdAt;
-        const bTime = b.lastMessage?.createdAt || b.createdAt;
-        return new Date(bTime).getTime() - new Date(aTime).getTime();
-      });
-      setConversations(sortedData);
-      await fetchUnreadCount();
-      
-      if (!initialLoadComplete) {
-        setInitialLoadComplete(true);
-      }
-    } catch (error: any) {
-      console.error('[InboxScreen] Error fetching conversations', error);
-      setConversations([]);
-      setError(error.message || 'Failed to load conversations');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+    };
+  }, [fetchConversations, setupWebSocket]);
 
   const onRefresh = () => {
     console.log('[InboxScreen] Refreshing conversations');
