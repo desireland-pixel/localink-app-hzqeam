@@ -214,17 +214,8 @@ export default function SubletScreen() {
                 onPress={() => router.push(`/sublet/${sublet.id}`)}
               >
                 <View style={styles.cardHeader}>
-                  <View style={styles.leftSection}>
-                    <View style={[styles.typeTag, { backgroundColor: tagBackgroundColor }]}>
-                      <Text style={[styles.typeTagText, { color: tagTextColor }]}>{label}</Text>
-                    </View>
-                    <IconSymbol
-                      ios_icon_name="location.fill"
-                      android_material_icon_name="location-on"
-                      size={14}
-                      color={colors.textSecondary}
-                    />
-                    <Text style={styles.cityText}>{sublet.city}</Text>
+                  <View style={[styles.typeTag, { backgroundColor: tagBackgroundColor }]}>
+                    <Text style={[styles.typeTagText, { color: tagTextColor }]}>{label}</Text>
                   </View>
                   <TouchableOpacity 
                     onPress={(e) => {
@@ -263,7 +254,18 @@ export default function SubletScreen() {
                     )}
                   </View>
                   <View style={styles.cardTextContent}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>{sublet.title}</Text>
+                    <View style={styles.titleRow}>
+                      <Text style={styles.cardTitle} numberOfLines={1}>{sublet.title}</Text>
+                      <View style={styles.locationContainer}>
+                        <IconSymbol
+                          ios_icon_name="location.fill"
+                          android_material_icon_name="location-on"
+                          size={14}
+                          color={colors.textSecondary}
+                        />
+                        <Text style={styles.cityText}>{sublet.city}</Text>
+                      </View>
+                    </View>
                     {fromDisplay && toDisplay && (
                       <View style={styles.cardDateRow}>
                         <IconSymbol
@@ -387,12 +389,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  leftSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    flex: 1,
-  },
   typeTag: {
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
@@ -402,11 +398,6 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     fontSize: 12,
     fontWeight: '600',
-  },
-  cityText: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    fontSize: 12,
   },
   cardContent: {
     flexDirection: 'row',
@@ -441,13 +432,29 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-start',
   },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
   cardTitle: {
     ...typography.h3,
     color: colors.text,
-    marginBottom: spacing.xs,
     fontSize: 16,
     fontWeight: '600',
-    marginTop: 0,
+    flex: 1,
+    marginRight: spacing.xs,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  cityText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontSize: 12,
   },
   cardDateRow: {
     flexDirection: 'row',
