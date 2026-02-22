@@ -21,6 +21,18 @@ const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } =
   'General': { background: '#E5E7EB', text: '#374151' },
 };
 
+interface Reply {
+  id: string;
+  userId: string;
+  content: string;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    username?: string;
+  };
+}
+
 interface CommunityTopic {
   id: string;
   shortId?: string;
@@ -36,17 +48,7 @@ interface CommunityTopic {
     name: string;
     username?: string;
   };
-  replies?: Array<{
-    id: string;
-    userId: string;
-    content: string;
-    createdAt: string;
-    user: {
-      id: string;
-      name: string;
-      username?: string;
-    };
-  }>;
+  replies?: Reply[];
 }
 
 export default function CommunityDetailsScreen() {
@@ -63,11 +65,7 @@ export default function CommunityDetailsScreen() {
 
   console.log('CommunityDetailsScreen: Viewing topic', { id });
 
-  useEffect(() => {
-    fetchTopic();
-  }, [id]);
-
-  const fetchTopic = async () => {
+  const fetchTopic = React.useCallback(async () => {
     try {
       console.log('[CommunityDetails] Fetching topic:', id);
       const data = await authenticatedGet<CommunityTopic>(`/api/community/topics/${id}`);
@@ -79,7 +77,11 @@ export default function CommunityDetailsScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchTopic();
+  }, [fetchTopic]);
 
   const handleSubmitReply = async () => {
     if (!topic || !replyText.trim() || submitting) return;

@@ -57,42 +57,7 @@ export default function ChatScreen() {
 
   console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length, currentUserId: user?.id });
 
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('ChatScreen: Screen focused, marking messages as read');
-      markMessagesAsRead();
-    }, [id])
-  );
-
-  useEffect(() => {
-    if (id) {
-      fetchConversation();
-      fetchMessages();
-      setupWebSocket();
-      startPolling();
-    }
-
-    return () => {
-      if (wsRef.current) {
-        console.log('ChatScreen: Closing WebSocket connection');
-        wsRef.current.close();
-      }
-      if (pollingIntervalRef.current) {
-        console.log('ChatScreen: Stopping polling');
-        clearInterval(pollingIntervalRef.current);
-      }
-    };
-  }, [id]);
-
-  useEffect(() => {
-    if (messages.length > 0 && flatListRef.current) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
-      }, 100);
-    }
-  }, [messages]);
-
-  const markMessagesAsRead = async () => {
+  const markMessagesAsRead = React.useCallback(async () => {
     if (!id) return;
     
     try {
@@ -102,9 +67,9 @@ export default function ChatScreen() {
     } catch (error) {
       console.error('ChatScreen: Error marking messages as read', error);
     }
-  };
+  }, [id, fetchUnreadCount]);
 
-  const startPolling = () => {
+  const startPolling = React.useCallback(() => {
     // Poll for new messages every 3 seconds as a fallback
     pollingIntervalRef.current = setInterval(async () => {
       try {
@@ -130,9 +95,9 @@ export default function ChatScreen() {
         console.error('[ChatScreen] Error polling for messages:', error);
       }
     }, 3000);
-  };
+  }, [id, markMessagesAsRead]);
 
-  const setupWebSocket = async () => {
+  const setupWebSocket = React.useCallback(async () => {
     try {
       const token = await getBearerToken();
       if (!token) {
@@ -202,15 +167,15 @@ export default function ChatScreen() {
       // Silently handle - polling will handle message sync
       console.log('ChatScreen: WebSocket setup skipped, using polling fallback');
     }
-  };
+  }, [id, markMessagesAsRead]);
 
-  const fetchConversation = async () => {
+  const fetchConversation = React.useCallback(async () => {
     // Conversation details are fetched via the messages endpoint which works
     // regardless of hasSentMessages status (so new/empty chats still load correctly)
     console.log('ChatScreen: Conversation details will be loaded via fetchMessages', id);
-  };
+  }, [id]);
 
-  const fetchMessages = async () => {
+  const fetchMessages = React.useCallback(async () => {
     console.log('ChatScreen: Fetching messages', id);
     setLoading(true);
     try {
@@ -253,7 +218,42 @@ export default function ChatScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, user?.id, markMessagesAsRead]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('ChatScreen: Screen focused, marking messages as read');
+      markMessagesAsRead();
+    }, [markMessagesAsRead])
+  );
+
+  useEffect(() => {
+    if (id) {
+      fetchConversation();
+      fetchMessages();
+      setupWebSocket();
+      startPolling();
+    }
+
+    return () => {
+      if (wsRef.current) {
+        console.log('ChatScreen: Closing WebSocket connection');
+        wsRef.current.close();
+      }
+      if (pollingIntervalRef.current) {
+        console.log('ChatScreen: Stopping polling');
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [id, fetchConversation, fetchMessages, setupWebSocket, startPolling]);
+
+  useEffect(() => {
+    if (messages.length > 0 && flatListRef.current) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+      }, 100);
+    }
+  }, [messages]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || sending) return;

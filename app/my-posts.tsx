@@ -39,11 +39,7 @@ export default function MyPostsScreen() {
 
   console.log('MyPostsScreen: Rendering', { selectedTab, postsCount: posts.length });
 
-  useEffect(() => {
-    fetchPosts();
-  }, [selectedTab]);
-
-  const fetchPosts = async () => {
+  const fetchPosts = React.useCallback(async () => {
     console.log('MyPostsScreen: Fetching posts', { selectedTab });
     setLoading(true);
     try {
@@ -65,7 +61,11 @@ export default function MyPostsScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedTab]);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
 
   const onRefresh = async () => {
     console.log('MyPostsScreen: Refreshing posts', { selectedTab });

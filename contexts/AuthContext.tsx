@@ -94,44 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    console.log('[AuthContext] Initializing auth state');
-    initializeAuth();
-
-    const subscription = Linking.addEventListener("url", (event) => {
-      console.log("[AuthContext] Deep link received, refreshing user session");
-      setTimeout(() => initializeAuth(), 500);
-    });
-
-    const intervalId = setInterval(() => {
-      console.log("[AuthContext] Auto-refreshing user session to sync token...");
-      fetchUser();
-    }, 5 * 60 * 1000);
-
-    return () => {
-      subscription.remove();
-      clearInterval(intervalId);
-    };
-  }, []);
-
-  // Poll for unread count when user is logged in
-  useEffect(() => {
-    if (user) {
-      console.log('[AuthContext] User logged in, starting unread count polling');
-      fetchUnreadCountInternal();
-      const unreadInterval = setInterval(() => {
-        fetchUnreadCountInternal();
-      }, 30000); // Poll every 30 seconds
-
-      return () => {
-        clearInterval(unreadInterval);
-      };
-    } else {
-      setUnreadCount(0);
-    }
-  }, [user]);
-
-  const initializeAuth = async () => {
+  const initializeAuth = React.useCallback(async () => {
     try {
       console.log('[AuthContext] Starting auth initialization');
       setLoading(true);
@@ -143,9 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchUser = async () => {
+  const fetchUser = React.useCallback(async () => {
     try {
       console.log('[AuthContext] Fetching user session');
       const session = await authClient.getSession();
@@ -171,9 +134,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setProfile(null);
     }
-  };
+  }, []);
 
-  const fetchProfileInternal = async () => {
+  const fetchProfileInternal = React.useCallback(async () => {
     try {
       console.log('[AuthContext] Fetching user profile');
       setProfileLoading(true);
@@ -200,18 +163,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setProfileLoading(false);
     }
-  };
+  }, []);
 
-  const fetchProfile = async () => {
+  const fetchProfile = React.useCallback(async () => {
     await fetchProfileInternal();
-  };
+  }, [fetchProfileInternal]);
 
-  const refreshProfile = async () => {
+  const refreshProfile = React.useCallback(async () => {
     console.log('[AuthContext] Refreshing profile');
     await fetchProfileInternal();
-  };
+  }, [fetchProfileInternal]);
 
-  const fetchUnreadCountInternal = async () => {
+  const fetchUnreadCountInternal = React.useCallback(async () => {
     try {
       const response = await authenticatedGet<{ unreadConversationCount: number }>('/api/conversations/unread-count');
       console.log('[AuthContext] Unread count fetched:', response.unreadConversationCount);
@@ -220,11 +183,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('[AuthContext] Failed to fetch unread count:', error);
       setUnreadCount(0);
     }
-  };
+  }, []);
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = React.useCallback(async () => {
     await fetchUnreadCountInternal();
-  };
+  }, [fetchUnreadCountInternal]);
+
+  useEffect(() => {
+    console.log('[AuthContext] Initializing auth state');
+    initializeAuth();
+
+    const subscription = Linking.addEventListener("url", (event) => {
+      console.log("[AuthContext] Deep link received, refreshing user session");
+      setTimeout(() => initializeAuth(), 500);
+    });
+
+    const intervalId = setInterval(() => {
+      console.log("[AuthContext] Auto-refreshing user session to sync token...");
+      fetchUser();
+    }, 5 * 60 * 1000);
+
+    return () => {
+      subscription.remove();
+      clearInterval(intervalId);
+    };
+  }, [initializeAuth, fetchUser]);
+
+  // Poll for unread count when user is logged in
+  useEffect(() => {
+    if (user) {
+      console.log('[AuthContext] User logged in, starting unread count polling');
+      fetchUnreadCountInternal();
+      const unreadInterval = setInterval(() => {
+        fetchUnreadCountInternal();
+      }, 30000); // Poll every 30 seconds
+
+      return () => {
+        clearInterval(unreadInterval);
+      };
+    } else {
+      setUnreadCount(0);
+    }
+  }, [user, fetchUnreadCountInternal]);
 
   const signInWithEmail = async (email: string, password: string) => {
     try {

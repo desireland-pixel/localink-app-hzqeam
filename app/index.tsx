@@ -55,7 +55,7 @@ export default function IndexScreen() {
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [user, profile, loading, profileLoading]);
+  }, [user, profile, loading, profileLoading, router]);
 
   const isLoading = loading || profileLoading;
 

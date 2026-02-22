@@ -40,20 +40,7 @@ export default function SubletScreen() {
 
   console.log('SubletScreen: Rendering', { subletsCount: sublets.length, loading, filters: params.filters });
 
-  useEffect(() => {
-    fetchPosts();
-    fetchFavorites();
-  }, [params.filters]);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('SubletScreen: Screen focused, refreshing posts');
-      fetchPosts();
-      fetchFavorites();
-    }, [params.filters])
-  );
-
-  const fetchPosts = async () => {
+  const fetchPosts = React.useCallback(async () => {
     console.log('SubletScreen: Fetching sublets with filters:', params.filters);
     if (sublets.length === 0) {
       setLoading(true);
@@ -75,18 +62,31 @@ export default function SubletScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [params.filters, sublets.length]);
 
-  const fetchFavorites = async () => {
+  const fetchFavorites = React.useCallback(async () => {
     try {
       console.log('SubletScreen: Fetching favorites');
-      const data = await authenticatedGet<Array<{ postId: string; postType: string }>>('/api/favorites');
+      const data = await authenticatedGet<{ postId: string; postType: string }[]>('/api/favorites');
       const subletFavorites = data.filter(f => f.postType === 'sublet').map(f => f.postId);
       setFavorites(new Set(subletFavorites));
     } catch (error) {
       console.error('SubletScreen: Error fetching favorites', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPosts();
+    fetchFavorites();
+  }, [fetchPosts, fetchFavorites]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('SubletScreen: Screen focused, refreshing posts');
+      fetchPosts();
+      fetchFavorites();
+    }, [fetchPosts, fetchFavorites])
+  );
 
   const toggleFavorite = async (postId: string) => {
     console.log('SubletScreen: Toggle favorite', postId);

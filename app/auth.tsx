@@ -54,7 +54,7 @@ export default function AuthScreen() {
         router.replace('/(tabs)/sublet');
       }
     }
-  }, [user, profile, authLoading, profileLoading]);
+  }, [user, profile, authLoading, profileLoading, router]);
 
   if (authLoading || profileLoading) {
     return (
