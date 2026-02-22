@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    marginBottom: spacing.xs,
+    marginVertical: spacing.xs,
   },
   dateText: {
     ...typography.bodySmall,
@@ -503,8 +503,7 @@ const styles = StyleSheet.create({
   companionshipForContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 2,
-    marginTop: 2,
+    marginVertical: spacing.xs,
   },
   companionshipForLabel: {
     ...typography.body,
@@ -520,14 +519,13 @@ const styles = StyleSheet.create({
   itemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 2,
-    marginTop: 2,
+    marginVertical: spacing.xs,
     gap: spacing.xs,
   },
   bulletPoint: {
     ...typography.body,
     color: colors.textSecondary,
-    fontSize: 12,
+    fontSize: 20,
   },
   itemName: {
     ...typography.body,
@@ -538,7 +536,7 @@ const styles = StyleSheet.create({
   cardDescription: {
     ...typography.body,
     color: colors.textSecondary,
-    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
     lineHeight: 20,
     fontSize: 12,
   },
