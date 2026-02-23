@@ -9,7 +9,7 @@ import Modal from '@/components/ui/Modal';
 
 const CATEGORIES = [
   'Visa',
-  'Travel Insurance',
+  'Insurance',
   'Housing',
   'Jobs',
   'Healthcare',

@@ -96,21 +96,6 @@ export default function CarryFiltersScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
-        <Text style={styles.sectionTitle}>Category</Text>
-        <View style={styles.categoryGrid}>
-          {CATEGORIES.map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              style={[styles.categoryOption, category === cat && styles.categoryOptionActive]}
-              onPress={() => setCategory(cat)}
-            >
-              <Text style={[styles.categoryText, category === cat && styles.categoryTextActive]}>
-                {cat}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
         <Text style={styles.sectionTitle}>Status</Text>
         <View style={styles.radioButtons}>
           <TouchableOpacity
@@ -129,6 +114,21 @@ export default function CarryFiltersScreen() {
               Closed
             </Text>
           </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sectionTitle}>Category</Text>
+        <View style={styles.categoryGrid}>
+          {CATEGORIES.map((cat) => (
+            <TouchableOpacity
+              key={cat}
+              style={[styles.categoryOption, category === cat && styles.categoryOptionActive]}
+              onPress={() => setCategory(cat)}
+            >
+              <Text style={[styles.categoryText, category === cat && styles.categoryTextActive]}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
 
@@ -177,6 +177,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     width: '48%',
     alignItems: 'center',
+    height: 40,
+    justifyContent: 'center',
   },
   categoryOptionActive: {
     backgroundColor: colors.primary,
@@ -227,7 +229,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     gap: spacing.md,
-    paddingBottom: 1,
+    paddingBottom: 5,
+    marginBottom: -1,
   },
   resetButton: {
     flex: 1,
