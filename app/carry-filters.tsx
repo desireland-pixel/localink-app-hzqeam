@@ -6,14 +6,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 
 const CATEGORIES = [
-  'Visa',
-  'Travel Insurance',
-  'Housing',
-  'Jobs',
-  'Healthcare',
+  'General',
   'Banking',
   'Education',
-  'General',
+  'Healthcare',
+  'Housing',
+  'Insurance',
+  'Jobs',
+  'Visa',
 ];
 
 export default function CarryFiltersScreen() {
@@ -223,11 +223,11 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     gap: spacing.md,
-    paddingBottom: spacing.xs,
+    paddingBottom: 2,
   },
   resetButton: {
     flex: 1,

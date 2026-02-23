@@ -10,7 +10,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
-  'Travel Insurance': { background: '#FEF3C7', text: '#92400E' },
+  'Insurance': { background: '#FEF3C7', text: '#92400E' },
   'Housing': { background: '#D1FAE5', text: '#065F46' },
   'Jobs': { background: '#FCE7F3', text: '#9F1239' },
   'Healthcare': { background: '#E0E7FF', text: '#3730A3' },
@@ -205,11 +205,6 @@ export default function FavouritesScreen() {
                         </TouchableOpacity>
                       </View>
                       <Text style={styles.postTitle}>{post.title}</Text>
-                      {post.description && (
-                        <Text style={styles.postDescription} numberOfLines={2}>
-                          {post.description}
-                        </Text>
-                      )}
                       <View style={styles.postInfo}>
                         <Text style={styles.postInfoText}>{post.city}</Text>
                         {post.rent && (
@@ -225,6 +220,11 @@ export default function FavouritesScreen() {
                           {post.availableFrom && post.availableTo && <Text style={styles.dateSeparator}>-</Text>}
                           {post.availableTo && <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.availableTo)}</Text>}
                         </View>
+                      )}
+                      {post.description && (
+                        <Text style={styles.postDescription} numberOfLines={2}>
+                          {post.description}
+                        </Text>
                       )}
                     </>
                   )}
@@ -299,7 +299,7 @@ export default function FavouritesScreen() {
                       {post.user && (
                         <View style={styles.authorDateRow}>
                           <Text style={styles.authorText}>{post.user.username || post.user.name}</Text>
-                          <Text style={styles.dateText}> • {formatDateToDDMMYYYY(favorite.createdAt)}</Text>
+                          <Text style={styles.dateText}> • {post.createdAt ? formatDateToDDMMYYYY(post.createdAt) : formatDateToDDMMYYYY(favorite.createdAt)}</Text>
                         </View>
                       )}
                     </>

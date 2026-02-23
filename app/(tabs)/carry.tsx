@@ -28,7 +28,7 @@ interface CommunityTopic {
 const CATEGORIES = [
   'All',
   'Visa',
-  'Travel Insurance',
+  'Insurance',
   'Housing',
   'Jobs',
   'Healthcare',
@@ -39,7 +39,7 @@ const CATEGORIES = [
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
-  'Travel Insurance': { background: '#FEF3C7', text: '#92400E' },
+  'Insurance': { background: '#FEF3C7', text: '#92400E' },
   'Housing': { background: '#D1FAE5', text: '#065F46' },
   'Jobs': { background: '#FCE7F3', text: '#9F1239' },
   'Healthcare': { background: '#E0E7FF', text: '#3730A3' },

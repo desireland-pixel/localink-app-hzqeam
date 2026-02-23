@@ -168,7 +168,10 @@ export default function TravelDetailsScreen() {
       await authenticatedPatch(`/api/travel-posts/${id}/close`, {});
       console.log('TravelDetailsScreen: Post closed successfully');
       setShowDeleteModal(false);
-      router.replace('/my-posts');
+      router.replace({
+        pathname: '/my-posts',
+        params: { tab: 'travel' }
+      });
     } catch (error: any) {
       console.error('TravelDetailsScreen: Error closing post', error);
       setError(error.message || 'Failed to close post');
@@ -222,7 +225,7 @@ export default function TravelDetailsScreen() {
     if (hasCarry) {
       iconElements.push(
         <View key="carry" style={styles.iconBadge}>
-          <Text style={styles.iconBadgeText}>📦 Carry Items</Text>
+          <Text style={styles.iconBadgeText}>📦 Items</Text>
         </View>
       );
     }
@@ -237,7 +240,7 @@ export default function TravelDetailsScreen() {
     tagLabel = 'Seeking';
     iconElements.push(
       <View key="carry" style={styles.iconBadge}>
-        <Text style={styles.iconBadgeText}>📦 Carry Items</Text>
+        <Text style={styles.iconBadgeText}>📦 Items</Text>
       </View>
     );
   }
@@ -253,39 +256,34 @@ export default function TravelDetailsScreen() {
       <ScrollView style={styles.content}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>{titleText}</Text>
-            {isOwnPost ? (
-              <View style={styles.actionButtons}>
-                <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-                  <IconSymbol
-                    ios_icon_name="square.and.arrow.up"
-                    android_material_icon_name="share"
-                    size={20}
-                    color={colors.text}
-                  />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.actionButtons}>
-                <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-                  <IconSymbol
-                    ios_icon_name="square.and.arrow.up"
-                    android_material_icon_name="share"
-                    size={20}
-                    color={colors.text}
-                  />
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-          
-          <View style={styles.tagIconRow}>
             {tagLabel && (
               <View style={[styles.badge, { backgroundColor: travelPost.type === 'offering' ? '#D1FAE5' : '#DBEAFE' }]}>
                 <Text style={[styles.badgeText, { color: travelPost.type === 'offering' ? '#065F46' : '#1E40AF' }]}>{tagLabel}</Text>
               </View>
             )}
+            <View style={styles.actionButtons}>
+              {!isOwnPost && (
+                <TouchableOpacity style={styles.shareButton} onPress={() => {}}>
+                  <IconSymbol
+                    ios_icon_name="heart"
+                    android_material_icon_name="favorite-border"
+                    size={20}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+                <IconSymbol
+                  ios_icon_name="square.and.arrow.up"
+                  android_material_icon_name="share"
+                  size={20}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
+          
+          <Text style={styles.title}>{titleText}</Text>
           
           {iconElements.length > 0 && (
             <View style={styles.iconBadgesContainer}>
@@ -462,14 +460,13 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   title: {
     ...typography.h2,
     color: colors.text,
-    flex: 1,
-    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -482,12 +479,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  tagIconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
+
   badge: {
     paddingHorizontal: spacing.md,
     paddingVertical: 4,

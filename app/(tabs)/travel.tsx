@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.xs,
+    marginBottom: 6,
   },
   routeText: {
     ...typography.h3,
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    marginVertical: spacing.xs,
+    marginVertical: 4,
   },
   dateText: {
     ...typography.bodySmall,
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
   companionshipForContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: spacing.xs,
+    marginVertical: 4,
   },
   companionshipForLabel: {
     ...typography.body,
@@ -519,13 +519,13 @@ const styles = StyleSheet.create({
   itemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: spacing.xs,
+    marginVertical: 4,
     gap: spacing.xs,
   },
   bulletPoint: {
     ...typography.body,
     color: colors.textSecondary,
-    fontSize: 20,
+    fontSize: 40,
   },
   itemName: {
     ...typography.body,
