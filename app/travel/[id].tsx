@@ -338,10 +338,13 @@ export default function TravelDetailsScreen() {
 
           <View style={styles.dateContainer}>
             <Text style={styles.dateLabel}>Travel Date:</Text>
-            <Text style={styles.dateText}>{travelDateDisplay || 'Not specified'}</Text>
+            <Text style={styles.dateText}>
+              {travelDateDisplay || 'Not specified'}
+              {travelDateToDisplay && travelPost.type === 'seeking' && ` - ${travelDateToDisplay}`}
+            </Text>
           </View>
 
-          {travelDateToDisplay && (
+          {travelDateToDisplay && travelPost.type !== 'seeking' && (
             <View style={styles.dateContainer}>
               <Text style={styles.dateLabel}>Travel Date To:</Text>
               <Text style={styles.dateText}>{travelDateToDisplay}</Text>

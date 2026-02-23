@@ -415,8 +415,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     gap: spacing.md,
-    paddingBottom: 5,
-    marginBottom: -1,
+    paddingBottom: Platform.OS === 'ios' ? 9 : 5,
+    marginBottom: Platform.OS === 'ios' ? 2 : -1,
   },
   resetButton: {
     flex: 1,
@@ -428,6 +428,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     height: 40,
     justifyContent: 'center',
+    marginTop: Platform.OS === 'ios' ? 4 : 0,
   },
   resetButtonText: {
     ...typography.button,
@@ -441,6 +442,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 40,
     justifyContent: 'center',
+    marginTop: Platform.OS === 'ios' ? 4 : 0,
   },
   applyButtonText: {
     ...typography.button,

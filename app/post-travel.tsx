@@ -249,7 +249,11 @@ export default function PostTravelScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView 
+          style={styles.content} 
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scrollContent}
+        >
           <View style={styles.radioContainer}>
             <Text style={styles.radioLabel}>I am</Text>
             <View style={styles.radioButtons}>
@@ -301,7 +305,10 @@ export default function PostTravelScreen() {
               </TouchableOpacity>
               {showFromCityPicker && (
                 <View style={styles.cityPicker}>
-                  <ScrollView style={styles.cityPickerScroll}>
+                  <ScrollView 
+                    style={styles.cityPickerScroll}
+                    nestedScrollEnabled={true}
+                  >
                     {TRAVEL_CITIES.map((city) => (
                       <TouchableOpacity
                         key={city}
@@ -329,7 +336,10 @@ export default function PostTravelScreen() {
               </TouchableOpacity>
               {showToCityPicker && (
                 <View style={styles.cityPicker}>
-                  <ScrollView style={styles.cityPickerScroll}>
+                  <ScrollView 
+                    style={styles.cityPickerScroll}
+                    nestedScrollEnabled={true}
+                  >
                     {TRAVEL_CITIES.map((city) => (
                       <TouchableOpacity
                         key={city}
@@ -426,7 +436,10 @@ export default function PostTravelScreen() {
               </TouchableOpacity>
               {showFromCityPicker && (
                 <View style={styles.cityPicker}>
-                  <ScrollView style={styles.cityPickerScroll}>
+                  <ScrollView 
+                    style={styles.cityPickerScroll}
+                    nestedScrollEnabled={true}
+                  >
                     {TRAVEL_CITIES.map((city) => (
                       <TouchableOpacity
                         key={city}
@@ -454,7 +467,10 @@ export default function PostTravelScreen() {
               </TouchableOpacity>
               {showToCityPicker && (
                 <View style={styles.cityPicker}>
-                  <ScrollView style={styles.cityPickerScroll}>
+                  <ScrollView 
+                    style={styles.cityPickerScroll}
+                    nestedScrollEnabled={true}
+                  >
                     {TRAVEL_CITIES.map((city) => (
                       <TouchableOpacity
                         key={city}
@@ -619,7 +635,10 @@ export default function PostTravelScreen() {
               </TouchableOpacity>
               {showFromCityPicker && (
                 <View style={styles.cityPicker}>
-                  <ScrollView style={styles.cityPickerScroll}>
+                  <ScrollView 
+                    style={styles.cityPickerScroll}
+                    nestedScrollEnabled={true}
+                  >
                     {TRAVEL_CITIES.map((city) => (
                       <TouchableOpacity
                         key={city}
@@ -647,7 +666,10 @@ export default function PostTravelScreen() {
               </TouchableOpacity>
               {showToCityPicker && (
                 <View style={styles.cityPicker}>
-                  <ScrollView style={styles.cityPickerScroll}>
+                  <ScrollView 
+                    style={styles.cityPickerScroll}
+                    nestedScrollEnabled={true}
+                  >
                     {TRAVEL_CITIES.map((city) => (
                       <TouchableOpacity
                         key={city}
@@ -691,6 +713,7 @@ export default function PostTravelScreen() {
                 placeholderTextColor={colors.textLight}
                 value={item}
                 onChangeText={setItem}
+                maxLength={20}
               />
 
               <Text style={styles.label}>Description</Text>
@@ -789,6 +812,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
+  scrollContent: {
+    paddingBottom: spacing.xxl,
+  },
   radioContainer: {
     marginBottom: spacing.lg,
   },
@@ -870,10 +896,10 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     marginTop: spacing.sm,
     marginBottom: spacing.md,
-    maxHeight: 200,
+    height: 200,
   },
   cityPickerScroll: {
-    maxHeight: 200,
+    flex: 1,
   },
   cityOption: {
     paddingVertical: spacing.sm,

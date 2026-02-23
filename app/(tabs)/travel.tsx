@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.xs + 4,
   },
   tagRow: {
     flexDirection: 'row',
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginBottom: 6,
+    marginBottom: 3,
   },
   routeText: {
     ...typography.h3,
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    marginVertical: 4,
+    marginVertical: 3,
   },
   dateText: {
     ...typography.bodySmall,
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
   companionshipForContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 4,
+    marginVertical: 3,
   },
   companionshipForLabel: {
     ...typography.body,
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
   itemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 4,
+    marginVertical: 3,
   },
   itemLabel: {
     ...typography.body,

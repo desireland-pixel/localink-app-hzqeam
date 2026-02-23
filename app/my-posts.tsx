@@ -350,20 +350,6 @@ export default function MyPostsScreen() {
                             />
                           </TouchableOpacity>
                           <TouchableOpacity
-                            style={styles.shareIconButton}
-                            onPress={(e) => {
-                              e.stopPropagation();
-                              console.log('Share post', post.id);
-                            }}
-                          >
-                            <IconSymbol
-                              ios_icon_name="square.and.arrow.up"
-                              android_material_icon_name="share"
-                              size={20}
-                              color={colors.text}
-                            />
-                          </TouchableOpacity>
-                          <TouchableOpacity
                             style={[styles.deleteButton, deletingPostId === post.id && styles.deleteButtonDisabled]}
                             onPress={(e) => {
                               e.stopPropagation();
@@ -380,39 +366,21 @@ export default function MyPostsScreen() {
                           </TouchableOpacity>
                         </>
                       ) : (
-                        <>
-                          {selectedTab === 'community' && (
-                            <TouchableOpacity
-                              style={styles.shareIconButton}
-                              onPress={(e) => {
-                                e.stopPropagation();
-                                console.log('Share post', post.id);
-                              }}
-                            >
-                              <IconSymbol
-                                ios_icon_name="square.and.arrow.up"
-                                android_material_icon_name="share"
-                                size={20}
-                                color={colors.text}
-                              />
-                            </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.deleteButton, deletingPostId === post.id && styles.deleteButtonDisabled]}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            setPostToDelete(post.id);
+                            setShowDeleteModal(true);
+                          }}
+                          disabled={deletingPostId === post.id}
+                        >
+                          {deletingPostId === post.id ? (
+                            <ActivityIndicator size="small" color="#FF3B30" />
+                          ) : (
+                            <Text style={styles.deleteButtonText}>Delete</Text>
                           )}
-                          <TouchableOpacity
-                            style={[styles.deleteButton, deletingPostId === post.id && styles.deleteButtonDisabled]}
-                            onPress={(e) => {
-                              e.stopPropagation();
-                              setPostToDelete(post.id);
-                              setShowDeleteModal(true);
-                            }}
-                            disabled={deletingPostId === post.id}
-                          >
-                            {deletingPostId === post.id ? (
-                              <ActivityIndicator size="small" color="#FF3B30" />
-                            ) : (
-                              <Text style={styles.deleteButtonText}>Delete</Text>
-                            )}
-                          </TouchableOpacity>
-                        </>
+                        </TouchableOpacity>
                       )}
                     </View>
                   </View>
