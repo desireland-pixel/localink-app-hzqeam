@@ -1,6 +1,6 @@
 import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql, count } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { generateShortId } from '../utils/short-id.js';
 import { sendPushNotification } from '../utils/push-notifications.js';
@@ -66,7 +66,7 @@ export function registerCommunityRoutes(app: App) {
           title: schema.discussionTopics.title,
           description: schema.discussionTopics.description,
           status: schema.discussionTopics.status,
-          repliesCount: schema.discussionTopics.repliesCount,
+          replyCount: sql<number>`(SELECT COUNT(*) FROM ${schema.discussionReplies} WHERE ${schema.discussionReplies.topicId} = ${schema.discussionTopics.id})`,
           createdAt: schema.discussionTopics.createdAt,
           updatedAt: schema.discussionTopics.updatedAt,
           username: schema.profiles.username,
@@ -128,7 +128,7 @@ export function registerCommunityRoutes(app: App) {
           title: schema.discussionTopics.title,
           description: schema.discussionTopics.description,
           status: schema.discussionTopics.status,
-          repliesCount: schema.discussionTopics.repliesCount,
+          replyCount: sql<number>`(SELECT COUNT(*) FROM ${schema.discussionReplies} WHERE ${schema.discussionReplies.topicId} = ${schema.discussionTopics.id})`,
           createdAt: schema.discussionTopics.createdAt,
           updatedAt: schema.discussionTopics.updatedAt,
           username: schema.profiles.username,
