@@ -297,7 +297,11 @@ export default function PostSubletScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView 
+          style={styles.content} 
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scrollContent}
+        >
           <View style={styles.radioContainer}>
             <Text style={styles.radioLabel}>I am</Text>
             <View style={styles.radioButtons}>
@@ -662,6 +666,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
+  },
+  scrollContent: {
+    paddingBottom: spacing.xxl,
   },
   radioContainer: {
     flexDirection: 'row',

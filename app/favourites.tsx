@@ -485,6 +485,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.xs,
+    marginTop: spacing.xs,
   },
   itemLabel: {
     ...typography.bodySmall,
@@ -573,7 +574,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   dateText: {
     ...typography.bodySmall,
