@@ -415,7 +415,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     gap: spacing.md,
-    paddingBottom: 1,
+    paddingBottom: 5,
+    marginBottom: -1,
   },
   resetButton: {
     flex: 1,

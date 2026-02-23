@@ -286,24 +286,45 @@ export default function TravelDetailsScreen() {
               </View>
             )}
             <View style={styles.actionButtons}>
-              {!isOwnPost && (
-                <TouchableOpacity style={styles.shareButton} onPress={toggleFavorite}>
-                  <IconSymbol
-                    ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                    android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                    size={20}
-                    color={isFavorited ? colors.primary : colors.text}
-                  />
-                </TouchableOpacity>
+              {isOwnPost ? (
+                <>
+                  <TouchableOpacity style={styles.shareButton} onPress={handleEdit}>
+                    <IconSymbol
+                      ios_icon_name="pencil"
+                      android_material_icon_name="edit"
+                      size={20}
+                      color={colors.text}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+                    <IconSymbol
+                      ios_icon_name="square.and.arrow.up"
+                      android_material_icon_name="share"
+                      size={20}
+                      color={colors.text}
+                    />
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <TouchableOpacity style={styles.shareButton} onPress={toggleFavorite}>
+                    <IconSymbol
+                      ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                      android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                      size={20}
+                      color={isFavorited ? colors.primary : colors.text}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+                    <IconSymbol
+                      ios_icon_name="square.and.arrow.up"
+                      android_material_icon_name="share"
+                      size={20}
+                      color={colors.text}
+                    />
+                  </TouchableOpacity>
+                </>
               )}
-              <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-                <IconSymbol
-                  ios_icon_name="square.and.arrow.up"
-                  android_material_icon_name="share"
-                  size={20}
-                  color={colors.text}
-                />
-              </TouchableOpacity>
             </View>
           </View>
           
@@ -376,16 +397,6 @@ export default function TravelDetailsScreen() {
               </View>
               {isOwnPost && (
                 <View style={styles.ownerActions}>
-                  {travelPost.status === 'open' && (
-                    <TouchableOpacity style={styles.iconButton} onPress={handleEdit}>
-                      <IconSymbol
-                        ios_icon_name="pencil"
-                        android_material_icon_name="edit"
-                        size={20}
-                        color={colors.text}
-                      />
-                    </TouchableOpacity>
-                  )}
                   <TouchableOpacity style={styles.iconButton} onPress={() => setShowDeleteModal(true)}>
                     <IconSymbol
                       ios_icon_name="trash"

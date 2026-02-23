@@ -333,53 +333,86 @@ export default function MyPostsScreen() {
                       </Text>
                     </View>
                     <View style={styles.actionButtons}>
-                      {!isClosed && (
-                        <TouchableOpacity
-                          style={styles.editIconButton}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            handleEditPost(post.id);
-                          }}
-                        >
-                          <IconSymbol
-                            ios_icon_name="pencil"
-                            android_material_icon_name="edit"
-                            size={20}
-                            color={colors.primary}
-                          />
-                        </TouchableOpacity>
-                      )}
                       {!isClosed ? (
-                        <TouchableOpacity
-                          style={[styles.closeButton, isClosing && styles.closeButtonDisabled]}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            handleClosePost(post.id);
-                          }}
-                          disabled={isClosing}
-                        >
-                          {isClosing ? (
-                            <ActivityIndicator size="small" color={colors.primary} />
-                          ) : (
-                            <Text style={styles.closeButtonText}>Close</Text>
-                          )}
-                        </TouchableOpacity>
+                        <>
+                          <TouchableOpacity
+                            style={styles.editIconButton}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              handleEditPost(post.id);
+                            }}
+                          >
+                            <IconSymbol
+                              ios_icon_name="pencil"
+                              android_material_icon_name="edit"
+                              size={20}
+                              color={colors.primary}
+                            />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.shareIconButton}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              console.log('Share post', post.id);
+                            }}
+                          >
+                            <IconSymbol
+                              ios_icon_name="square.and.arrow.up"
+                              android_material_icon_name="share"
+                              size={20}
+                              color={colors.text}
+                            />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.deleteButton, deletingPostId === post.id && styles.deleteButtonDisabled]}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              setPostToDelete(post.id);
+                              setShowDeleteModal(true);
+                            }}
+                            disabled={deletingPostId === post.id}
+                          >
+                            {deletingPostId === post.id ? (
+                              <ActivityIndicator size="small" color="#FF3B30" />
+                            ) : (
+                              <Text style={styles.deleteButtonText}>Delete</Text>
+                            )}
+                          </TouchableOpacity>
+                        </>
                       ) : (
-                        <TouchableOpacity
-                          style={[styles.deleteButton, deletingPostId === post.id && styles.deleteButtonDisabled]}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            setPostToDelete(post.id);
-                            setShowDeleteModal(true);
-                          }}
-                          disabled={deletingPostId === post.id}
-                        >
-                          {deletingPostId === post.id ? (
-                            <ActivityIndicator size="small" color="#FF3B30" />
-                          ) : (
-                            <Text style={styles.deleteButtonText}>Delete</Text>
+                        <>
+                          {selectedTab === 'community' && (
+                            <TouchableOpacity
+                              style={styles.shareIconButton}
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                console.log('Share post', post.id);
+                              }}
+                            >
+                              <IconSymbol
+                                ios_icon_name="square.and.arrow.up"
+                                android_material_icon_name="share"
+                                size={20}
+                                color={colors.text}
+                              />
+                            </TouchableOpacity>
                           )}
-                        </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.deleteButton, deletingPostId === post.id && styles.deleteButtonDisabled]}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              setPostToDelete(post.id);
+                              setShowDeleteModal(true);
+                            }}
+                            disabled={deletingPostId === post.id}
+                          >
+                            {deletingPostId === post.id ? (
+                              <ActivityIndicator size="small" color="#FF3B30" />
+                            ) : (
+                              <Text style={styles.deleteButtonText}>Delete</Text>
+                            )}
+                          </TouchableOpacity>
+                        </>
                       )}
                     </View>
                   </View>
@@ -623,6 +656,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   editIconButton: {
+    padding: spacing.xs,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  shareIconButton: {
     padding: spacing.xs,
     backgroundColor: colors.background,
     borderRadius: borderRadius.sm,

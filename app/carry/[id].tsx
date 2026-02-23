@@ -219,46 +219,59 @@ export default function CommunityDetailsScreen() {
           <View style={styles.headerRow}>
             <Text style={styles.title}>{topic.title}</Text>
             <View style={styles.actionButtons}>
-              {isOwnPost && !isClosed && (
-                <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-                  <IconSymbol
-                    ios_icon_name="pencil"
-                    android_material_icon_name="edit"
-                    size={20}
-                    color={colors.primary}
-                  />
-                </TouchableOpacity>
+              {isOwnPost ? (
+                <>
+                  {!isClosed && (
+                    <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                      <IconSymbol
+                        ios_icon_name="pencil"
+                        android_material_icon_name="edit"
+                        size={20}
+                        color={colors.primary}
+                      />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={styles.deleteButton} onPress={() => setShowDeleteModal(true)}>
+                    <IconSymbol
+                      ios_icon_name="trash"
+                      android_material_icon_name="delete"
+                      size={20}
+                      color="#FF3B30"
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.shareButton} onPress={() => {
+                    console.log('Share discussion');
+                  }}>
+                    <IconSymbol
+                      ios_icon_name="square.and.arrow.up"
+                      android_material_icon_name="share"
+                      size={20}
+                      color={colors.text}
+                    />
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <TouchableOpacity style={styles.shareButton} onPress={toggleFavorite}>
+                    <IconSymbol
+                      ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                      android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                      size={20}
+                      color={isFavorited ? colors.primary : colors.text}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.shareButton} onPress={() => {
+                    console.log('Share discussion');
+                  }}>
+                    <IconSymbol
+                      ios_icon_name="square.and.arrow.up"
+                      android_material_icon_name="share"
+                      size={20}
+                      color={colors.text}
+                    />
+                  </TouchableOpacity>
+                </>
               )}
-              {isOwnPost && (
-                <TouchableOpacity style={styles.deleteButton} onPress={() => setShowDeleteModal(true)}>
-                  <IconSymbol
-                    ios_icon_name="trash"
-                    android_material_icon_name="delete"
-                    size={20}
-                    color="#FF3B30"
-                  />
-                </TouchableOpacity>
-              )}
-              {!isOwnPost && (
-                <TouchableOpacity style={styles.shareButton} onPress={toggleFavorite}>
-                  <IconSymbol
-                    ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                    android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                    size={20}
-                    color={isFavorited ? colors.primary : colors.text}
-                  />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={styles.shareButton} onPress={() => {
-                console.log('Share discussion');
-              }}>
-                <IconSymbol
-                  ios_icon_name="square.and.arrow.up"
-                  android_material_icon_name="share"
-                  size={20}
-                  color={colors.text}
-                />
-              </TouchableOpacity>
             </View>
           </View>
 

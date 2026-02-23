@@ -298,6 +298,14 @@ export default function SubletDetailsScreen() {
           </View>
           {isOwnPost ? (
             <View style={styles.actionButtons}>
+              <TouchableOpacity style={styles.actionButton} onPress={handleEdit}>
+                <IconSymbol
+                  ios_icon_name="pencil"
+                  android_material_icon_name="edit"
+                  size={20}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
                 <IconSymbol
                   ios_icon_name="square.and.arrow.up"
@@ -390,16 +398,6 @@ export default function SubletDetailsScreen() {
             </View>
             {isOwnPost && (
               <View style={styles.ownerActions}>
-                {sublet.status === 'open' && (
-                  <TouchableOpacity style={styles.iconButton} onPress={handleEdit}>
-                    <IconSymbol
-                      ios_icon_name="pencil"
-                      android_material_icon_name="edit"
-                      size={20}
-                      color={colors.text}
-                    />
-                  </TouchableOpacity>
-                )}
                 <TouchableOpacity style={styles.iconButton} onPress={() => setShowDeleteModal(true)}>
                   <IconSymbol
                     ios_icon_name="trash"

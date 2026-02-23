@@ -75,7 +75,13 @@ export default function FavouritesScreen() {
       console.log('FavouritesScreen: Fetched favorites', data);
       // Filter out favorites with null posts
       const validFavorites = data.filter(f => f.post !== null && f.post !== undefined);
-      setFavorites(validFavorites);
+      // Sort by post createdAt descending (newest first) - same as original pages
+      const sortedFavorites = validFavorites.sort((a, b) => {
+        const dateA = a.post?.createdAt ? new Date(a.post.createdAt).getTime() : 0;
+        const dateB = b.post?.createdAt ? new Date(b.post.createdAt).getTime() : 0;
+        return dateB - dateA;
+      });
+      setFavorites(sortedFavorites);
     } catch (error: any) {
       console.error('FavouritesScreen: Error fetching favorites', error);
       setError(error.message || 'Failed to load favorites');
@@ -299,7 +305,7 @@ export default function FavouritesScreen() {
                       {post.user && (
                         <View style={styles.authorDateRow}>
                           <Text style={styles.authorText}>{post.user.username || post.user.name}</Text>
-                          <Text style={styles.dateText}> • {post.createdAt ? formatDateToDDMMYYYY(post.createdAt) : formatDateToDDMMYYYY(favorite.createdAt)}</Text>
+                          <Text style={styles.dateText}> • {formatDateToDDMMYYYY(post.createdAt || favorite.createdAt)}</Text>
                         </View>
                       )}
                     </>
@@ -354,7 +360,7 @@ export default function FavouritesScreen() {
                           {post.user && (
                             <>
                               <Text style={styles.authorText}>{post.user.username || post.user.name}</Text>
-                              <Text style={styles.dateText}> • {formatDateToDDMMYYYY(favorite.createdAt)}</Text>
+                              <Text style={styles.dateText}> • {formatDateToDDMMYYYY(post.createdAt || favorite.createdAt)}</Text>
                             </>
                           )}
                         </View>
