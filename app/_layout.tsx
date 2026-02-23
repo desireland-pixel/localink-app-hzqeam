@@ -221,7 +221,7 @@ export default function RootLayout() {
                   name="carry-filters" 
                   options={{ 
                     headerShown: true,
-                    title: 'Carry Filters',
+                    title: 'Discussion Filters',
                     headerBackTitle: 'Back'
                   }} 
                 />

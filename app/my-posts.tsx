@@ -264,18 +264,16 @@ export default function MyPostsScreen() {
                   {selectedTab === 'travel' && (
                     <>
                       <View style={styles.postHeader}>
-                        <View style={styles.tagRow}>
-                          <View style={[styles.typeTag, { backgroundColor: post.type === 'offering' ? '#D1FAE5' : '#DBEAFE' }]}>
-                            <Text style={[styles.typeTagText, { color: post.type === 'offering' ? '#065F46' : '#1E40AF' }]}>
-                              {post.type === 'offering' ? 'Offering' : 'Seeking'}
-                            </Text>
-                          </View>
-                          {(post as any).incentiveAmount && (post as any).incentiveAmount > 0 && (
-                            <View style={styles.incentiveTag}>
-                              <Text style={styles.incentiveTagText}>Incentive</Text>
-                            </View>
-                          )}
+                        <View style={[styles.typeTag, { backgroundColor: post.type === 'offering' ? '#D1FAE5' : '#DBEAFE' }]}>
+                          <Text style={[styles.typeTagText, { color: post.type === 'offering' ? '#065F46' : '#1E40AF' }]}>
+                            {post.type === 'offering' ? 'Offering' : 'Seeking'}
+                          </Text>
                         </View>
+                        {(post as any).incentiveAmount && (post as any).incentiveAmount > 0 && (
+                          <View style={styles.incentiveTag}>
+                            <Text style={styles.incentiveTagText}>Incentive</Text>
+                          </View>
+                        )}
                       </View>
                       <Text style={styles.postTitle}>
                         {post.title || `${post.fromCity} → ${post.toCity}`}
@@ -503,6 +501,7 @@ const styles = StyleSheet.create({
   },
   postHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.xs,
   },
@@ -516,6 +515,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
     borderRadius: 12,
+    marginLeft: 'auto',
   },
   incentiveTagText: {
     ...typography.bodySmall,
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
     marginBottom: spacing.sm,
-    fontSize: 14,
+    fontSize: 12,
   },
   postActions: {
     flexDirection: 'row',
@@ -601,20 +601,21 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   statusBadgeClosed: {
-    backgroundColor: colors.textLight,
+    backgroundColor: '#E5E7EB',
   },
   statusText: {
     ...typography.bodySmall,
     color: '#FFFFFF',
     fontWeight: '600',
+    fontSize: 12,
   },
   statusTextClosed: {
-    color: colors.textSecondary,
+    color: '#6B7280',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -630,8 +631,8 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.primary,
   },
@@ -642,11 +643,12 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.primary,
     fontWeight: '600',
+    fontSize: 12,
   },
   deleteButton: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#FF3B30',
   },
@@ -657,5 +659,6 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: '#FF3B30',
     fontWeight: '600',
+    fontSize: 12,
   },
 });

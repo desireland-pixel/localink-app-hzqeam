@@ -225,21 +225,22 @@ export default function SubletScreen() {
                       color={colors.textSecondary}
                     />
                     <Text style={styles.cityText}>{sublet.city}</Text>
+                    <TouchableOpacity 
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(sublet.id);
+                      }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      style={styles.heartButton}
+                    >
+                      <IconSymbol
+                        ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                        android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                        size={20}
+                        color={isFavorited ? colors.primary : colors.border}
+                      />
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity 
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(sublet.id);
-                    }}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <IconSymbol
-                      ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                      android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                      size={20}
-                      color={isFavorited ? colors.primary : colors.border}
-                    />
-                  </TouchableOpacity>
                 </View>
                 <View style={styles.cardContent}>
                   <View style={styles.imageContainer}>
@@ -391,6 +392,9 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     flex: 1,
     marginBottom: spacing.md,
+  },
+  heartButton: {
+    marginLeft: 'auto',
   },
   typeTag: {
     paddingHorizontal: spacing.md,

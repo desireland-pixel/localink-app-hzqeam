@@ -23,6 +23,7 @@ interface CommunityTopic {
     username?: string;
   };
   replyCount?: number;
+  repliesCount?: number | string;
 }
 
 const CATEGORIES = [
@@ -228,7 +229,7 @@ export default function CommunityScreen() {
             const categoryBackgroundColor = isOpen ? categoryColor.background : '#E5E7EB';
             const categoryTextColor = isOpen ? categoryColor.text : '#6B7280';
             
-            const replyCountValue = topic.replyCount || 0;
+            const replyCountValue = topic.replyCount ?? (topic.repliesCount !== undefined ? parseInt(String(topic.repliesCount), 10) || 0 : 0);
             
             return (
               <TouchableOpacity
