@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedGet, authenticatedPost, authenticatedPatch } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, authenticatedPatch, authenticatedDelete } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
@@ -50,6 +50,7 @@ export default function TravelDetailsScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
 
   console.log('TravelDetailsScreen: Viewing travel', { id });
 
@@ -64,6 +65,10 @@ export default function TravelDetailsScreen() {
       const data = await authenticatedGet<TravelPost>(`/api/travel-posts/${id}`);
       console.log('[TravelDetails] Travel post fetched:', data);
       setTravelPost(data);
+      
+      // Check if favorited
+      const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=travel`);
+      setIsFavorited(favoriteCheck.isFavorited);
       
       if (!initialLoadComplete) {
         setInitialLoadComplete(true);
@@ -180,6 +185,25 @@ export default function TravelDetailsScreen() {
     }
   };
 
+  const toggleFavorite = async () => {
+    if (!travelPost) return;
+    console.log('TravelDetailsScreen: Toggle favorite', id);
+    
+    const wasFavorited = isFavorited;
+    setIsFavorited(!wasFavorited);
+    
+    try {
+      if (wasFavorited) {
+        await authenticatedDelete(`/api/favorites/${id}?postType=travel`, {});
+      } else {
+        await authenticatedPost('/api/favorites', { postId: id, postType: 'travel' });
+      }
+    } catch (error: any) {
+      console.error('TravelDetailsScreen: Error toggling favorite', error);
+      setIsFavorited(wasFavorited);
+    }
+  };
+
   // Show loading spinner only on initial load
   if (loading && !initialLoadComplete) {
     return (
@@ -263,12 +287,12 @@ export default function TravelDetailsScreen() {
             )}
             <View style={styles.actionButtons}>
               {!isOwnPost && (
-                <TouchableOpacity style={styles.shareButton} onPress={() => {}}>
+                <TouchableOpacity style={styles.shareButton} onPress={toggleFavorite}>
                   <IconSymbol
-                    ios_icon_name="heart"
-                    android_material_icon_name="favorite-border"
+                    ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                    android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
                     size={20}
-                    color={colors.text}
+                    color={isFavorited ? colors.primary : colors.text}
                   />
                 </TouchableOpacity>
               )}
@@ -352,14 +376,16 @@ export default function TravelDetailsScreen() {
               </View>
               {isOwnPost && (
                 <View style={styles.ownerActions}>
-                  <TouchableOpacity style={styles.iconButton} onPress={handleEdit}>
-                    <IconSymbol
-                      ios_icon_name="pencil"
-                      android_material_icon_name="edit"
-                      size={20}
-                      color={colors.text}
-                    />
-                  </TouchableOpacity>
+                  {travelPost.status === 'open' && (
+                    <TouchableOpacity style={styles.iconButton} onPress={handleEdit}>
+                      <IconSymbol
+                        ios_icon_name="pencil"
+                        android_material_icon_name="edit"
+                        size={20}
+                        color={colors.text}
+                      />
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity style={styles.iconButton} onPress={() => setShowDeleteModal(true)}>
                     <IconSymbol
                       ios_icon_name="trash"

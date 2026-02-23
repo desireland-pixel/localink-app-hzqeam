@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedGet, authenticatedPost, authenticatedDelete, authenticatedPatch } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, authenticatedDelete, authenticatedPatch, authenticatedPut } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
@@ -62,6 +62,7 @@ export default function CommunityDetailsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
 
   console.log('CommunityDetailsScreen: Viewing topic', { id });
 
@@ -71,6 +72,10 @@ export default function CommunityDetailsScreen() {
       const data = await authenticatedGet<CommunityTopic>(`/api/community/topics/${id}`);
       console.log('[CommunityDetails] Topic fetched:', data);
       setTopic(data);
+      
+      // Check if favorited
+      const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=community`);
+      setIsFavorited(favoriteCheck.isFavorited);
     } catch (err) {
       console.error('[CommunityDetails] Error fetching topic:', err);
       setError(err instanceof Error ? err.message : 'Failed to load topic');
@@ -146,6 +151,25 @@ export default function CommunityDetailsScreen() {
     }
   };
 
+  const toggleFavorite = async () => {
+    if (!topic) return;
+    console.log('CommunityDetailsScreen: Toggle favorite', id);
+    
+    const wasFavorited = isFavorited;
+    setIsFavorited(!wasFavorited);
+    
+    try {
+      if (wasFavorited) {
+        await authenticatedDelete(`/api/favorites/${id}?postType=community`, {});
+      } else {
+        await authenticatedPost('/api/favorites', { postId: id, postType: 'community' });
+      }
+    } catch (error: any) {
+      console.error('CommunityDetailsScreen: Error toggling favorite', error);
+      setIsFavorited(wasFavorited);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -212,6 +236,16 @@ export default function CommunityDetailsScreen() {
                     android_material_icon_name="delete"
                     size={20}
                     color="#FF3B30"
+                  />
+                </TouchableOpacity>
+              )}
+              {!isOwnPost && (
+                <TouchableOpacity style={styles.shareButton} onPress={toggleFavorite}>
+                  <IconSymbol
+                    ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                    android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                    size={20}
+                    color={isFavorited ? colors.primary : colors.text}
                   />
                 </TouchableOpacity>
               )}

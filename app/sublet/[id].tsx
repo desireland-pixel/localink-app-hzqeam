@@ -5,7 +5,7 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedGet, authenticatedPost, authenticatedPatch } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, authenticatedPatch, authenticatedDelete } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
@@ -48,6 +48,7 @@ export default function SubletDetailsScreen() {
   const [deleting, setDeleting] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
 
   console.log('SubletDetailsScreen: Rendering', { id, sublet, imageCount: sublet?.imageUrls?.length });
 
@@ -63,6 +64,10 @@ export default function SubletDetailsScreen() {
       const data = await authenticatedGet<Sublet>(`/api/sublets/${id}`);
       console.log('SubletDetailsScreen: Fetched sublet', data);
       setSublet(data);
+      
+      // Check if favorited
+      const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=sublet`);
+      setIsFavorited(favoriteCheck.isFavorited);
       
       if (!initialLoadComplete) {
         setInitialLoadComplete(true);
@@ -180,6 +185,25 @@ export default function SubletDetailsScreen() {
     setCurrentImageIndex(index);
   };
 
+  const toggleFavorite = async () => {
+    if (!sublet) return;
+    console.log('SubletDetailsScreen: Toggle favorite', id);
+    
+    const wasFavorited = isFavorited;
+    setIsFavorited(!wasFavorited);
+    
+    try {
+      if (wasFavorited) {
+        await authenticatedDelete(`/api/favorites/${id}?postType=sublet`, {});
+      } else {
+        await authenticatedPost('/api/favorites', { postId: id, postType: 'sublet' });
+      }
+    } catch (error: any) {
+      console.error('SubletDetailsScreen: Error toggling favorite', error);
+      setIsFavorited(wasFavorited);
+    }
+  };
+
   // Show loading spinner only on initial load
   if (loading && !initialLoadComplete) {
     return (
@@ -285,12 +309,12 @@ export default function SubletDetailsScreen() {
             </View>
           ) : (
             <View style={styles.actionButtons}>
-              <TouchableOpacity style={styles.actionButton} onPress={() => {}}>
+              <TouchableOpacity style={styles.actionButton} onPress={toggleFavorite}>
                 <IconSymbol
-                  ios_icon_name="heart"
-                  android_material_icon_name="favorite-border"
+                  ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                  android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
                   size={20}
-                  color={colors.text}
+                  color={isFavorited ? colors.primary : colors.text}
                 />
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
@@ -366,14 +390,16 @@ export default function SubletDetailsScreen() {
             </View>
             {isOwnPost && (
               <View style={styles.ownerActions}>
-                <TouchableOpacity style={styles.iconButton} onPress={handleEdit}>
-                  <IconSymbol
-                    ios_icon_name="pencil"
-                    android_material_icon_name="edit"
-                    size={20}
-                    color={colors.text}
-                  />
-                </TouchableOpacity>
+                {sublet.status === 'open' && (
+                  <TouchableOpacity style={styles.iconButton} onPress={handleEdit}>
+                    <IconSymbol
+                      ios_icon_name="pencil"
+                      android_material_icon_name="edit"
+                      size={20}
+                      color={colors.text}
+                    />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity style={styles.iconButton} onPress={() => setShowDeleteModal(true)}>
                   <IconSymbol
                     ios_icon_name="trash"

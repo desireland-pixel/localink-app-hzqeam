@@ -225,12 +225,13 @@ export default function PostTravelScreen() {
         console.log('PostTravelScreen: Updating travel post with data:', postData);
         await authenticatedPut(`/api/travel-posts/${editId}`, postData);
         console.log('PostTravelScreen: Travel post updated successfully');
+        router.replace('/(tabs)/travel');
       } else {
         console.log('PostTravelScreen: Creating travel post with data:', postData);
         await authenticatedPost('/api/travel-posts', postData);
         console.log('PostTravelScreen: Travel post created successfully');
+        router.back();
       }
-      router.back();
     } catch (error: any) {
       console.error('PostTravelScreen: Error creating travel post', error);
       setError(error.message || 'Failed to create travel post. Please try again.');

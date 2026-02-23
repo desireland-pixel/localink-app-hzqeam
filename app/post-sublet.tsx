@@ -267,13 +267,13 @@ export default function PostSubletScreen() {
         console.log('PostSubletScreen: Updating sublet with data:', postData);
         await authenticatedPut(`/api/sublets/${editId}`, postData);
         console.log('PostSubletScreen: Sublet updated successfully');
+        router.replace('/(tabs)/sublet');
       } else {
         console.log('PostSubletScreen: Creating sublet with data:', postData);
         await authenticatedPost('/api/sublets', postData);
         console.log('PostSubletScreen: Sublet created successfully');
+        router.back();
       }
-      
-      router.back();
     } catch (error: any) {
       console.error('PostSubletScreen: Error saving sublet', error);
       setError(error.message || `Failed to ${isEditing ? 'update' : 'create'} sublet. Please try again.`);
