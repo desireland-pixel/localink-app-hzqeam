@@ -413,15 +413,16 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.lg,
     justifyContent: "center",
+    paddingVertical: spacing.md,
   },
   header: {
     alignItems: "center",
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
   },
   logo: {
-    width: 120,
-    height: 120,
-    marginBottom: spacing.md,
+    width: 100,
+    height: 100,
+    marginBottom: spacing.sm,
   },
   title: {
     ...typography.h1,
@@ -435,7 +436,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   inputGroup: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   label: {
     ...typography.bodySmall,
@@ -474,7 +475,7 @@ const styles = StyleSheet.create({
   },
   forgotPasswordButton: {
     alignSelf: "flex-end",
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   forgotPasswordText: {
     ...typography.bodySmall,
@@ -485,7 +486,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     alignItems: "center",
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
   primaryButtonText: {
     ...typography.button,
@@ -495,7 +496,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   switchModeButton: {
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     alignItems: "center",
   },
   switchModeText: {
@@ -505,7 +506,7 @@ const styles = StyleSheet.create({
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: spacing.lg,
+    marginVertical: spacing.md,
   },
   dividerLine: {
     flex: 1,

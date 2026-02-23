@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPatch, authenticatedPut, authenticatedDelete } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
@@ -27,6 +27,7 @@ interface Post {
 
 export default function MyPostsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState<'sublet' | 'travel' | 'community'>('sublet');
@@ -38,6 +39,13 @@ export default function MyPostsScreen() {
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
 
   console.log('MyPostsScreen: Rendering', { selectedTab, postsCount: posts.length });
+  
+  // Handle tab parameter from navigation
+  useEffect(() => {
+    if (params.tab === 'travel' || params.tab === 'sublet' || params.tab === 'community') {
+      setSelectedTab(params.tab);
+    }
+  }, [params.tab]);
 
   const fetchPosts = React.useCallback(async () => {
     console.log('MyPostsScreen: Fetching posts', { selectedTab });
@@ -256,10 +264,17 @@ export default function MyPostsScreen() {
                   {selectedTab === 'travel' && (
                     <>
                       <View style={styles.postHeader}>
-                        <View style={[styles.typeTag, { backgroundColor: post.type === 'offering' ? '#D1FAE5' : '#DBEAFE' }]}>
-                          <Text style={[styles.typeTagText, { color: post.type === 'offering' ? '#065F46' : '#1E40AF' }]}>
-                            {post.type === 'offering' ? 'Offering' : 'Seeking'}
-                          </Text>
+                        <View style={styles.tagRow}>
+                          <View style={[styles.typeTag, { backgroundColor: post.type === 'offering' ? '#D1FAE5' : '#DBEAFE' }]}>
+                            <Text style={[styles.typeTagText, { color: post.type === 'offering' ? '#065F46' : '#1E40AF' }]}>
+                              {post.type === 'offering' ? 'Offering' : 'Seeking'}
+                            </Text>
+                          </View>
+                          {(post as any).incentiveAmount && (post as any).incentiveAmount > 0 && (
+                            <View style={styles.incentiveTag}>
+                              <Text style={styles.incentiveTagText}>Incentive</Text>
+                            </View>
+                          )}
                         </View>
                       </View>
                       <Text style={styles.postTitle}>
@@ -270,6 +285,18 @@ export default function MyPostsScreen() {
                           {post.travelDate && formatDateToDDMMYYYY(post.travelDate)}
                         </Text>
                       </View>
+                      {(post as any).item && (
+                        <View style={styles.itemRow}>
+                          <Text style={styles.itemLabel}>Item: </Text>
+                          <Text style={styles.itemValue}>{(post as any).item}</Text>
+                        </View>
+                      )}
+                      {(post as any).companionshipFor && (
+                        <View style={styles.itemRow}>
+                          <Text style={styles.itemLabel}>For: </Text>
+                          <Text style={styles.itemValue}>{(post as any).companionshipFor}</Text>
+                        </View>
+                      )}
                       {post.description && (
                         <Text style={styles.postDescription} numberOfLines={2}>
                           {post.description}
@@ -479,6 +506,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xs,
   },
+  tagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  incentiveTag: {
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  incentiveTagText: {
+    ...typography.bodySmall,
+    color: '#6B21A8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  itemLabel: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
+  itemValue: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '600',
+  },
   typeTag: {
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
@@ -528,6 +588,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
     marginBottom: spacing.sm,
+    fontSize: 14,
   },
   postActions: {
     flexDirection: 'row',

@@ -12,7 +12,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
-  'Travel Insurance': { background: '#FEF3C7', text: '#92400E' },
+  'Insurance': { background: '#FEF3C7', text: '#92400E' },
   'Housing': { background: '#D1FAE5', text: '#065F46' },
   'Jobs': { background: '#FCE7F3', text: '#9F1239' },
   'Healthcare': { background: '#E0E7FF', text: '#3730A3' },
@@ -136,11 +136,8 @@ export default function CommunityDetailsScreen() {
       
       setShowDeleteModal(false);
       
-      if (response.action === 'deleted') {
-        router.back();
-      } else if (response.action === 'closed') {
-        router.back();
-      }
+      // Navigate back to community main page
+      router.replace('/(tabs)/carry');
     } catch (error: any) {
       console.error('CommunityDetailsScreen: Error with topic action', error);
       setError(error.message || `Failed to ${actionText} topic`);
@@ -198,27 +195,25 @@ export default function CommunityDetailsScreen() {
           <View style={styles.headerRow}>
             <Text style={styles.title}>{topic.title}</Text>
             <View style={styles.actionButtons}>
+              {isOwnPost && !isClosed && (
+                <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                  <IconSymbol
+                    ios_icon_name="pencil"
+                    android_material_icon_name="edit"
+                    size={20}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              )}
               {isOwnPost && (
-                <>
-                  {!isClosed && (
-                    <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-                      <IconSymbol
-                        ios_icon_name="pencil"
-                        android_material_icon_name="edit"
-                        size={20}
-                        color={colors.primary}
-                      />
-                    </TouchableOpacity>
-                  )}
-                  <TouchableOpacity style={styles.deleteButton} onPress={() => setShowDeleteModal(true)}>
-                    <IconSymbol
-                      ios_icon_name="trash"
-                      android_material_icon_name="delete"
-                      size={20}
-                      color="#FF3B30"
-                    />
-                  </TouchableOpacity>
-                </>
+                <TouchableOpacity style={styles.deleteButton} onPress={() => setShowDeleteModal(true)}>
+                  <IconSymbol
+                    ios_icon_name="trash"
+                    android_material_icon_name="delete"
+                    size={20}
+                    color="#FF3B30"
+                  />
+                </TouchableOpacity>
               )}
               <TouchableOpacity style={styles.shareButton} onPress={() => {
                 console.log('Share discussion');

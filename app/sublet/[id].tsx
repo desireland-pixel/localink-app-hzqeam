@@ -285,6 +285,14 @@ export default function SubletDetailsScreen() {
             </View>
           ) : (
             <View style={styles.actionButtons}>
+              <TouchableOpacity style={styles.actionButton} onPress={() => {}}>
+                <IconSymbol
+                  ios_icon_name="heart"
+                  android_material_icon_name="favorite-border"
+                  size={20}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
                 <IconSymbol
                   ios_icon_name="square.and.arrow.up"

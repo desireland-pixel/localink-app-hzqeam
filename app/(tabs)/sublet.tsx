@@ -382,16 +382,15 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
+    flexDirection: 'column',
+    marginBottom: 0,
   },
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
     flex: 1,
+    marginBottom: spacing.md,
   },
   typeTag: {
     paddingHorizontal: spacing.md,
@@ -411,6 +410,7 @@ const styles = StyleSheet.create({
   cardContent: {
     flexDirection: 'row',
     gap: spacing.md,
+    alignItems: 'flex-start',
   },
   imageContainer: {
     width: 80,
