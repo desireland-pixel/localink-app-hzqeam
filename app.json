@@ -4,11 +4,11 @@
     "slug": "LocaLink",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/Logo_localink_inverse.png",
+    "icon": "./assets/images/Logo_localink_inverse2.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/Logo_localink_inverse.png",
+      "image": "./assets/images/Logo_localink_inverse2.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
@@ -21,7 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Logo_localink_inverse.png",
+        "foregroundImage": "./assets/images/Logo_localink_inverse2.png",
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
