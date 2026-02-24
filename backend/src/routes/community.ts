@@ -116,8 +116,12 @@ export function registerCommunityRoutes(app: App) {
       },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
     const { id } = request.params as { id: string };
-    app.logger.info({ topicId: id }, 'Fetching discussion topic details');
+    const currentUserId = session.user.id;
+    app.logger.info({ topicId: id, userId: currentUserId }, 'Fetching discussion topic details');
 
     try {
       const topicResult = await app.db
@@ -145,7 +149,7 @@ export function registerCommunityRoutes(app: App) {
 
       const topic = topicResult[0];
 
-      // Fetch replies
+      // Fetch replies with like counts and like status for current user
       const replies = await app.db
         .select({
           id: schema.discussionReplies.id,
@@ -155,6 +159,8 @@ export function registerCommunityRoutes(app: App) {
           createdAt: schema.discussionReplies.createdAt,
           updatedAt: schema.discussionReplies.updatedAt,
           username: schema.profiles.username,
+          likes: sql<number>`(SELECT COUNT(*) FROM ${schema.replyLikes} WHERE ${schema.replyLikes.replyId} = ${schema.discussionReplies.id})`,
+          isLikedByMe: sql<boolean>`EXISTS(SELECT 1 FROM ${schema.replyLikes} WHERE ${schema.replyLikes.replyId} = ${schema.discussionReplies.id} AND ${schema.replyLikes.userId} = ${currentUserId})`,
         })
         .from(schema.discussionReplies)
         .leftJoin(schema.profiles, eq(schema.discussionReplies.userId, schema.profiles.userId))
@@ -703,6 +709,92 @@ export function registerCommunityRoutes(app: App) {
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, topicId: id }, 'Failed to delete discussion topic');
       return reply.status(500).send({ error: 'Failed to delete discussion topic' });
+    }
+  });
+
+  // Toggle like on a reply
+  app.fastify.post('/api/community/replies/:replyId/like', {
+    schema: {
+      description: 'Toggle like on a discussion reply. If already liked, unlike. If not liked, like.',
+      tags: ['community'],
+      params: {
+        type: 'object',
+        properties: {
+          replyId: { type: 'string', format: 'uuid' },
+        },
+        required: ['replyId'],
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            liked: { type: 'boolean' },
+            likeCount: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    const { replyId } = request.params as { replyId: string };
+    app.logger.info({ userId: session.user.id, replyId }, 'Toggling like on reply');
+
+    try {
+      // Check if reply exists
+      const reply_obj = await app.db.query.discussionReplies.findFirst({
+        where: eq(schema.discussionReplies.id, replyId),
+      });
+
+      if (!reply_obj) {
+        app.logger.warn({ replyId }, 'Discussion reply not found');
+        return reply.status(404).send({ error: 'Discussion reply not found' });
+      }
+
+      // Check if user already liked this reply
+      const existingLike = await app.db.query.replyLikes.findFirst({
+        where: and(
+          eq(schema.replyLikes.replyId, replyId),
+          eq(schema.replyLikes.userId, session.user.id)
+        ),
+      });
+
+      let liked = false;
+
+      if (existingLike) {
+        // Unlike: delete the like
+        await app.db
+          .delete(schema.replyLikes)
+          .where(eq(schema.replyLikes.id, existingLike.id));
+        app.logger.info({ replyId, userId: session.user.id }, 'Reply unliked');
+      } else {
+        // Like: create a new like
+        await app.db
+          .insert(schema.replyLikes)
+          .values({
+            replyId,
+            userId: session.user.id,
+          });
+        liked = true;
+        app.logger.info({ replyId, userId: session.user.id }, 'Reply liked');
+      }
+
+      // Get updated like count
+      const likeCountResult = await app.db
+        .select({
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(schema.replyLikes)
+        .where(eq(schema.replyLikes.replyId, replyId));
+
+      const likeCount = likeCountResult[0]?.count || 0;
+
+      app.logger.info({ replyId, userId: session.user.id, liked, likeCount }, 'Like toggle completed');
+      return { liked, likeCount };
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id, replyId }, 'Failed to toggle like on reply');
+      return reply.status(500).send({ error: 'Failed to toggle like on reply' });
     }
   });
 }
