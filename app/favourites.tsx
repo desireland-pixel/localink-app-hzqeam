@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -50,6 +50,7 @@ interface FavoritePost {
       name: string;
       username?: string;
     };
+    createdAt?: string;
   } | null;
 }
 
@@ -73,9 +74,7 @@ export default function FavouritesScreen() {
     try {
       const data = await authenticatedGet<FavoritePost[]>('/api/favorites');
       console.log('FavouritesScreen: Fetched favorites', data);
-      // Filter out favorites with null posts
       const validFavorites = data.filter(f => f.post !== null && f.post !== undefined);
-      // Sort by post createdAt descending (newest first) - same as original pages
       const sortedFavorites = validFavorites.sort((a, b) => {
         const dateA = a.post?.createdAt ? new Date(a.post.createdAt).getTime() : 0;
         const dateB = b.post?.createdAt ? new Date(b.post.createdAt).getTime() : 0;
@@ -100,14 +99,12 @@ export default function FavouritesScreen() {
   const handleRemoveFavorite = async (postId: string, postType: string) => {
     console.log('FavouritesScreen: Removing favorite', { postId, postType });
     
-    // Optimistic update
     setFavorites(favorites.filter(f => f.postId !== postId));
     
     try {
       await authenticatedDelete(`/api/favorites/${postId}?postType=${postType}`, {});
     } catch (error: any) {
       console.error('FavouritesScreen: Error removing favorite', error);
-      // Revert on error
       await fetchFavorites();
     }
   };
@@ -175,7 +172,6 @@ export default function FavouritesScreen() {
             filteredFavorites.map((favorite) => {
               const post = favorite.post;
               
-              // Safety check - skip if post is null
               if (!post) {
                 console.warn('FavouritesScreen: Skipping favorite with null post', favorite.id);
                 return null;
@@ -284,7 +280,7 @@ export default function FavouritesScreen() {
                         <Text style={styles.routeText}>{post.toCity}</Text>
                       </View>
                       {(post.travelDate || post.travelDateTo) && (
-                        <View style={styles.dateRow}>
+                        <View style={styles.travelDateRow}>
                           {post.travelDate && <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.travelDate)}</Text>}
                           {post.travelDate && post.travelDateTo && <Text style={styles.dateSeparator}>-</Text>}
                           {post.travelDateTo && <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.travelDateTo)}</Text>}
@@ -305,7 +301,8 @@ export default function FavouritesScreen() {
                       {post.user && (
                         <View style={styles.authorDateRow}>
                           <Text style={styles.authorText}>{post.user.username || post.user.name}</Text>
-                          <Text style={styles.dateText}> • {formatDateToDDMMYYYY(post.createdAt || favorite.createdAt)}</Text>
+                          <Text style={styles.authorDateSeparator}> o </Text>
+                          <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.createdAt || favorite.createdAt)}</Text>
                         </View>
                       )}
                     </>
@@ -360,7 +357,8 @@ export default function FavouritesScreen() {
                           {post.user && (
                             <>
                               <Text style={styles.authorText}>{post.user.username || post.user.name}</Text>
-                              <Text style={styles.dateText}> • {formatDateToDDMMYYYY(post.createdAt || favorite.createdAt)}</Text>
+                              <Text style={styles.authorDateSeparator}> o </Text>
+                              <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.createdAt || favorite.createdAt)}</Text>
                             </>
                           )}
                         </View>
@@ -485,7 +483,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.xs,
-    marginTop: spacing.xs,
   },
   itemLabel: {
     ...typography.bodySmall,
@@ -576,6 +573,12 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     marginBottom: spacing.xs,
   },
+  travelDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: 0,
+  },
   dateText: {
     ...typography.bodySmall,
     color: colors.textSecondary,
@@ -589,8 +592,14 @@ const styles = StyleSheet.create({
   authorDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: spacing.xs,
   },
   authorText: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 11,
+  },
+  authorDateSeparator: {
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 11,
