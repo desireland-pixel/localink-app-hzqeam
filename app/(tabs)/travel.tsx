@@ -43,20 +43,7 @@ export default function TravelScreen() {
 
   console.log('TravelScreen: Rendering', { postsCount: posts.length, loading });
 
-  useEffect(() => {
-    fetchPosts();
-    fetchFavorites();
-  }, [params.filters]);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('TravelScreen: Screen focused, refreshing posts');
-      fetchPosts();
-      fetchFavorites();
-    }, [params.filters])
-  );
-
-  const fetchPosts = async () => {
+  const fetchPosts = React.useCallback(async () => {
     console.log('TravelScreen: Fetching travel posts');
     if (posts.length === 0) {
       setLoading(true);
@@ -77,18 +64,31 @@ export default function TravelScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [params.filters, posts.length]);
 
-  const fetchFavorites = async () => {
+  const fetchFavorites = React.useCallback(async () => {
     try {
       console.log('TravelScreen: Fetching favorites');
-      const data = await authenticatedGet<Array<{ postId: string; postType: string }>>('/api/favorites');
+      const data = await authenticatedGet<{ postId: string; postType: string }[]>('/api/favorites');
       const travelFavorites = data.filter(f => f.postType === 'travel').map(f => f.postId);
       setFavorites(new Set(travelFavorites));
     } catch (error) {
       console.error('TravelScreen: Error fetching favorites', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPosts();
+    fetchFavorites();
+  }, [params.filters]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('TravelScreen: Screen focused, refreshing posts');
+      fetchPosts();
+      fetchFavorites();
+    }, [fetchPosts, fetchFavorites])
+  );
 
   const toggleFavorite = async (postId: string) => {
     console.log('TravelScreen: Toggle favorite', postId);

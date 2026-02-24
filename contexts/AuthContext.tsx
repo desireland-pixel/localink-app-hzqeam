@@ -94,20 +94,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const initializeAuth = React.useCallback(async () => {
-    try {
-      console.log('[AuthContext] Starting auth initialization');
-      setLoading(true);
-      await fetchUser();
-    } catch (error) {
-      console.error('[AuthContext] Auth initialization failed:', error);
-      setUser(null);
-      setProfile(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   const fetchUser = React.useCallback(async () => {
     try {
       console.log('[AuthContext] Fetching user session');
@@ -143,7 +129,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authenticatedGet<Profile & { isProfileComplete?: boolean }>('/api/profile');
       console.log('[AuthContext] Profile fetched successfully:', response);
       
-      // Use isProfileComplete from backend (it's the source of truth)
       const profileCompleted = response.isProfileComplete === true;
       
       console.log('[AuthContext] Profile completed status:', profileCompleted, {
@@ -164,6 +149,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfileLoading(false);
     }
   }, []);
+
+  const initializeAuth = React.useCallback(async () => {
+    try {
+      console.log('[AuthContext] Starting auth initialization');
+      setLoading(true);
+      await fetchUser();
+    } catch (error) {
+      console.error('[AuthContext] Auth initialization failed:', error);
+      setUser(null);
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchUser]);
 
   const fetchProfile = React.useCallback(async () => {
     await fetchProfileInternal();
@@ -209,14 +208,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [initializeAuth, fetchUser]);
 
-  // Poll for unread count when user is logged in
   useEffect(() => {
     if (user) {
       console.log('[AuthContext] User logged in, starting unread count polling');
       fetchUnreadCountInternal();
       const unreadInterval = setInterval(() => {
         fetchUnreadCountInternal();
-      }, 30000); // Poll every 30 seconds
+      }, 30000);
 
       return () => {
         clearInterval(unreadInterval);

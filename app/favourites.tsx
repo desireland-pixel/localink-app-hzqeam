@@ -16,7 +16,7 @@ const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } =
   'Healthcare': { background: '#E0E7FF', text: '#3730A3' },
   'Banking': { background: '#FED7AA', text: '#9A3412' },
   'Education': { background: '#E9D5FF', text: '#6B21A8' },
-  'General': { background: '#E5E7EB', text: '#374151' },
+  'General': { background: '#FDE68A', text: '#78350F' },
 };
 
 interface FavoritePost {
