@@ -78,6 +78,16 @@ export default function TabLayout() {
         options={{
           title: 'Inbox',
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarBadgeStyle: {
+            fontSize: 10,
+            fontWeight: '700',
+            minWidth: 16,
+            height: 16,
+            lineHeight: Platform.OS === 'android' ? 16 : undefined,
+            borderRadius: 8,
+            paddingHorizontal: 3,
+            top: -2,
+          },
           tabBarIcon: ({ color }) => (
             <IconSymbol
               ios_icon_name="message.fill"

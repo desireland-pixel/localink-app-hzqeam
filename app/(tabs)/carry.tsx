@@ -245,29 +245,27 @@ export default function CommunityScreen() {
                     <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
                       <Text style={[styles.categoryBadgeText, { color: categoryTextColor }]}>{topic.category}</Text>
                     </View>
-                  </View>
-                  <View style={styles.rightSection}>
                     {!isOpen && (
                       <View style={styles.closedBadge}>
                         <Text style={styles.closedBadgeText}>Closed</Text>
                       </View>
                     )}
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        console.log('CommunityScreen: Heart button pressed for', topic.id);
-                        toggleFavorite(topic.id);
-                      }}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <IconSymbol
-                        ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                        android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                        size={20}
-                        color={isFavorited ? colors.primary : colors.border}
-                      />
-                    </TouchableOpacity>
                   </View>
+                  <TouchableOpacity 
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      console.log('CommunityScreen: Heart button pressed for', topic.id);
+                      toggleFavorite(topic.id);
+                    }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <IconSymbol
+                      ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                      android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                      size={20}
+                      color={isFavorited ? colors.primary : colors.textLight}
+                    />
+                  </TouchableOpacity>
                 </View>
                 <Text style={styles.cardTitle}>{topic.title}</Text>
                 {topic.description && (
@@ -393,18 +391,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   tagRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
     flex: 1,
-  },
-  rightSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
   },
   categoryBadge: {
     paddingHorizontal: spacing.md,
@@ -431,6 +424,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     ...typography.h3,
     color: colors.text,
+    marginTop: spacing.xs,
     marginBottom: spacing.xs,
     fontSize: 16,
     fontWeight: '600',
