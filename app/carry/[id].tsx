@@ -18,7 +18,7 @@ const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } =
   'Healthcare': { background: '#E0E7FF', text: '#3730A3' },
   'Banking': { background: '#FED7AA', text: '#9A3412' },
   'Education': { background: '#E9D5FF', text: '#6B21A8' },
-  'General': { background: '#E5E7EB', text: '#374151' },
+  'General': { background: '#F3F4F6', text: '#6B7280' },
 };
 
 interface Reply {
@@ -259,15 +259,8 @@ export default function CommunityDetailsScreen() {
         <ScrollView style={styles.content}>
           <View style={styles.mainPostCard}>
             <View style={styles.headerRow}>
-              <View style={styles.leftHeaderSection}>
-                <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
-                  <Text style={[styles.categoryBadgeText, { color: categoryTextColor }]}>{topic.category}</Text>
-                </View>
-                {isClosed && (
-                  <View style={styles.closedBadge}>
-                    <Text style={styles.closedBadgeText}>Closed</Text>
-                  </View>
-                )}
+              <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
+                <Text style={[styles.categoryBadgeText, { color: categoryTextColor }]}>{topic.category}</Text>
               </View>
               <View style={styles.actionButtons}>
                 {isOwnPost ? (
@@ -291,6 +284,16 @@ export default function CommunityDetailsScreen() {
                           android_material_icon_name="share"
                           size={20}
                           color={colors.text}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.iconButtonBox}>
+                      <TouchableOpacity style={styles.iconButton} onPress={() => setShowDeleteModal(true)}>
+                        <IconSymbol
+                          ios_icon_name="trash"
+                          android_material_icon_name="delete"
+                          size={20}
+                          color="#FF3B30"
                         />
                       </TouchableOpacity>
                     </View>
@@ -334,30 +337,16 @@ export default function CommunityDetailsScreen() {
                 <Text style={styles.dateSeparator}> • </Text>
                 <Text style={styles.dateText}>{createdDate}</Text>
               </View>
-              {isOwnPost && (
-                <View style={styles.iconButtonBox}>
-                  <TouchableOpacity style={styles.iconButton} onPress={() => setShowDeleteModal(true)}>
-                    <IconSymbol
-                      ios_icon_name="trash"
-                      android_material_icon_name="delete"
-                      size={18}
-                      color="#FF3B30"
-                    />
-                  </TouchableOpacity>
+              {isClosed && (
+                <View style={styles.closedBadgeInline}>
+                  <Text style={styles.closedBadgeInlineText}>Closed</Text>
                 </View>
               )}
             </View>
           </View>
 
           <View style={styles.repliesSection}>
-            <View style={styles.repliesTitleRow}>
-              <Text style={styles.repliesTitle}>Replies ({replyCountValue})</Text>
-              {isClosed && (
-                <View style={styles.closedTagInline}>
-                  <Text style={styles.closedTagInlineText}>Closed</Text>
-                </View>
-              )}
-            </View>
+            <Text style={styles.repliesTitle}>Replies ({replyCountValue})</Text>
             
             {topic.replies && topic.replies.length > 0 ? (
               topic.replies.map((reply) => {
@@ -373,26 +362,24 @@ export default function CommunityDetailsScreen() {
                       <Text style={styles.replyDateSeparator}> • </Text>
                       <Text style={styles.replyDate}>{replyDate}</Text>
                     </View>
-                    <View style={styles.replyContentRow}>
-                      <Text style={styles.replyContent}>{reply.content}</Text>
-                      <TouchableOpacity 
-                        style={styles.likeButtonRight}
-                        onPress={() => toggleReplyLike(reply.id)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <View style={styles.likeCountContainer}>
-                          <IconSymbol
-                            ios_icon_name={isLiked ? "heart.fill" : "heart"}
-                            android_material_icon_name={isLiked ? "favorite" : "favorite-border"}
-                            size={18}
-                            color={isLiked ? colors.primary : colors.textLight}
-                          />
-                          {likeCount > 0 && (
-                            <Text style={styles.likeCountText}>{likeCount}</Text>
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    </View>
+                    <Text style={styles.replyContent}>{reply.content}</Text>
+                    <TouchableOpacity 
+                      style={styles.likeButtonBottom}
+                      onPress={() => toggleReplyLike(reply.id)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <View style={styles.likeCountContainer}>
+                        <IconSymbol
+                          ios_icon_name={isLiked ? "hand.thumbsup.fill" : "hand.thumbsup"}
+                          android_material_icon_name={isLiked ? "thumb-up" : "thumb-up"}
+                          size={16}
+                          color={isLiked ? '#3B82F6' : colors.textLight}
+                        />
+                        {likeCount > 0 && (
+                          <Text style={styles.likeCountText}>{likeCount}</Text>
+                        )}
+                      </View>
+                    </TouchableOpacity>
                   </View>
                 );
               })
@@ -510,25 +497,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  leftHeaderSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
+    marginBottom: spacing.md,
   },
   categoryBadge: {
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  closedBadge: {
+  closedBadgeInline: {
     backgroundColor: '#E5E7EB',
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  closedBadgeText: {
+  closedBadgeInlineText: {
     ...typography.bodySmall,
     fontSize: 12,
     fontWeight: '600',
@@ -597,29 +579,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
     paddingLeft: spacing.md,
   },
-  repliesTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
   repliesTitle: {
     ...typography.h3,
     color: colors.text,
     fontSize: 16,
     fontWeight: '600',
-  },
-  closedTagInline: {
-    backgroundColor: '#E5E7EB',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  closedTagInlineText: {
-    ...typography.bodySmall,
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6B7280',
+    marginBottom: spacing.sm,
   },
   replyCard: {
     backgroundColor: colors.card,
@@ -633,7 +598,7 @@ const styles = StyleSheet.create({
   replyTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   replyAuthor: {
     ...typography.bodySmall,
@@ -650,22 +615,16 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     fontSize: 11,
   },
-  replyContentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
   replyContent: {
     ...typography.body,
     color: colors.text,
     lineHeight: 20,
     fontSize: 13,
-    flex: 1,
-    marginRight: spacing.sm,
+    marginBottom: spacing.xs,
   },
-  likeButtonRight: {
+  likeButtonBottom: {
     alignSelf: 'flex-end',
-    padding: spacing.xs,
+    marginTop: 2,
   },
   likeCountContainer: {
     flexDirection: 'row',
