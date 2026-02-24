@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedGet, authenticatedPost, authenticatedDelete, authenticatedPatch, authenticatedPut } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
@@ -73,7 +73,6 @@ export default function CommunityDetailsScreen() {
       console.log('[CommunityDetails] Topic fetched:', data);
       setTopic(data);
       
-      // Check if favorited
       const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=community`);
       setIsFavorited(favoriteCheck.isFavorited);
     } catch (err) {
@@ -141,7 +140,6 @@ export default function CommunityDetailsScreen() {
       
       setShowDeleteModal(false);
       
-      // Navigate back to community main page
       router.replace('/(tabs)/carry');
     } catch (error: any) {
       console.error('CommunityDetailsScreen: Error with topic action', error);
@@ -193,7 +191,6 @@ export default function CommunityDetailsScreen() {
   const isOwnPost = topic.userId === user?.id;
   const createdDate = formatDateToDDMMYYYY(topic.createdAt);
   const authorName = topic.user.username || topic.user.name;
-  const postedByText = `${authorName} • ${createdDate}`;
   const isClosed = topic.status === 'closed';
   const deleteButtonText = isClosed ? 'Delete' : 'Close';
   const deleteModalTitle = isClosed ? 'Delete Discussion' : 'Close Discussion';
@@ -215,130 +212,141 @@ export default function CommunityDetailsScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView style={styles.content}>
-        <View style={styles.card}>
-          <View style={styles.headerRow}>
-            <Text style={styles.title}>{topic.title}</Text>
-            <View style={styles.actionButtons}>
-              {isOwnPost ? (
-                <>
-                  {!isClosed && (
-                    <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+          <View style={styles.mainPostCard}>
+            <View style={styles.headerRow}>
+              <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
+                <Text style={[styles.categoryBadgeText, { color: categoryTextColor }]}>{topic.category}</Text>
+              </View>
+              <View style={styles.actionButtons}>
+                {isOwnPost ? (
+                  <>
+                    {!isClosed && (
+                      <TouchableOpacity style={styles.iconButton} onPress={handleEdit}>
+                        <IconSymbol
+                          ios_icon_name="pencil"
+                          android_material_icon_name="edit"
+                          size={20}
+                          color={colors.primary}
+                        />
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity style={styles.iconButton} onPress={() => {}}>
                       <IconSymbol
-                        ios_icon_name="pencil"
-                        android_material_icon_name="edit"
+                        ios_icon_name="square.and.arrow.up"
+                        android_material_icon_name="share"
                         size={20}
-                        color={colors.primary}
+                        color={colors.text}
                       />
                     </TouchableOpacity>
-                  )}
-                  <TouchableOpacity style={styles.deleteButton} onPress={() => setShowDeleteModal(true)}>
-                    <IconSymbol
-                      ios_icon_name="trash"
-                      android_material_icon_name="delete"
-                      size={20}
-                      color="#FF3B30"
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.shareButton} onPress={() => {
-                    console.log('Share discussion');
-                  }}>
-                    <IconSymbol
-                      ios_icon_name="square.and.arrow.up"
-                      android_material_icon_name="share"
-                      size={20}
-                      color={colors.text}
-                    />
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <TouchableOpacity style={styles.shareButton} onPress={toggleFavorite}>
-                    <IconSymbol
-                      ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                      android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                      size={20}
-                      color={isFavorited ? colors.primary : colors.text}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.shareButton} onPress={() => {
-                    console.log('Share discussion');
-                  }}>
-                    <IconSymbol
-                      ios_icon_name="square.and.arrow.up"
-                      android_material_icon_name="share"
-                      size={20}
-                      color={colors.text}
-                    />
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          </View>
-
-          {topic.description && (
-            <Text style={styles.description}>{topic.description}</Text>
-          )}
-
-          <View style={styles.metaContainer}>
-            <Text style={styles.postedByText}>{postedByText}</Text>
-            <View style={styles.tagRow}>
-              <View style={[styles.tagBadge, { backgroundColor: categoryBackgroundColor }]}>
-                <Text style={[styles.tagBadgeText, { color: categoryTextColor }]}>{topic.category}</Text>
+                  </>
+                ) : (
+                  <>
+                    <TouchableOpacity style={styles.iconButton} onPress={toggleFavorite}>
+                      <IconSymbol
+                        ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                        android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                        size={20}
+                        color={isFavorited ? colors.primary : colors.text}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconButton} onPress={() => {}}>
+                      <IconSymbol
+                        ios_icon_name="square.and.arrow.up"
+                        android_material_icon_name="share"
+                        size={20}
+                        color={colors.text}
+                      />
+                    </TouchableOpacity>
+                  </>
+                )}
               </View>
-              {isClosed && (
-                <View style={[styles.tagBadge, { backgroundColor: '#E5E7EB' }]}>
-                  <Text style={[styles.tagBadgeText, { color: '#6B7280' }]}>Closed</Text>
-                </View>
+            </View>
+
+            <Text style={styles.title}>{topic.title}</Text>
+
+            {topic.description && (
+              <Text style={styles.description}>{topic.description}</Text>
+            )}
+
+            <View style={styles.metaRow}>
+              <View style={styles.authorDateContainer}>
+                <Text style={styles.authorText}>{authorName}</Text>
+                <Text style={styles.dateSeparator}> o </Text>
+                <Text style={styles.dateText}>{createdDate}</Text>
+              </View>
+              {isOwnPost && (
+                <TouchableOpacity onPress={() => setShowDeleteModal(true)}>
+                  <IconSymbol
+                    ios_icon_name="trash"
+                    android_material_icon_name="delete"
+                    size={18}
+                    color="#FF3B30"
+                  />
+                </TouchableOpacity>
               )}
             </View>
           </View>
-        </View>
 
-        <View style={styles.repliesSection}>
-          <Text style={styles.repliesTitle}>Replies ({replyCountValue})</Text>
-          
-          {topic.replies && topic.replies.length > 0 ? (
-            topic.replies.map((reply) => {
-              const replyDate = formatDateToDDMMYYYY(reply.createdAt);
-              const replyAuthor = reply.user.username || reply.user.name;
-              
-              return (
-                <View key={reply.id} style={styles.replyCard}>
-                  <Text style={styles.replyContent}>{reply.content}</Text>
-                  <View style={styles.replyFooter}>
-                    <Text style={styles.replyAuthor}>{replyAuthor}</Text>
-                    <Text style={styles.replyDate}> {replyDate}</Text>
+          <View style={styles.repliesSection}>
+            <Text style={styles.repliesTitle}>Replies ({replyCountValue})</Text>
+            
+            {topic.replies && topic.replies.length > 0 ? (
+              topic.replies.map((reply) => {
+                const replyDate = formatDateToDDMMYYYY(reply.createdAt);
+                const replyAuthor = reply.user.username || reply.user.name;
+                
+                return (
+                  <View key={reply.id} style={styles.replyCard}>
+                    <View style={styles.replyHeader}>
+                      <View style={styles.replyAuthorDateContainer}>
+                        <Text style={styles.replyAuthor}>{replyAuthor}</Text>
+                        <Text style={styles.replyDateSeparator}> o </Text>
+                        <Text style={styles.replyDate}>{replyDate}</Text>
+                      </View>
+                      <TouchableOpacity style={styles.likeButton}>
+                        <IconSymbol
+                          ios_icon_name="hand.thumbsup"
+                          android_material_icon_name="thumb-up"
+                          size={16}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.replyContent}>{reply.content}</Text>
                   </View>
-                </View>
-              );
-            })
-          ) : (
-            <Text style={styles.noRepliesText}>No replies yet. Be the first to comment!</Text>
-          )}
-        </View>
+                );
+              })
+            ) : (
+              <Text style={styles.noRepliesText}>No replies yet. Be the first to comment!</Text>
+            )}
+          </View>
+        </ScrollView>
 
         {topic.status === 'open' && (
-          <View style={styles.replyInputSection}>
-            <Text style={styles.replyInputLabel}>Add a comment</Text>
+          <View style={styles.commentInputBar}>
             <TextInput
-              style={styles.replyInput}
-              placeholder="Write your comment..."
+              style={styles.commentInput}
+              placeholder="Write your comment"
               placeholderTextColor={colors.textLight}
               value={replyText}
               onChangeText={setReplyText}
-              multiline
-              numberOfLines={4}
               editable={!submitting}
+              multiline
             />
             <TouchableOpacity 
-              style={[styles.submitButton, (!replyText.trim() || submitting) && styles.submitButtonDisabled]} 
+              style={[styles.sendButton, (!replyText.trim() || submitting) && styles.sendButtonDisabled]} 
               onPress={handleSubmitReply}
               disabled={!replyText.trim() || submitting}
             >
               {submitting ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text style={styles.submitButtonText}>Post Comment</Text>
+                <IconSymbol
+                  ios_icon_name="paperplane.fill"
+                  android_material_icon_name="send"
+                  size={20}
+                  color="#FFFFFF"
+                />
               )}
             </TouchableOpacity>
           </View>
@@ -349,7 +357,6 @@ export default function CommunityDetailsScreen() {
             <Text style={styles.closedNoticeText}>This discussion is closed. No new comments can be added.</Text>
           </View>
         )}
-      </ScrollView>
       </KeyboardAvoidingView>
 
       <Modal
@@ -411,50 +418,43 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
   },
-  card: {
+  mainPostCard: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: spacing.md,
   },
-  title: {
-    ...typography.h3,
-    color: colors.text,
-    flex: 1,
-    marginRight: spacing.sm,
-    fontSize: 16,
+  categoryBadge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  categoryBadgeText: {
+    ...typography.bodySmall,
+    fontSize: 12,
     fontWeight: '600',
   },
   actionButtons: {
     flexDirection: 'row',
     gap: spacing.xs,
   },
-  editButton: {
+  iconButton: {
     padding: spacing.xs,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  deleteButton: {
-    padding: spacing.xs,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  shareButton: {
-    padding: spacing.xs,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
+  title: {
+    ...typography.h3,
+    color: colors.text,
+    marginBottom: spacing.sm,
+    fontSize: 18,
+    fontWeight: '700',
   },
   description: {
     ...typography.body,
@@ -463,74 +463,84 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     fontSize: 14,
   },
-  metaContainer: {
+  metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: spacing.xs,
+    paddingTop: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
-  postedByText: {
+  authorDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  authorText: {
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 12,
-    flex: 1,
   },
-  tagRow: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  tagBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  tagBadgeText: {
+  dateSeparator: {
     ...typography.bodySmall,
+    color: colors.textLight,
     fontSize: 12,
-    fontWeight: '600',
+  },
+  dateText: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 12,
   },
   repliesSection: {
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
   },
   repliesTitle: {
     ...typography.h3,
     color: colors.text,
     marginBottom: spacing.sm,
     fontSize: 16,
+    fontWeight: '600',
   },
   replyCard: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    padding: spacing.sm,
-    marginBottom: spacing.xs,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  replyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  replyAuthorDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  replyAuthor: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 11,
+  },
+  replyDateSeparator: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 11,
+  },
+  replyDate: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 11,
+  },
+  likeButton: {
+    padding: spacing.xs,
   },
   replyContent: {
     ...typography.body,
     color: colors.text,
     lineHeight: 20,
-    marginBottom: spacing.xs,
     fontSize: 13,
-  },
-  replyFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  replyAuthor: {
-    ...typography.bodySmall,
-    color: colors.textLight,
-    fontSize: 10,
-  },
-  replyDate: {
-    ...typography.bodySmall,
-    color: colors.textLight,
-    fontSize: 10,
   },
   noRepliesText: {
     ...typography.body,
@@ -538,56 +548,49 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: spacing.xl,
   },
-  replyInputSection: {
-    marginTop: spacing.lg,
+  commentInputBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
-  },
-  replyInputLabel: {
-    ...typography.bodySmall,
-    color: colors.text,
-    fontWeight: '600',
-    marginBottom: spacing.sm,
-  },
-  replyInput: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
+    backgroundColor: colors.card,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    gap: spacing.sm,
+  },
+  commentInput: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
     ...typography.body,
     color: colors.text,
-    minHeight: 100,
-    textAlignVertical: 'top',
-    marginBottom: spacing.md,
+    maxHeight: 100,
   },
-  submitButton: {
+  sendButton: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    width: 44,
+    height: 44,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  submitButtonDisabled: {
+  sendButtonDisabled: {
     opacity: 0.5,
-  },
-  submitButtonText: {
-    ...typography.button,
-    color: '#FFFFFF',
   },
   closedNotice: {
     backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
     padding: spacing.md,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-    marginBottom: spacing.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   closedNoticeText: {
     ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
+    fontSize: 13,
   },
 });
