@@ -251,28 +251,26 @@ export default function FavouritesScreen() {
                           )}
                           {post.type === 'seeking' && <Text style={styles.iconText}>👥</Text>}
                           {post.type === 'seeking-ally' && <Text style={styles.iconText}>📦</Text>}
-                        </View>
-                        <View style={styles.rightSection}>
                           {post.incentiveAmount && post.incentiveAmount > 0 && (
                             <View style={styles.incentiveTag}>
                               <Text style={styles.incentiveTagText}>Incentive</Text>
                             </View>
                           )}
-                          <TouchableOpacity 
-                            style={styles.likeButton}
-                            onPress={(e) => {
-                              e.stopPropagation();
-                              handleRemoveFavorite(favorite.postId, favorite.postType);
-                            }}
-                          >
-                            <IconSymbol
-                              ios_icon_name="heart.fill"
-                              android_material_icon_name="favorite"
-                              size={20}
-                              color={colors.primary}
-                            />
-                          </TouchableOpacity>
                         </View>
+                        <TouchableOpacity 
+                          style={styles.likeButton}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            handleRemoveFavorite(favorite.postId, favorite.postType);
+                          }}
+                        >
+                          <IconSymbol
+                            ios_icon_name="heart.fill"
+                            android_material_icon_name="favorite"
+                            size={20}
+                            color={colors.primary}
+                          />
+                        </TouchableOpacity>
                       </View>
                       <View style={styles.routeContainer}>
                         <Text style={styles.routeText}>{post.fromCity}</Text>
@@ -301,7 +299,7 @@ export default function FavouritesScreen() {
                       {post.user && (
                         <View style={styles.authorDateRow}>
                           <Text style={styles.authorText}>{post.user.username || post.user.name}</Text>
-                          <Text style={styles.authorDateSeparator}> o </Text>
+                          <Text style={styles.authorDateSeparator}> • </Text>
                           <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.createdAt || favorite.createdAt)}</Text>
                         </View>
                       )}
@@ -357,7 +355,7 @@ export default function FavouritesScreen() {
                           {post.user && (
                             <>
                               <Text style={styles.authorText}>{post.user.username || post.user.name}</Text>
-                              <Text style={styles.authorDateSeparator}> o </Text>
+                              <Text style={styles.authorDateSeparator}> • </Text>
                               <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.createdAt || favorite.createdAt)}</Text>
                             </>
                           )}
@@ -453,6 +451,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    flex: 1,
   },
   typeTag: {
     paddingHorizontal: spacing.md,
@@ -578,6 +577,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     marginTop: 0,
+    marginBottom: spacing.xs,
   },
   dateText: {
     ...typography.bodySmall,
