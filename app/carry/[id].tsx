@@ -18,7 +18,7 @@ const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } =
   'Healthcare': { background: '#E0E7FF', text: '#3730A3' },
   'Banking': { background: '#FED7AA', text: '#9A3412' },
   'Education': { background: '#E9D5FF', text: '#6B21A8' },
-  'General': { background: '#F3F4F6', text: '#6B7280' },
+  'General': { background: '#FDE68A', text: '#78350F' },
 };
 
 interface Reply {
@@ -185,7 +185,8 @@ export default function CommunityDetailsScreen() {
     
     console.log('CommunityDetailsScreen: Toggle reply like', replyId);
     
-    // Optimistic update
+    const previousReplies = [...topic.replies];
+    
     const updatedReplies = topic.replies.map(reply => {
       if (reply.id === replyId) {
         const wasLiked = reply.isLikedByMe || false;
@@ -201,15 +202,12 @@ export default function CommunityDetailsScreen() {
     
     setTopic({ ...topic, replies: updatedReplies });
     
-    // Make API call
     try {
       await authenticatedPost(`/api/community/replies/${replyId}/like`, {});
-      // Refresh to get accurate counts from server
       await fetchTopic();
     } catch (error) {
       console.error('CommunityDetailsScreen: Error toggling reply like', error);
-      // Revert on error
-      setTopic({ ...topic, replies: topic.replies });
+      setTopic({ ...topic, replies: previousReplies });
     }
   };
 
@@ -265,18 +263,16 @@ export default function CommunityDetailsScreen() {
               <View style={styles.actionButtons}>
                 {isOwnPost ? (
                   <>
-                    {!isClosed && (
-                      <View style={styles.iconButtonBox}>
-                        <TouchableOpacity style={styles.iconButton} onPress={handleEdit}>
-                          <IconSymbol
-                            ios_icon_name="pencil"
-                            android_material_icon_name="edit"
-                            size={20}
-                            color={colors.primary}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    )}
+                    <View style={styles.iconButtonBox}>
+                      <TouchableOpacity style={styles.iconButton} onPress={handleEdit}>
+                        <IconSymbol
+                          ios_icon_name="pencil"
+                          android_material_icon_name="edit"
+                          size={20}
+                          color={colors.text}
+                        />
+                      </TouchableOpacity>
+                    </View>
                     <View style={styles.iconButtonBox}>
                       <TouchableOpacity style={styles.iconButton} onPress={() => {}}>
                         <IconSymbol
@@ -284,16 +280,6 @@ export default function CommunityDetailsScreen() {
                           android_material_icon_name="share"
                           size={20}
                           color={colors.text}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                    <View style={styles.iconButtonBox}>
-                      <TouchableOpacity style={styles.iconButton} onPress={() => setShowDeleteModal(true)}>
-                        <IconSymbol
-                          ios_icon_name="trash"
-                          android_material_icon_name="delete"
-                          size={20}
-                          color="#FF3B30"
                         />
                       </TouchableOpacity>
                     </View>
@@ -337,9 +323,16 @@ export default function CommunityDetailsScreen() {
                 <Text style={styles.dateSeparator}> • </Text>
                 <Text style={styles.dateText}>{createdDate}</Text>
               </View>
-              {isClosed && (
-                <View style={styles.closedBadgeInline}>
-                  <Text style={styles.closedBadgeInlineText}>Closed</Text>
+              {isOwnPost && (
+                <View style={styles.iconButtonBox}>
+                  <TouchableOpacity style={styles.iconButton} onPress={() => setShowDeleteModal(true)}>
+                    <IconSymbol
+                      ios_icon_name="trash"
+                      android_material_icon_name="delete"
+                      size={20}
+                      color="#FF3B30"
+                    />
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -369,12 +362,32 @@ export default function CommunityDetailsScreen() {
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
                       <View style={styles.likeCountContainer}>
-                        <IconSymbol
-                          ios_icon_name={isLiked ? "hand.thumbsup.fill" : "hand.thumbsup"}
-                          android_material_icon_name={isLiked ? "thumb-up" : "thumb-up"}
-                          size={16}
-                          color={isLiked ? '#3B82F6' : colors.textLight}
-                        />
+                        {Platform.select({
+                          ios: (
+                            <IconSymbol
+                              ios_icon_name={isLiked ? "hand.thumbsup.fill" : "hand.thumbsup"}
+                              android_material_icon_name="thumb-up"
+                              size={16}
+                              color={isLiked ? '#3B82F6' : colors.textLight}
+                            />
+                          ),
+                          android: (
+                            <IconSymbol
+                              ios_icon_name="hand.thumbsup"
+                              android_material_icon_name={likeCount > 0 ? "thumb-up" : "thumb-up-off-alt"}
+                              size={16}
+                              color={isLiked ? '#3B82F6' : colors.textLight}
+                            />
+                          ),
+                          default: (
+                            <IconSymbol
+                              ios_icon_name={isLiked ? "hand.thumbsup.fill" : "hand.thumbsup"}
+                              android_material_icon_name={likeCount > 0 ? "thumb-up" : "thumb-up-off-alt"}
+                              size={16}
+                              color={isLiked ? '#3B82F6' : colors.textLight}
+                            />
+                          ),
+                        })}
                         {likeCount > 0 && (
                           <Text style={styles.likeCountText}>{likeCount}</Text>
                         )}
@@ -504,18 +517,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
-  closedBadgeInline: {
-    backgroundColor: '#E5E7EB',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  closedBadgeInlineText: {
-    ...typography.bodySmall,
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
   categoryBadgeText: {
     ...typography.bodySmall,
     fontSize: 12,
@@ -526,7 +527,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   iconButtonBox: {
-    backgroundColor: colors.card,
+    backgroundColor: '#FFFFFF',
     borderRadius: borderRadius.sm,
     borderWidth: 1,
     borderColor: colors.border,
