@@ -46,7 +46,7 @@ const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } =
   'Healthcare': { background: '#E0E7FF', text: '#3730A3' },
   'Banking': { background: '#FED7AA', text: '#9A3412' },
   'Education': { background: '#E9D5FF', text: '#6B21A8' },
-  'General': { background: '#F3F4F6', text: '#6B7280' },
+  'General': { background: '#FDE68A', text: '#78350F' },
 };
 
 export default function CommunityScreen() {
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   rightHeaderSection: {
     flexDirection: 'row',
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     ...typography.h3,
     color: colors.text,
-    marginTop: 2,
+    marginTop: 4,
     marginBottom: spacing.xs,
     fontSize: 16,
     fontWeight: '600',
