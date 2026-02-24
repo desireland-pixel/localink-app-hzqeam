@@ -26,6 +26,8 @@ interface Reply {
   userId: string;
   content: string;
   createdAt: string;
+  likes: number;
+  isLikedByMe: boolean;
   user: {
     id: string;
     name: string;
@@ -71,6 +73,16 @@ export default function CommunityDetailsScreen() {
       console.log('[CommunityDetails] Fetching topic:', id);
       const data = await authenticatedGet<CommunityTopic>(`/api/community/topics/${id}`);
       console.log('[CommunityDetails] Topic fetched:', data);
+      
+      if (data.replies && Array.isArray(data.replies)) {
+        const sortedReplies = [...data.replies].sort((a, b) => {
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateB - dateA;
+        });
+        data.replies = sortedReplies;
+      }
+      
       setTopic(data);
       
       const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=community`);
@@ -168,6 +180,27 @@ export default function CommunityDetailsScreen() {
     }
   };
 
+  const toggleReplyLike = async (replyId: string) => {
+    if (!topic || !topic.replies) return;
+    
+    console.log('CommunityDetailsScreen: Toggle reply like', replyId);
+    
+    const updatedReplies = topic.replies.map(reply => {
+      if (reply.id === replyId) {
+        const wasLiked = reply.isLikedByMe || false;
+        const currentLikes = reply.likes || 0;
+        return {
+          ...reply,
+          isLikedByMe: !wasLiked,
+          likes: wasLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1,
+        };
+      }
+      return reply;
+    });
+    
+    setTopic({ ...topic, replies: updatedReplies });
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -221,42 +254,50 @@ export default function CommunityDetailsScreen() {
                 {isOwnPost ? (
                   <>
                     {!isClosed && (
-                      <TouchableOpacity style={styles.iconButton} onPress={handleEdit}>
+                      <View style={styles.iconButtonBox}>
+                        <TouchableOpacity style={styles.iconButton} onPress={handleEdit}>
+                          <IconSymbol
+                            ios_icon_name="pencil"
+                            android_material_icon_name="edit"
+                            size={20}
+                            color={colors.primary}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    <View style={styles.iconButtonBox}>
+                      <TouchableOpacity style={styles.iconButton} onPress={() => {}}>
                         <IconSymbol
-                          ios_icon_name="pencil"
-                          android_material_icon_name="edit"
+                          ios_icon_name="square.and.arrow.up"
+                          android_material_icon_name="share"
                           size={20}
-                          color={colors.primary}
+                          color={colors.text}
                         />
                       </TouchableOpacity>
-                    )}
-                    <TouchableOpacity style={styles.iconButton} onPress={() => {}}>
-                      <IconSymbol
-                        ios_icon_name="square.and.arrow.up"
-                        android_material_icon_name="share"
-                        size={20}
-                        color={colors.text}
-                      />
-                    </TouchableOpacity>
+                    </View>
                   </>
                 ) : (
                   <>
-                    <TouchableOpacity style={styles.iconButton} onPress={toggleFavorite}>
-                      <IconSymbol
-                        ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                        android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                        size={20}
-                        color={isFavorited ? colors.primary : colors.text}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.iconButton} onPress={() => {}}>
-                      <IconSymbol
-                        ios_icon_name="square.and.arrow.up"
-                        android_material_icon_name="share"
-                        size={20}
-                        color={colors.text}
-                      />
-                    </TouchableOpacity>
+                    <View style={styles.iconButtonBox}>
+                      <TouchableOpacity style={styles.iconButton} onPress={toggleFavorite}>
+                        <IconSymbol
+                          ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                          android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                          size={20}
+                          color={isFavorited ? colors.primary : colors.text}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.iconButtonBox}>
+                      <TouchableOpacity style={styles.iconButton} onPress={() => {}}>
+                        <IconSymbol
+                          ios_icon_name="square.and.arrow.up"
+                          android_material_icon_name="share"
+                          size={20}
+                          color={colors.text}
+                        />
+                      </TouchableOpacity>
+                    </View>
                   </>
                 )}
               </View>
@@ -271,18 +312,20 @@ export default function CommunityDetailsScreen() {
             <View style={styles.metaRow}>
               <View style={styles.authorDateContainer}>
                 <Text style={styles.authorText}>{authorName}</Text>
-                <Text style={styles.dateSeparator}> o </Text>
+                <Text style={styles.dateSeparator}> • </Text>
                 <Text style={styles.dateText}>{createdDate}</Text>
               </View>
               {isOwnPost && (
-                <TouchableOpacity onPress={() => setShowDeleteModal(true)}>
-                  <IconSymbol
-                    ios_icon_name="trash"
-                    android_material_icon_name="delete"
-                    size={18}
-                    color="#FF3B30"
-                  />
-                </TouchableOpacity>
+                <View style={styles.iconButtonBox}>
+                  <TouchableOpacity style={styles.iconButton} onPress={() => setShowDeleteModal(true)}>
+                    <IconSymbol
+                      ios_icon_name="trash"
+                      android_material_icon_name="delete"
+                      size={18}
+                      color="#FF3B30"
+                    />
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           </View>
@@ -294,25 +337,38 @@ export default function CommunityDetailsScreen() {
               topic.replies.map((reply) => {
                 const replyDate = formatDateToDDMMYYYY(reply.createdAt);
                 const replyAuthor = reply.user.username || reply.user.name;
+                const likeCount = reply.likes || 0;
+                const isLiked = reply.isLikedByMe || false;
                 
                 return (
                   <View key={reply.id} style={styles.replyCard}>
-                    <View style={styles.replyHeader}>
-                      <View style={styles.replyAuthorDateContainer}>
-                        <Text style={styles.replyAuthor}>{replyAuthor}</Text>
-                        <Text style={styles.replyDateSeparator}> o </Text>
-                        <Text style={styles.replyDate}>{replyDate}</Text>
-                      </View>
-                      <TouchableOpacity style={styles.likeButton}>
-                        <IconSymbol
-                          ios_icon_name="hand.thumbsup"
-                          android_material_icon_name="thumb-up"
-                          size={16}
-                          color={colors.textSecondary}
-                        />
+                    <View style={styles.replyTopRow}>
+                      <Text style={styles.replyAuthor}>{replyAuthor}</Text>
+                      <Text style={styles.replyDateSeparator}> • </Text>
+                      <Text style={styles.replyDate}>{replyDate}</Text>
+                    </View>
+                    <View style={styles.replyContentRow}>
+                      <Text style={styles.replyContent}>{reply.content}</Text>
+                      <TouchableOpacity 
+                        style={styles.likeButtonRight}
+                        onPress={() => toggleReplyLike(reply.id)}
+                      >
+                        {likeCount > 0 ? (
+                          <View style={styles.likeCountContainer}>
+                            <Text style={styles.likeEmoji}>👍</Text>
+                            <Text style={styles.likeCountText}>{likeCount}</Text>
+                          </View>
+                        ) : (
+                          <IconSymbol
+                            ios_icon_name="hand.thumbsup"
+                            android_material_icon_name="thumb-up"
+                            size={16}
+                            color="transparent"
+                            style={{ opacity: 0.4 }}
+                          />
+                        )}
                       </TouchableOpacity>
                     </View>
-                    <Text style={styles.replyContent}>{reply.content}</Text>
                   </View>
                 );
               })
@@ -446,6 +502,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.xs,
   },
+  iconButtonBox: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   iconButton: {
     padding: spacing.xs,
   },
@@ -492,6 +554,7 @@ const styles = StyleSheet.create({
   },
   repliesSection: {
     marginBottom: spacing.xl,
+    paddingLeft: spacing.md,
   },
   repliesTitle: {
     ...typography.h3,
@@ -507,16 +570,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
+    marginRight: spacing.md,
   },
-  replyHeader: {
+  replyTopRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.xs,
-  },
-  replyAuthorDateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   replyAuthor: {
     ...typography.bodySmall,
@@ -533,14 +592,36 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     fontSize: 11,
   },
-  likeButton: {
-    padding: spacing.xs,
+  replyContentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
   replyContent: {
     ...typography.body,
     color: colors.text,
     lineHeight: 20,
     fontSize: 13,
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  likeButtonRight: {
+    alignSelf: 'flex-end',
+    padding: spacing.xs,
+  },
+  likeCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  likeEmoji: {
+    fontSize: 14,
+  },
+  likeCountText: {
+    ...typography.bodySmall,
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '600',
   },
   noRepliesText: {
     ...typography.body,
@@ -550,7 +631,7 @@ const styles = StyleSheet.create({
   },
   commentInputBar: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.card,
@@ -569,10 +650,11 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
     maxHeight: 100,
+    minHeight: 44,
   },
   sendButton: {
     backgroundColor: colors.primary,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.sm,
     width: 44,
     height: 44,
     alignItems: 'center',
