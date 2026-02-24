@@ -74,7 +74,7 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
   };
 
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container, style, { height: -5 }]}>
       <TextInput
         style={styles.input}
         placeholder={placeholder}
