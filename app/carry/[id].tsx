@@ -186,15 +186,21 @@ export default function CommunityDetailsScreen() {
     console.log('CommunityDetailsScreen: Toggle reply like', replyId);
     
     const previousReplies = [...topic.replies];
+    const targetReply = topic.replies.find(r => r.id === replyId);
+    
+    if (!targetReply) return;
+    
+    const wasLiked = targetReply.isLikedByMe || false;
+    const currentLikes = targetReply.likes || 0;
+    
+    const newLikeCount = wasLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
     
     const updatedReplies = topic.replies.map(reply => {
       if (reply.id === replyId) {
-        const wasLiked = reply.isLikedByMe || false;
-        const currentLikes = reply.likes || 0;
         return {
           ...reply,
           isLikedByMe: !wasLiked,
-          likes: wasLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1,
+          likes: newLikeCount,
         };
       }
       return reply;
@@ -355,44 +361,46 @@ export default function CommunityDetailsScreen() {
                       <Text style={styles.replyDateSeparator}> • </Text>
                       <Text style={styles.replyDate}>{replyDate}</Text>
                     </View>
-                    <Text style={styles.replyContent}>{reply.content}</Text>
-                    <TouchableOpacity 
-                      style={styles.likeButtonBottom}
-                      onPress={() => toggleReplyLike(reply.id)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <View style={styles.likeCountContainer}>
-                        {Platform.select({
-                          ios: (
-                            <IconSymbol
-                              ios_icon_name={isLiked ? "hand.thumbsup.fill" : "hand.thumbsup"}
-                              android_material_icon_name="thumb-up"
-                              size={16}
-                              color={isLiked ? '#3B82F6' : colors.textLight}
-                            />
-                          ),
-                          android: (
-                            <IconSymbol
-                              ios_icon_name="hand.thumbsup"
-                              android_material_icon_name={likeCount > 0 ? "thumb-up" : "thumb-up-off-alt"}
-                              size={16}
-                              color={isLiked ? '#3B82F6' : colors.textLight}
-                            />
-                          ),
-                          default: (
-                            <IconSymbol
-                              ios_icon_name={isLiked ? "hand.thumbsup.fill" : "hand.thumbsup"}
-                              android_material_icon_name={likeCount > 0 ? "thumb-up" : "thumb-up-off-alt"}
-                              size={16}
-                              color={isLiked ? '#3B82F6' : colors.textLight}
-                            />
-                          ),
-                        })}
-                        {likeCount > 0 && (
-                          <Text style={styles.likeCountText}>{likeCount}</Text>
-                        )}
-                      </View>
-                    </TouchableOpacity>
+                    <View style={styles.replyContentWrapper}>
+                      <Text style={styles.replyContent}>{reply.content}</Text>
+                      <TouchableOpacity 
+                        style={styles.likeButtonInline}
+                        onPress={() => toggleReplyLike(reply.id)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <View style={styles.likeCountContainer}>
+                          {Platform.select({
+                            ios: (
+                              <IconSymbol
+                                ios_icon_name={isLiked ? "hand.thumbsup.fill" : "hand.thumbsup"}
+                                android_material_icon_name="thumb-up"
+                                size={16}
+                                color={isLiked ? '#3B82F6' : colors.textLight}
+                              />
+                            ),
+                            android: (
+                              <IconSymbol
+                                ios_icon_name="hand.thumbsup"
+                                android_material_icon_name={likeCount > 0 ? "thumb-up" : "thumb-up-off-alt"}
+                                size={16}
+                                color={isLiked ? '#3B82F6' : colors.textLight}
+                              />
+                            ),
+                            default: (
+                              <IconSymbol
+                                ios_icon_name={isLiked ? "hand.thumbsup.fill" : "hand.thumbsup"}
+                                android_material_icon_name={likeCount > 0 ? "thumb-up" : "thumb-up-off-alt"}
+                                size={16}
+                                color={isLiked ? '#3B82F6' : colors.textLight}
+                              />
+                            ),
+                          })}
+                          {likeCount > 0 && (
+                            <Text style={styles.likeCountText}>{likeCount}</Text>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 );
               })
@@ -616,16 +624,22 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     fontSize: 11,
   },
+  replyContentWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
   replyContent: {
     ...typography.body,
     color: colors.text,
     lineHeight: 20,
     fontSize: 13,
-    marginBottom: spacing.xs,
+    flex: 1,
+    marginRight: spacing.sm,
   },
-  likeButtonBottom: {
+  likeButtonInline: {
     alignSelf: 'flex-end',
-    marginTop: 2,
+    marginBottom: 2,
   },
   likeCountContainer: {
     flexDirection: 'row',
