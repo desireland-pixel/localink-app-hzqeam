@@ -198,6 +198,16 @@ export const discussionReplies = pgTable('discussion_replies', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 });
 
+// Reply likes for community discussion replies
+export const replyLikes = pgTable('reply_likes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  replyId: uuid('reply_id').notNull().references(() => discussionReplies.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uniqueLike: uniqueIndex('reply_likes_reply_user_idx').on(table.replyId, table.userId),
+}));
+
 // Push notification tokens
 export const pushTokens = pgTable('push_tokens', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -216,13 +226,25 @@ export const discussionTopicsRelations = relations(discussionTopics, ({ one, man
   replies: many(discussionReplies),
 }));
 
-export const discussionRepliesRelations = relations(discussionReplies, ({ one }) => ({
+export const discussionRepliesRelations = relations(discussionReplies, ({ one, many }) => ({
   topic: one(discussionTopics, {
     fields: [discussionReplies.topicId],
     references: [discussionTopics.id],
   }),
   user: one(user, {
     fields: [discussionReplies.userId],
+    references: [user.id],
+  }),
+  likes: many(replyLikes),
+}));
+
+export const replyLikesRelations = relations(replyLikes, ({ one }) => ({
+  reply: one(discussionReplies, {
+    fields: [replyLikes.replyId],
+    references: [discussionReplies.id],
+  }),
+  user: one(user, {
+    fields: [replyLikes.userId],
     references: [user.id],
   }),
 }));
