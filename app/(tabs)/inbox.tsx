@@ -431,7 +431,6 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 11,
-    marginBottom: spacing.xs,
   },
   unreadBadge: {
     backgroundColor: colors.primary,
@@ -447,6 +446,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
+    lineHeight: 22,
   },
   lastMessage: {
     ...typography.body,

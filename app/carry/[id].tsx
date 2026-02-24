@@ -185,6 +185,7 @@ export default function CommunityDetailsScreen() {
     
     console.log('CommunityDetailsScreen: Toggle reply like', replyId);
     
+    // Optimistic update
     const updatedReplies = topic.replies.map(reply => {
       if (reply.id === replyId) {
         const wasLiked = reply.isLikedByMe || false;
@@ -199,6 +200,17 @@ export default function CommunityDetailsScreen() {
     });
     
     setTopic({ ...topic, replies: updatedReplies });
+    
+    // Make API call
+    try {
+      await authenticatedPost(`/api/community/replies/${replyId}/like`, {});
+      // Refresh to get accurate counts from server
+      await fetchTopic();
+    } catch (error) {
+      console.error('CommunityDetailsScreen: Error toggling reply like', error);
+      // Revert on error
+      setTopic({ ...topic, replies: topic.replies });
+    }
   };
 
   if (loading) {
@@ -247,8 +259,15 @@ export default function CommunityDetailsScreen() {
         <ScrollView style={styles.content}>
           <View style={styles.mainPostCard}>
             <View style={styles.headerRow}>
-              <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
-                <Text style={[styles.categoryBadgeText, { color: categoryTextColor }]}>{topic.category}</Text>
+              <View style={styles.leftHeaderSection}>
+                <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
+                  <Text style={[styles.categoryBadgeText, { color: categoryTextColor }]}>{topic.category}</Text>
+                </View>
+                {isClosed && (
+                  <View style={styles.closedBadge}>
+                    <Text style={styles.closedBadgeText}>Closed</Text>
+                  </View>
+                )}
               </View>
               <View style={styles.actionButtons}>
                 {isOwnPost ? (
@@ -331,7 +350,14 @@ export default function CommunityDetailsScreen() {
           </View>
 
           <View style={styles.repliesSection}>
-            <Text style={styles.repliesTitle}>Replies ({replyCountValue})</Text>
+            <View style={styles.repliesTitleRow}>
+              <Text style={styles.repliesTitle}>Replies ({replyCountValue})</Text>
+              {isClosed && (
+                <View style={styles.closedTagInline}>
+                  <Text style={styles.closedTagInlineText}>Closed</Text>
+                </View>
+              )}
+            </View>
             
             {topic.replies && topic.replies.length > 0 ? (
               topic.replies.map((reply) => {
@@ -352,21 +378,19 @@ export default function CommunityDetailsScreen() {
                       <TouchableOpacity 
                         style={styles.likeButtonRight}
                         onPress={() => toggleReplyLike(reply.id)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
-                        {likeCount > 0 ? (
-                          <View style={styles.likeCountContainer}>
-                            <Text style={styles.likeEmoji}>👍</Text>
-                            <Text style={styles.likeCountText}>{likeCount}</Text>
-                          </View>
-                        ) : (
+                        <View style={styles.likeCountContainer}>
                           <IconSymbol
-                            ios_icon_name="hand.thumbsup"
-                            android_material_icon_name="thumb-up"
-                            size={16}
-                            color="transparent"
-                            style={{ opacity: 0.4 }}
+                            ios_icon_name={isLiked ? "heart.fill" : "heart"}
+                            android_material_icon_name={isLiked ? "favorite" : "favorite-border"}
+                            size={18}
+                            color={isLiked ? colors.primary : colors.textLight}
                           />
-                        )}
+                          {likeCount > 0 && (
+                            <Text style={styles.likeCountText}>{likeCount}</Text>
+                          )}
+                        </View>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -486,12 +510,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  leftHeaderSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   categoryBadge: {
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
     borderRadius: 12,
+  },
+  closedBadge: {
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  closedBadgeText: {
+    ...typography.bodySmall,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   categoryBadgeText: {
     ...typography.bodySmall,
@@ -556,12 +597,29 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
     paddingLeft: spacing.md,
   },
+  repliesTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
   repliesTitle: {
     ...typography.h3,
     color: colors.text,
-    marginBottom: spacing.sm,
     fontSize: 16,
     fontWeight: '600',
+  },
+  closedTagInline: {
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  closedTagInlineText: {
+    ...typography.bodySmall,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   replyCard: {
     backgroundColor: colors.card,
@@ -614,12 +672,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  likeEmoji: {
-    fontSize: 14,
-  },
   likeCountText: {
     ...typography.bodySmall,
-    color: colors.primary,
+    color: '#000000',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -654,7 +709,7 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     backgroundColor: colors.primary,
-    borderRadius: borderRadius.sm,
+    borderRadius: borderRadius.md,
     width: 44,
     height: 44,
     alignItems: 'center',
