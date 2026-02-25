@@ -30,6 +30,7 @@ interface AuthContextType {
   loading: boolean;
   profileLoading: boolean;
   unreadCount: number;
+  communityUnreadCount: number;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, name?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -40,6 +41,7 @@ interface AuthContextType {
   fetchProfile: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   fetchUnreadCount: () => Promise<void>;
+  fetchCommunityUnreadCount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -93,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [communityUnreadCount, setCommunityUnreadCount] = useState(0);
 
   const fetchUser = React.useCallback(async () => {
     try {
@@ -184,9 +187,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const fetchCommunityUnreadCountInternal = React.useCallback(async () => {
+    try {
+      const response = await authenticatedGet<{ unreadTopicsCount: number }>('/api/community/unread-count');
+      console.log('[AuthContext] Community unread count fetched:', response.unreadTopicsCount);
+      setCommunityUnreadCount(response.unreadTopicsCount || 0);
+    } catch (error: any) {
+      console.error('[AuthContext] Failed to fetch community unread count:', error);
+      setCommunityUnreadCount(0);
+    }
+  }, []);
+
   const fetchUnreadCount = React.useCallback(async () => {
     await fetchUnreadCountInternal();
   }, [fetchUnreadCountInternal]);
+
+  const fetchCommunityUnreadCount = React.useCallback(async () => {
+    await fetchCommunityUnreadCountInternal();
+  }, [fetchCommunityUnreadCountInternal]);
 
   useEffect(() => {
     console.log('[AuthContext] Initializing auth state');
@@ -212,8 +230,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) {
       console.log('[AuthContext] User logged in, starting unread count polling');
       fetchUnreadCountInternal();
+      fetchCommunityUnreadCountInternal();
       const unreadInterval = setInterval(() => {
         fetchUnreadCountInternal();
+        fetchCommunityUnreadCountInternal();
       }, 30000);
 
       return () => {
@@ -221,8 +241,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     } else {
       setUnreadCount(0);
+      setCommunityUnreadCount(0);
     }
-  }, [user, fetchUnreadCountInternal]);
+  }, [user, fetchUnreadCountInternal, fetchCommunityUnreadCountInternal]);
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
@@ -300,6 +321,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setProfile(null);
       setUnreadCount(0);
+      setCommunityUnreadCount(0);
       await clearAuthTokens();
     }
   };
@@ -312,6 +334,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         profileLoading,
         unreadCount,
+        communityUnreadCount,
         signInWithEmail,
         signUpWithEmail,
         signInWithGoogle,
@@ -322,6 +345,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fetchProfile,
         refreshProfile,
         fetchUnreadCount,
+        fetchCommunityUnreadCount,
       }}
     >
       {children}

@@ -7,6 +7,7 @@ import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles
 import { IconSymbol } from '@/components/IconSymbol';
 import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CommunityTopic {
   id: string;
@@ -52,6 +53,7 @@ const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } =
 export default function CommunityScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { user, fetchCommunityUnreadCount } = useAuth();
   const [topics, setTopics] = useState<CommunityTopic[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -104,7 +106,8 @@ export default function CommunityScreen() {
       console.log('CommunityScreen: Screen focused, refreshing topics');
       fetchTopics();
       fetchFavorites();
-    }, [fetchTopics, fetchFavorites])
+      fetchCommunityUnreadCount();
+    }, [fetchTopics, fetchFavorites, fetchCommunityUnreadCount])
   );
 
   const toggleFavorite = async (postId: string) => {
@@ -224,6 +227,7 @@ export default function CommunityScreen() {
             const createdDate = formatDateToDDMMYYYY(topic.createdAt);
             const isFavorited = favorites.has(topic.id);
             const isOpen = topic.status === 'open';
+            const isOwnPost = topic.userId === user?.id;
             
             const categoryColor = CATEGORY_COLORS[topic.category] || CATEGORY_COLORS['General'];
             const categoryBackgroundColor = isOpen ? categoryColor.background : '#E5E7EB';
@@ -250,21 +254,23 @@ export default function CommunityScreen() {
                         <Text style={styles.closedBadgeText}>Closed</Text>
                       </View>
                     )}
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        console.log('CommunityScreen: Heart button pressed for', topic.id);
-                        toggleFavorite(topic.id);
-                      }}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <IconSymbol
-                        ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                        android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                        size={20}
-                        color={isFavorited ? colors.primary : colors.textLight}
-                      />
-                    </TouchableOpacity>
+                    {!isOwnPost && (
+                      <TouchableOpacity 
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          console.log('CommunityScreen: Heart button pressed for', topic.id);
+                          toggleFavorite(topic.id);
+                        }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <IconSymbol
+                          ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                          android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                          size={20}
+                          color={isFavorited ? colors.primary : colors.textLight}
+                        />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
                 <Text style={styles.cardTitle}>{topic.title}</Text>

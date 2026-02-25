@@ -252,7 +252,8 @@ export default function InboxScreen() {
             }
             
             const timeText = timeDisplay(lastMessageTime);
-            const postTitle = conversation.post?.title || 'Post';
+            const isPostDeleted = !conversation.post;
+            const postTitle = conversation.post?.title || 'Deleted post';
             const postType = conversation.post?.type || conversation.postType;
             const emoji = postTypeEmoji(postType);
             
@@ -275,7 +276,7 @@ export default function InboxScreen() {
                     </Text>
                     <View style={styles.postTag}>
                       <Text style={styles.postEmoji}>{emoji}</Text>
-                      <Text style={styles.postTitle} numberOfLines={1}>
+                      <Text style={[styles.postTitle, isPostDeleted && styles.postTitleDeleted]} numberOfLines={1}>
                         {postTitle}
                       </Text>
                     </View>
@@ -420,6 +421,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 12,
     maxWidth: 180,
+  },
+  postTitleDeleted: {
+    color: colors.textLight,
+    fontStyle: 'italic',
   },
   rightColumn: {
     alignItems: 'flex-end',

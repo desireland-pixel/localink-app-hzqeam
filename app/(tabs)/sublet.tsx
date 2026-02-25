@@ -8,6 +8,7 @@ import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles
 import { IconSymbol } from '@/components/IconSymbol';
 import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Sublet {
   id: string;
@@ -32,6 +33,7 @@ interface Sublet {
 export default function SubletScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { user } = useAuth();
   const [sublets, setSublets] = useState<Sublet[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -206,6 +208,7 @@ export default function SubletScreen() {
             const hasNoPhoto = !imageUrl || imageUrl.length === 0;
             const tagBackgroundColor = sublet.type === 'offering' ? '#D1FAE5' : '#DBEAFE';
             const tagTextColor = sublet.type === 'offering' ? '#065F46' : '#1E40AF';
+            const isOwnPost = sublet.userId === user?.id;
             
             return (
               <TouchableOpacity
@@ -225,21 +228,23 @@ export default function SubletScreen() {
                       color={colors.textSecondary}
                     />
                     <Text style={styles.cityText}>{sublet.city}</Text>
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite(sublet.id);
-                      }}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      style={styles.heartButton}
-                    >
-                      <IconSymbol
-                        ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                        android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                        size={20}
-                        color={isFavorited ? colors.primary : colors.border}
-                      />
-                    </TouchableOpacity>
+                    {!isOwnPost && (
+                      <TouchableOpacity 
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(sublet.id);
+                        }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        style={styles.heartButton}
+                      >
+                        <IconSymbol
+                          ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                          android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                          size={20}
+                          color={isFavorited ? colors.primary : colors.border}
+                        />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
                 <View style={styles.cardContent}>

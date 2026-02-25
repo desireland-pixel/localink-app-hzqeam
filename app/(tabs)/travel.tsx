@@ -7,6 +7,7 @@ import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles
 import { IconSymbol } from '@/components/IconSymbol';
 import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TravelPost {
   id: string;
@@ -35,6 +36,7 @@ interface TravelPost {
 export default function TravelScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { user } = useAuth();
   const [posts, setPosts] = useState<TravelPost[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -240,6 +242,7 @@ export default function TravelScreen() {
             
             const isFavorited = favorites.has(post.id);
             const hasIncentive = post.incentiveAmount && post.incentiveAmount > 0;
+            const isOwnPost = post.userId === user?.id;
             
             return (
               <TouchableOpacity
@@ -270,20 +273,22 @@ export default function TravelScreen() {
                         <Text style={styles.incentiveTagText}>Incentive</Text>
                       </View>
                     )}
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite(post.id);
-                      }}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <IconSymbol
-                        ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                        android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                        size={20}
-                        color={isFavorited ? colors.primary : colors.border}
-                      />
-                    </TouchableOpacity>
+                    {!isOwnPost && (
+                      <TouchableOpacity 
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(post.id);
+                        }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <IconSymbol
+                          ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                          android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                          size={20}
+                          color={isFavorited ? colors.primary : colors.border}
+                        />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
                 <View style={styles.routeContainer}>
