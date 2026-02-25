@@ -184,6 +184,7 @@ export const discussionTopics = pgTable('discussion_topics', {
   description: text('description'),
   status: text('status', { enum: ['open', 'closed'] }).default('open').notNull(),
   repliesCount: numeric('replies_count').default('0').notNull(),
+  unreadRepliesCount: numeric('unread_replies_count').default('0').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 });
@@ -194,6 +195,7 @@ export const discussionReplies = pgTable('discussion_replies', {
   topicId: uuid('topic_id').notNull().references(() => discussionTopics.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
+  isRead: boolean('is_read').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 });

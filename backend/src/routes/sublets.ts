@@ -163,6 +163,7 @@ export function registerSubletRoutes(app: App) {
           imageUrls: freshImageUrls,
           availableFrom: formatDateToDDMMYYYY(fromDate),
           availableTo: formatDateToDDMMYYYY(toDate),
+          isOwner: false, // Set to false for list endpoint (frontend can determine based on userId)
           user: {
             id: sublet.userId,
             username: sublet.username || 'Unknown User',
@@ -243,6 +244,7 @@ export function registerSubletRoutes(app: App) {
         availableFrom: formatDateToDDMMYYYY(fromDate),
         availableTo: formatDateToDDMMYYYY(toDate),
         shortId: generateShortId(sublet.id),
+        isOwner: false, // Will be determined by frontend based on userId
         user: {
           id: sublet.userId,
           username: sublet.username || 'Unknown User',
