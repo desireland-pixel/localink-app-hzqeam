@@ -264,6 +264,12 @@ export function registerFavoriteRoutes(app: App) {
               const fromDate = String(s.availableFrom);
               const toDate = String(s.availableTo);
 
+              // Check if post is expired
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+              const isExpired = toDate < todayString;
+
               // Regenerate fresh signed URLs for images
               const freshImageUrls = await regenerateSignedUrls(app, s.imageUrls);
 
@@ -271,6 +277,7 @@ export function registerFavoriteRoutes(app: App) {
                 ...s,
                 imageUrls: freshImageUrls,
                 postType: 'sublet',
+                isExpired: isExpired,
                 availableFrom: formatDateToDDMMYYYY(fromDate),
                 availableTo: formatDateToDDMMYYYY(toDate),
                 user: {
@@ -311,6 +318,12 @@ export function registerFavoriteRoutes(app: App) {
               const travelDate = String(t.travelDate);
               const travelDateTo = t.travelDateTo ? String(t.travelDateTo) : null;
 
+              // Check if post is expired
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+              const isExpired = travelDate < todayString || (travelDateTo && travelDateTo < todayString);
+
               const { title, tag } = formatTravelPostTitle(
                 t.type as 'offering' | 'seeking' | 'seeking-ally',
                 t.fromCity,
@@ -327,6 +340,7 @@ export function registerFavoriteRoutes(app: App) {
               post = {
                 ...t,
                 postType: 'travel',
+                isExpired: isExpired,
                 travelDate: formatDateToDDMMYYYY(travelDate),
                 travelDateTo: travelDateTo ? formatDateToDDMMYYYY(travelDateTo) : null,
                 formattedTitle: title,

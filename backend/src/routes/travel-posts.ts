@@ -298,6 +298,7 @@ export function registerTravelPostRoutes(app: App) {
               displayText: `€ ${formattedIncentive}`,
             }
           } : {}),
+          isOwner: false, // Set to false for list endpoint (frontend can determine based on userId)
           user: {
             id: post.userId,
             username: post.username || 'Unknown User',
@@ -392,6 +393,7 @@ export function registerTravelPostRoutes(app: App) {
         tag: tag,
         typeEmojis: typeEmojis,
         shortId: generateShortId(post.id),
+        isOwner: false, // Will be determined by frontend based on userId
         ...(formattedIncentive ? {
           incentive: {
             amount: formattedIncentive,

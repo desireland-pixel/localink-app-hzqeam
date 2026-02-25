@@ -85,6 +85,7 @@ export function registerCommunityRoutes(app: App) {
         return {
           ...topic,
           shortId: generateShortId(topic.id),
+          isOwner: false, // Set to false for list endpoint (frontend can determine based on userId)
           user: {
             id: topic.userId,
             username: topic.username || 'Unknown User',
@@ -132,6 +133,7 @@ export function registerCommunityRoutes(app: App) {
           title: schema.discussionTopics.title,
           description: schema.discussionTopics.description,
           status: schema.discussionTopics.status,
+          unreadRepliesCount: schema.discussionTopics.unreadRepliesCount,
           replyCount: sql<number>`(SELECT COUNT(*) FROM ${schema.discussionReplies} WHERE ${schema.discussionReplies.topicId} = ${schema.discussionTopics.id})`,
           createdAt: schema.discussionTopics.createdAt,
           updatedAt: schema.discussionTopics.updatedAt,
@@ -180,6 +182,7 @@ export function registerCommunityRoutes(app: App) {
       const response = {
         ...topic,
         shortId: generateShortId(topic.id),
+        isOwner: topic.userId === currentUserId, // Topic owner flag
         user: {
           id: topic.userId,
           username: topic.username || 'Unknown User',
@@ -352,9 +355,17 @@ export function registerCommunityRoutes(app: App) {
 
       // Increment repliesCount on topic
       const newCount = (parseInt(topic.repliesCount.toString()) || 0) + 1;
+      const updateData: any = { repliesCount: newCount.toString() };
+
+      // Increment unreadRepliesCount if reply is from someone other than topic owner
+      if (topic.userId !== session.user.id) {
+        const newUnreadCount = (parseInt(topic.unreadRepliesCount.toString()) || 0) + 1;
+        updateData.unreadRepliesCount = newUnreadCount.toString();
+      }
+
       await app.db
         .update(schema.discussionTopics)
-        .set({ repliesCount: newCount.toString() })
+        .set(updateData)
         .where(eq(schema.discussionTopics.id, id));
 
       // Send push notification to topic author if different from reply author
@@ -604,9 +615,17 @@ export function registerCommunityRoutes(app: App) {
 
       // Increment repliesCount on topic
       const newCount = (parseInt(topic.repliesCount.toString()) || 0) + 1;
+      const updateData: any = { repliesCount: newCount.toString() };
+
+      // Increment unreadRepliesCount if reply is from someone other than topic owner
+      if (topic.userId !== session.user.id) {
+        const newUnreadCount = (parseInt(topic.unreadRepliesCount.toString()) || 0) + 1;
+        updateData.unreadRepliesCount = newUnreadCount.toString();
+      }
+
       await app.db
         .update(schema.discussionTopics)
-        .set({ repliesCount: newCount.toString() })
+        .set(updateData)
         .where(eq(schema.discussionTopics.id, postId));
 
       app.logger.info({ replyId: newReply.id, postId, userId: session.user.id }, 'Comment added successfully');
@@ -795,6 +814,163 @@ export function registerCommunityRoutes(app: App) {
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, replyId }, 'Failed to toggle like on reply');
       return reply.status(500).send({ error: 'Failed to toggle like on reply' });
+    }
+  });
+
+  // Get unread replies count for a topic
+  app.fastify.get('/api/community/topics/:id/unread-replies', {
+    schema: {
+      description: 'Get unread replies count for a topic (owner only)',
+      tags: ['community'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+        },
+        required: ['id'],
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            unreadCount: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    const { id } = request.params as { id: string };
+    app.logger.info({ userId: session.user.id, topicId: id }, 'Fetching unread replies count');
+
+    try {
+      const topic = await app.db.query.discussionTopics.findFirst({
+        where: eq(schema.discussionTopics.id, id),
+      });
+
+      if (!topic) {
+        app.logger.warn({ topicId: id }, 'Discussion topic not found');
+        return reply.status(404).send({ error: 'Discussion topic not found' });
+      }
+
+      // Only topic owner can see unread count
+      if (topic.userId !== session.user.id) {
+        app.logger.warn({ userId: session.user.id, topicId: id }, 'Unauthorized - not topic owner');
+        return reply.status(403).send({ error: 'You can only view unread replies for your own topics' });
+      }
+
+      const unreadCount = parseInt(topic.unreadRepliesCount.toString()) || 0;
+      app.logger.info({ topicId: id, unreadCount }, 'Unread replies count fetched successfully');
+      return { unreadCount };
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id, topicId: id }, 'Failed to fetch unread replies count');
+      return reply.status(500).send({ error: 'Failed to fetch unread replies count' });
+    }
+  });
+
+  // Mark all replies as read for a topic
+  app.fastify.post('/api/community/topics/:id/mark-replies-read', {
+    schema: {
+      description: 'Mark all replies as read for a topic (owner only)',
+      tags: ['community'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+        },
+        required: ['id'],
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    const { id } = request.params as { id: string };
+    app.logger.info({ userId: session.user.id, topicId: id }, 'Marking replies as read');
+
+    try {
+      const topic = await app.db.query.discussionTopics.findFirst({
+        where: eq(schema.discussionTopics.id, id),
+      });
+
+      if (!topic) {
+        app.logger.warn({ topicId: id }, 'Discussion topic not found');
+        return reply.status(404).send({ error: 'Discussion topic not found' });
+      }
+
+      // Only topic owner can mark replies as read
+      if (topic.userId !== session.user.id) {
+        app.logger.warn({ userId: session.user.id, topicId: id }, 'Unauthorized - not topic owner');
+        return reply.status(403).send({ error: 'You can only mark replies as read for your own topics' });
+      }
+
+      // Mark all replies for this topic as read
+      await app.db
+        .update(schema.discussionReplies)
+        .set({ isRead: true })
+        .where(eq(schema.discussionReplies.topicId, id));
+
+      // Reset unread replies count
+      await app.db
+        .update(schema.discussionTopics)
+        .set({ unreadRepliesCount: '0', updatedAt: new Date() })
+        .where(eq(schema.discussionTopics.id, id));
+
+      app.logger.info({ topicId: id, userId: session.user.id }, 'Replies marked as read successfully');
+      return { success: true };
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id, topicId: id }, 'Failed to mark replies as read');
+      return reply.status(500).send({ error: 'Failed to mark replies as read' });
+    }
+  });
+
+  // Get unread topics count for current user
+  app.fastify.get('/api/community/unread-count', {
+    schema: {
+      description: 'Get count of topics with unread replies for current user',
+      tags: ['community'],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            unreadTopicsCount: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    app.logger.info({ userId: session.user.id }, 'Fetching unread topics count');
+
+    try {
+      const unreadTopics = await app.db
+        .select({
+          id: schema.discussionTopics.id,
+        })
+        .from(schema.discussionTopics)
+        .where(and(
+          eq(schema.discussionTopics.userId, session.user.id),
+          sql`${schema.discussionTopics.unreadRepliesCount} > 0`
+        ));
+
+      const unreadTopicsCount = unreadTopics.length;
+      app.logger.info({ userId: session.user.id, unreadTopicsCount }, 'Unread topics count fetched successfully');
+      return { unreadTopicsCount };
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id }, 'Failed to fetch unread topics count');
+      return reply.status(500).send({ error: 'Failed to fetch unread topics count' });
     }
   });
 }
