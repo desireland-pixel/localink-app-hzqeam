@@ -28,6 +28,7 @@ interface Reply {
   createdAt: string;
   likes: number;
   isLikedByMe: boolean;
+  isRead?: boolean;
   user: {
     id: string;
     name: string;
@@ -56,7 +57,7 @@ interface CommunityTopic {
 export default function CommunityDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, fetchCommunityUnreadCount } = useAuth();
   const [topic, setTopic] = useState<CommunityTopic | null>(null);
   const [loading, setLoading] = useState(true);
   const [replyText, setReplyText] = useState('');
@@ -65,6 +66,7 @@ export default function CommunityDetailsScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [unreadReplyIds, setUnreadReplyIds] = useState<Set<string>>(new Set());
 
   console.log('CommunityDetailsScreen: Viewing topic', { id });
 
@@ -81,19 +83,44 @@ export default function CommunityDetailsScreen() {
           return dateB - dateA;
         });
         data.replies = sortedReplies;
+        
+        const isOwner = data.userId === user?.id;
+        if (isOwner) {
+          const unreadIds = new Set(
+            sortedReplies
+              .filter(r => r.isRead === false)
+              .map(r => r.id)
+          );
+          setUnreadReplyIds(unreadIds);
+          
+          setTimeout(() => {
+            setUnreadReplyIds(new Set());
+          }, 1000);
+        }
       }
       
       setTopic(data);
       
       const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=community`);
       setIsFavorited(favoriteCheck.isFavorited);
+      
+      const isOwner = data.userId === user?.id;
+      if (isOwner) {
+        try {
+          await authenticatedPost(`/api/community/topics/${id}/mark-replies-read`, {});
+          console.log('[CommunityDetails] Marked replies as read');
+          await fetchCommunityUnreadCount();
+        } catch (err) {
+          console.error('[CommunityDetails] Error marking replies as read:', err);
+        }
+      }
     } catch (err) {
       console.error('[CommunityDetails] Error fetching topic:', err);
       setError(err instanceof Error ? err.message : 'Failed to load topic');
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, user?.id]);
 
   useEffect(() => {
     fetchTopic();
@@ -185,16 +212,16 @@ export default function CommunityDetailsScreen() {
     
     console.log('CommunityDetailsScreen: Toggle reply like', replyId);
     
-    const previousReplies = [...topic.replies];
     const targetReply = topic.replies.find(r => r.id === replyId);
     
     if (!targetReply) return;
     
     const wasLiked = targetReply.isLikedByMe || false;
-    const currentLikes = targetReply.likes || 0;
+    const currentLikes = typeof targetReply.likes === 'number' ? targetReply.likes : 0;
     
     const newLikeCount = wasLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
     
+    // Optimistic update - update state immediately before API call
     const updatedReplies = topic.replies.map(reply => {
       if (reply.id === replyId) {
         return {
@@ -209,11 +236,44 @@ export default function CommunityDetailsScreen() {
     setTopic({ ...topic, replies: updatedReplies });
     
     try {
-      await authenticatedPost(`/api/community/replies/${replyId}/like`, {});
-      await fetchTopic();
+      const result = await authenticatedPost<{ liked: boolean; likeCount: number }>(`/api/community/replies/${replyId}/like`, {});
+      console.log('CommunityDetailsScreen: Like toggled, server response:', result);
+      // Update with server-confirmed values to ensure accuracy
+      setTopic(prev => {
+        if (!prev || !prev.replies) return prev;
+        return {
+          ...prev,
+          replies: prev.replies.map(reply => {
+            if (reply.id === replyId) {
+              return {
+                ...reply,
+                isLikedByMe: result.liked,
+                likes: result.likeCount,
+              };
+            }
+            return reply;
+          }),
+        };
+      });
     } catch (error) {
       console.error('CommunityDetailsScreen: Error toggling reply like', error);
-      setTopic({ ...topic, replies: previousReplies });
+      // Revert optimistic update on error
+      setTopic(prev => {
+        if (!prev || !prev.replies) return prev;
+        return {
+          ...prev,
+          replies: prev.replies.map(reply => {
+            if (reply.id === replyId) {
+              return {
+                ...reply,
+                isLikedByMe: wasLiked,
+                likes: currentLikes,
+              };
+            }
+            return reply;
+          }),
+        };
+      });
     }
   };
 
@@ -353,9 +413,16 @@ export default function CommunityDetailsScreen() {
                 const replyAuthor = reply.user.username || reply.user.name;
                 const likeCount = reply.likes || 0;
                 const isLiked = reply.isLikedByMe || false;
+                const isUnread = unreadReplyIds.has(reply.id);
                 
                 return (
-                  <View key={reply.id} style={styles.replyCard}>
+                  <View 
+                    key={reply.id} 
+                    style={[
+                      styles.replyCard,
+                      isUnread && styles.replyCardUnread
+                    ]}
+                  >
                     <View style={styles.replyTopRow}>
                       <Text style={styles.replyAuthor}>{replyAuthor}</Text>
                       <Text style={styles.replyDateSeparator}> • </Text>
@@ -603,6 +670,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginRight: spacing.md,
+  },
+  replyCardUnread: {
+    borderColor: colors.primary,
+    borderWidth: 2,
   },
   replyTopRow: {
     flexDirection: 'row',

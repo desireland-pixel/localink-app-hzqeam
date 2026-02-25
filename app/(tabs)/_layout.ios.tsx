@@ -6,8 +6,8 @@ import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabLayout() {
-  const { unreadCount } = useAuth();
-  console.log('TabLayout (iOS): Rendering tabs', { unreadCount });
+  const { unreadCount, communityUnreadCount } = useAuth();
+  console.log('TabLayout (iOS): Rendering tabs', { unreadCount, communityUnreadCount });
 
   return (
     <Tabs
@@ -62,6 +62,16 @@ export default function TabLayout() {
         name="carry"
         options={{
           title: 'Community',
+          tabBarBadge: communityUnreadCount > 0 ? communityUnreadCount : undefined,
+          tabBarBadgeStyle: {
+            fontSize: 10,
+            fontWeight: '700',
+            minWidth: 16,
+            height: 16,
+            borderRadius: 8,
+            paddingHorizontal: 3,
+            top: -2,
+          },
           tabBarIcon: ({ color }) => (
             <IconSymbol
               ios_icon_name="person.3.fill"

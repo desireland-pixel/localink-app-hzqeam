@@ -54,6 +54,7 @@ export default function ChatScreen() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [showDeletedPostModal, setShowDeletedPostModal] = useState(false);
 
   console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length, currentUserId: user?.id });
 
@@ -306,6 +307,13 @@ export default function ChatScreen() {
       post: conversation?.post 
     });
     
+    // If post is deleted (null), show a message instead of navigating
+    if (!conversation?.post) {
+      console.log('ChatScreen: Post has been deleted, showing notification');
+      setShowDeletedPostModal(true);
+      return;
+    }
+    
     if (!conversation?.post?.id || !conversation?.post?.type) {
       console.warn('ChatScreen: Cannot navigate to post - missing post.id or post.type', conversation);
       return;
@@ -396,8 +404,9 @@ export default function ChatScreen() {
   }
 
   const participantName = conversation?.otherParticipant?.username || conversation?.otherParticipant?.name || 'Chat';
-  const postTitle = conversation?.post?.title || '';
-  const postEmoji = conversation?.post?.type === 'sublet' ? '🏠' : conversation?.post?.type === 'travel' ? '✈️' : '';
+  const isPostDeleted = conversation !== null && !conversation?.post;
+  const postTitle = conversation?.post?.title || (isPostDeleted ? 'Deleted post' : '');
+  const postEmoji = conversation?.post?.type === 'sublet' ? '🏠' : conversation?.post?.type === 'travel' ? '✈️' : (isPostDeleted ? '🗑️' : '');
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
@@ -412,14 +421,14 @@ export default function ChatScreen() {
         style={styles.keyboardView}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
-        {conversation?.post && (
+        {(conversation?.post || isPostDeleted) && (
           <TouchableOpacity 
-            style={styles.postReferenceCard}
+            style={[styles.postReferenceCard, isPostDeleted && styles.postReferenceCardDeleted]}
             onPress={handleViewPost}
             activeOpacity={0.7}
           >
             <Text style={styles.postReferenceEmoji}>{postEmoji}</Text>
-            <Text style={styles.postReferenceTitle} numberOfLines={1} ellipsizeMode="tail">
+            <Text style={[styles.postReferenceTitle, isPostDeleted && styles.postReferenceTitleDeleted]} numberOfLines={1} ellipsizeMode="tail">
               {postTitle}
             </Text>
           </TouchableOpacity>
@@ -454,12 +463,16 @@ export default function ChatScreen() {
             onPress={handleSend}
             disabled={!newMessage.trim() || sending}
           >
-            <IconSymbol
-              ios_icon_name="arrow.up.circle.fill"
-              android_material_icon_name="send"
-              size={32}
-              color={!newMessage.trim() || sending ? colors.textLight : colors.primary}
-            />
+            {sending ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <IconSymbol
+                ios_icon_name="paperplane.fill"
+                android_material_icon_name="send"
+                size={20}
+                color="#FFFFFF"
+              />
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -470,6 +483,14 @@ export default function ChatScreen() {
         message={error}
         onClose={() => setError('')}
         type="error"
+      />
+
+      <Modal
+        visible={showDeletedPostModal}
+        title="Post Deleted"
+        message="This post has been deleted by its owner."
+        onClose={() => setShowDeletedPostModal(false)}
+        type="info"
       />
     </SafeAreaView>
   );
@@ -501,6 +522,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  postReferenceCardDeleted: {
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+  },
   postReferenceEmoji: {
     fontSize: 16,
     marginRight: spacing.sm,
@@ -510,6 +535,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 14,
     flex: 1,
+  },
+  postReferenceTitleDeleted: {
+    color: colors.textLight,
+    fontStyle: 'italic',
   },
   messagesContainer: {
     flex: 1,
@@ -541,7 +570,8 @@ const styles = StyleSheet.create({
   messageText: {
     ...typography.body,
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 18,
+    fontSize: 13,
   },
   ownMessageText: {
     color: '#FFFFFF',
@@ -596,7 +626,12 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   sendButton: {
-    padding: spacing.xs,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sendButtonDisabled: {
     opacity: 0.5,

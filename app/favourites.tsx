@@ -88,7 +88,37 @@ export default function FavouritesScreen() {
         }
       });
       
-      const validFavorites = data.filter(f => f.post !== null && f.post !== undefined);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0); // Compare at day boundary
+      
+      const validFavorites = data.filter(f => {
+        if (!f.post) return false;
+        
+        // Filter out expired sublet posts (availableTo in the past)
+        if (f.postType === 'sublet' && f.post.availableTo) {
+          const availableTo = new Date(f.post.availableTo);
+          availableTo.setHours(23, 59, 59, 999); // Include the full last day
+          if (availableTo < now) {
+            console.log('FavouritesScreen: Filtering out expired sublet', f.post.id, f.post.availableTo);
+            return false;
+          }
+        }
+        
+        // Filter out expired travel posts (travelDate in the past)
+        if (f.postType === 'travel' && f.post.travelDate) {
+          const travelDate = f.post.travelDateTo 
+            ? new Date(f.post.travelDateTo) 
+            : new Date(f.post.travelDate);
+          travelDate.setHours(23, 59, 59, 999); // Include the full last day
+          if (travelDate < now) {
+            console.log('FavouritesScreen: Filtering out expired travel post', f.post.id, f.post.travelDate);
+            return false;
+          }
+        }
+        
+        return true;
+      });
+      
       const sortedFavorites = validFavorites.sort((a, b) => {
         const dateA = a.post?.createdAt ? new Date(a.post.createdAt).getTime() : 0;
         const dateB = b.post?.createdAt ? new Date(b.post.createdAt).getTime() : 0;
@@ -286,26 +316,28 @@ export default function FavouritesScreen() {
                           )}
                           {post.type === 'seeking' && <Text style={styles.iconText}>👥</Text>}
                           {post.type === 'seeking-ally' && <Text style={styles.iconText}>📦</Text>}
+                        </View>
+                        <View style={styles.travelRightSection}>
                           {hasIncentive && (
                             <View style={styles.incentiveTag}>
                               <Text style={styles.incentiveTagText}>Incentive</Text>
                             </View>
                           )}
+                          <TouchableOpacity 
+                            style={styles.likeButton}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              handleRemoveFavorite(favorite.postId, favorite.postType);
+                            }}
+                          >
+                            <IconSymbol
+                              ios_icon_name="heart.fill"
+                              android_material_icon_name="favorite"
+                              size={20}
+                              color={colors.primary}
+                            />
+                          </TouchableOpacity>
                         </View>
-                        <TouchableOpacity 
-                          style={styles.likeButton}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            handleRemoveFavorite(favorite.postId, favorite.postType);
-                          }}
-                        >
-                          <IconSymbol
-                            ios_icon_name="heart.fill"
-                            android_material_icon_name="favorite"
-                            size={20}
-                            color={colors.primary}
-                          />
-                        </TouchableOpacity>
                       </View>
                       <View style={styles.routeContainer}>
                         <Text style={styles.routeText}>{post.fromCity}</Text>
@@ -500,6 +532,11 @@ const styles = StyleSheet.create({
   },
   iconText: {
     fontSize: 16,
+  },
+  travelRightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   incentiveTag: {
     backgroundColor: '#F3E8FF',
