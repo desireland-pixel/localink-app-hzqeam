@@ -74,6 +74,20 @@ export default function FavouritesScreen() {
     try {
       const data = await authenticatedGet<FavoritePost[]>('/api/favorites');
       console.log('FavouritesScreen: Fetched favorites', data);
+      
+      // Log travel posts with incentive amounts for debugging
+      data.forEach(fav => {
+        if (fav.postType === 'travel' && fav.post) {
+          console.log('FavouritesScreen: Travel post', {
+            id: fav.post.id,
+            fromCity: fav.post.fromCity,
+            toCity: fav.post.toCity,
+            incentiveAmount: fav.post.incentiveAmount,
+            type: typeof fav.post.incentiveAmount
+          });
+        }
+      });
+      
       const validFavorites = data.filter(f => f.post !== null && f.post !== undefined);
       const sortedFavorites = validFavorites.sort((a, b) => {
         const dateA = a.post?.createdAt ? new Date(a.post.createdAt).getTime() : 0;
@@ -177,6 +191,29 @@ export default function FavouritesScreen() {
                 return null;
               }
               
+              // Extract variables for travel post
+              const incentiveAmount = post.incentiveAmount;
+              const hasIncentive = incentiveAmount && (typeof incentiveAmount === 'number' ? incentiveAmount > 0 : parseFloat(String(incentiveAmount)) > 0);
+              
+              if (selectedTab === 'travel') {
+                console.log('FavouritesScreen: Rendering travel post', { 
+                  postId: post.id, 
+                  fromCity: post.fromCity,
+                  toCity: post.toCity,
+                  incentiveAmount, 
+                  hasIncentive,
+                  type: typeof incentiveAmount
+                });
+              }
+              
+              const offeringIconText = post.canOfferCompanionship && post.canCarryItems ? '👥, 📦' : 
+                                       post.canOfferCompanionship ? '👥' : 
+                                       post.canCarryItems ? '📦' : '👥, 📦';
+              
+              const typeTagBgColor = post.type === 'offering' ? '#D1FAE5' : '#DBEAFE';
+              const typeTagTextColor = post.type === 'offering' ? '#065F46' : '#1E40AF';
+              const typeTagText = post.type === 'offering' ? 'Offering' : 'Seeking';
+              
               return (
                 <TouchableOpacity
                   key={favorite.id}
@@ -186,9 +223,9 @@ export default function FavouritesScreen() {
                   {selectedTab === 'sublet' && (
                     <>
                       <View style={styles.cardHeader}>
-                        <View style={[styles.typeTag, { backgroundColor: post.type === 'offering' ? '#D1FAE5' : '#DBEAFE' }]}>
-                          <Text style={[styles.typeTagText, { color: post.type === 'offering' ? '#065F46' : '#1E40AF' }]}>
-                            {post.type === 'offering' ? 'Offering' : 'Seeking'}
+                        <View style={[styles.typeTag, { backgroundColor: typeTagBgColor }]}>
+                          <Text style={[styles.typeTagText, { color: typeTagTextColor }]}>
+                            {typeTagText}
                           </Text>
                         </View>
                         <TouchableOpacity 
@@ -236,22 +273,20 @@ export default function FavouritesScreen() {
                       <View style={styles.cardHeader}>
                         <View style={styles.tagRow}>
                           {post.type && (
-                            <View style={[styles.typeTag, { backgroundColor: post.type === 'offering' ? '#D1FAE5' : '#DBEAFE' }]}>
-                              <Text style={[styles.typeTagText, { color: post.type === 'offering' ? '#065F46' : '#1E40AF' }]}>
-                                {post.type === 'offering' ? 'Offering' : 'Seeking'}
+                            <View style={[styles.typeTag, { backgroundColor: typeTagBgColor }]}>
+                              <Text style={[styles.typeTagText, { color: typeTagTextColor }]}>
+                                {typeTagText}
                               </Text>
                             </View>
                           )}
                           {post.type === 'offering' && (
                             <Text style={styles.iconText}>
-                              {post.canOfferCompanionship && post.canCarryItems ? '👥, 📦' : 
-                               post.canOfferCompanionship ? '👥' : 
-                               post.canCarryItems ? '📦' : '👥, 📦'}
+                              {offeringIconText}
                             </Text>
                           )}
                           {post.type === 'seeking' && <Text style={styles.iconText}>👥</Text>}
                           {post.type === 'seeking-ally' && <Text style={styles.iconText}>📦</Text>}
-                          {post.incentiveAmount && post.incentiveAmount > 0 && (
+                          {hasIncentive && (
                             <View style={styles.incentiveTag}>
                               <Text style={styles.incentiveTagText}>Incentive</Text>
                             </View>
