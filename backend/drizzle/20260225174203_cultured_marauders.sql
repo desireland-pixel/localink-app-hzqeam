@@ -1,0 +1,2 @@
+ALTER TABLE "discussion_replies" ADD COLUMN "is_read" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "discussion_topics" ADD COLUMN "unread_replies_count" numeric DEFAULT '0' NOT NULL;
