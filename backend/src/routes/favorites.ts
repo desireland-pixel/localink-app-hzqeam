@@ -295,6 +295,7 @@ export function registerFavoriteRoutes(app: App) {
                 item: schema.travelPosts.item,
                 canOfferCompanionship: schema.travelPosts.canOfferCompanionship,
                 canCarryItems: schema.travelPosts.canCarryItems,
+                incentiveAmount: schema.travelPosts.incentiveAmount,
                 status: schema.travelPosts.status,
                 createdAt: schema.travelPosts.createdAt,
                 updatedAt: schema.travelPosts.updatedAt,
