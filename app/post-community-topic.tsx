@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedPost, authenticatedPut } from '@/utils/api';
 import Modal from '@/components/ui/Modal';
+import { CitySearchInput } from '@/components/CitySearchInput';
 
 const CATEGORIES = [
   'Visa',
@@ -25,13 +26,15 @@ export default function PostCommunityTopicScreen() {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('Germany');
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const isEditing = !!params.editId;
   const editId = params.editId as string | undefined;
 
-  console.log('PostCommunityTopicScreen: Rendering', { category, title, isEditing, editId });
+  console.log('PostCommunityTopicScreen: Rendering', { category, title, location, isEditing, editId });
 
   // Load existing data for editing
   useEffect(() => {
@@ -43,6 +46,7 @@ export default function PostCommunityTopicScreen() {
         setCategory(data.category || '');
         setTitle(data.title || '');
         setDescription(data.description || '');
+        setLocation(data.location || 'Germany');
       } catch (err) {
         console.error('PostCommunityTopicScreen: Error parsing edit data', err);
         setError('Failed to load topic data');
@@ -51,7 +55,7 @@ export default function PostCommunityTopicScreen() {
   }, [isEditing, params.editData]);
 
   const handleSubmit = async () => {
-    console.log('PostCommunityTopicScreen: Submit topic', { category, title, description });
+    console.log('PostCommunityTopicScreen: Submit topic', { category, title, description, location });
     
     if (!category.trim()) {
       setError('Please select a category');
@@ -71,6 +75,7 @@ export default function PostCommunityTopicScreen() {
         category: category.trim(),
         title: title.trim(),
         description: description.trim() || undefined,
+        location: location.trim(),
       };
 
       if (isEditing && editId) {
@@ -98,7 +103,7 @@ export default function PostCommunityTopicScreen() {
         style={styles.keyboardView}
       >
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.pageTitle}>{isEditing ? 'Edit Discussion' : 'Start a Discussion'}</Text>
+          <Text style={styles.pageTitle}>Discussion</Text>
 
           <Text style={styles.label}>Category *</Text>
           <TouchableOpacity 
@@ -128,6 +133,14 @@ export default function PostCommunityTopicScreen() {
               </ScrollView>
             </View>
           )}
+
+          <Text style={styles.label}>Location (optional)</Text>
+          <Text style={styles.infoText}>You can select a specific city</Text>
+          <CitySearchInput
+            value={location}
+            onChangeText={setLocation}
+            placeholder="Germany"
+          />
 
           <Text style={styles.label}>Title *</Text>
           <TextInput
@@ -197,10 +210,16 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     marginTop: spacing.md,
   },
+  infoText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginBottom: spacing.sm,
+  },
   input: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -214,7 +233,7 @@ const styles = StyleSheet.create({
   categoryButton: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,

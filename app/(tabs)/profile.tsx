@@ -199,12 +199,7 @@ export default function ProfileScreen() {
                 size={22} 
                 color={colors.text} 
               />
-              <View style={styles.menuItemTextContainer}>
-                <Text style={styles.menuItemText}>Data & Privacy</Text>
-                {profile?.gdprConsentAccepted && (
-                  <Text style={styles.menuItemSubtext}>GDPR Consent: Accepted</Text>
-                )}
-              </View>
+              <Text style={styles.menuItemText}>Data & Privacy</Text>
             </View>
             <IconSymbol 
               ios_icon_name="chevron.right" 
@@ -347,18 +342,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     flex: 1,
   },
-  menuItemTextContainer: {
-    flex: 1,
-  },
   menuItemText: {
     fontSize: 16,
     fontWeight: '500',
     color: colors.text,
-  },
-  menuItemSubtext: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
   },
   signOutItem: {
     marginTop: spacing.lg,

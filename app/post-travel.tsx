@@ -662,7 +662,7 @@ export default function PostTravelScreen() {
 
           {travelMode === 'seeking-ally' && (
             <>
-              <Text style={styles.label}>From *</Text>
+              <Text style={[styles.label, styles.labelReducedSpacing]}>From *</Text>
               <TouchableOpacity 
                 style={styles.cityButton}
                 onPress={() => setShowFromCityPicker(!showFromCityPicker)}
@@ -919,10 +919,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     marginTop: spacing.md,
   },
+  labelReducedSpacing: {
+    marginTop: spacing.xs,
+  },
   input: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -936,7 +939,7 @@ const styles = StyleSheet.create({
   cityButton: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -990,7 +993,7 @@ const styles = StyleSheet.create({
   dateButton: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1005,7 +1008,7 @@ const styles = StyleSheet.create({
   dropdownButton: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1130,7 +1133,7 @@ const styles = StyleSheet.create({
   incentiveInput: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
