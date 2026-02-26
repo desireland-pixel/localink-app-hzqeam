@@ -134,14 +134,6 @@ export default function PostCommunityTopicScreen() {
             </View>
           )}
 
-          <Text style={styles.label}>Location (optional)</Text>
-          <Text style={styles.infoText}>You can select a specific city</Text>
-          <CitySearchInput
-            value={location}
-            onChangeText={setLocation}
-            placeholder="Germany"
-          />
-
           <Text style={styles.label}>Title *</Text>
           <TextInput
             style={styles.input}
@@ -160,6 +152,14 @@ export default function PostCommunityTopicScreen() {
             onChangeText={setDescription}
             multiline
             numberOfLines={6}
+          />
+
+          <Text style={styles.label}>Location (optional)</Text>
+          <Text style={styles.infoText}>You can select a city for city-specific discussion</Text>
+          <CitySearchInput
+            value={location}
+            onChangeText={setLocation}
+            placeholder="Germany"
           />
 
           <TouchableOpacity
@@ -214,7 +214,8 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textSecondary,
     fontStyle: 'italic',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
+    fontSize: 11,
   },
   input: {
     backgroundColor: colors.card,

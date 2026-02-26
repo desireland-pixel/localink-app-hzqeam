@@ -333,7 +333,7 @@ export default function PostTravelScreen() {
 
           {travelMode === 'offering' && (
             <>
-              <Text style={styles.label}>From *</Text>
+              <Text style={[styles.label, styles.labelReducedSpacing]}>From *</Text>
               <TouchableOpacity 
                 style={styles.cityButton}
                 onPress={() => setShowFromCityPicker(!showFromCityPicker)}
@@ -464,7 +464,7 @@ export default function PostTravelScreen() {
 
           {travelMode === 'seeking-companionship' && (
             <>
-              <Text style={styles.label}>From *</Text>
+              <Text style={[styles.label, styles.labelReducedSpacing]}>From *</Text>
               <TouchableOpacity 
                 style={styles.cityButton}
                 onPress={() => setShowFromCityPicker(!showFromCityPicker)}
