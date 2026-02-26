@@ -476,7 +476,9 @@ export default function CommunityDetailsScreen() {
                 );
               })
             ) : (
-              <Text style={styles.noRepliesText}>👋🏻 Be the first to share your comment!</Text>
+              <View style={styles.noRepliesContainer}>
+                <Text style={styles.noRepliesText}>👋🏻 Be the first to share your comment!</Text>
+              </View>
             )}
           </View>
         </ScrollView>
@@ -664,7 +666,6 @@ const styles = StyleSheet.create({
   },
   repliesSection: {
     marginBottom: spacing.xl,
-    paddingLeft: spacing.md,
   },
   repliesTitle: {
     ...typography.h3,
@@ -680,7 +681,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
-    marginRight: spacing.md,
   },
   replyCardUnread: {
     borderColor: colors.primary,
@@ -734,11 +734,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  noRepliesContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.md,
+    marginRight: spacing.md,
+  },
   noRepliesText: {
     ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
-    paddingVertical: spacing.xl,
+    width: '100%',
   },
   commentInputBar: {
     flexDirection: 'row',

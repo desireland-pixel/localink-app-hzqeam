@@ -27,7 +27,6 @@ export default function PostCommunityTopicScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('Germany');
-  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -103,8 +102,6 @@ export default function PostCommunityTopicScreen() {
         style={styles.keyboardView}
       >
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.pageTitle}>Discussion</Text>
-
           <Text style={styles.label}>Category *</Text>
           <TouchableOpacity 
             style={styles.categoryButton}
@@ -134,6 +131,17 @@ export default function PostCommunityTopicScreen() {
             </View>
           )}
 
+          <Text style={styles.label}>Location (optional)</Text>
+          <Text style={styles.infoText}>You can select a city for city-specific discussion</Text>
+          <CitySearchInput
+            value={location}
+            onChangeText={(city) => {
+              console.log('PostCommunityTopicScreen: Location changed to:', city);
+              setLocation(city);
+            }}
+            placeholder="Germany"
+          />
+
           <Text style={styles.label}>Title *</Text>
           <TextInput
             style={styles.input}
@@ -152,14 +160,6 @@ export default function PostCommunityTopicScreen() {
             onChangeText={setDescription}
             multiline
             numberOfLines={6}
-          />
-
-          <Text style={styles.label}>Location (optional)</Text>
-          <Text style={styles.infoText}>You can select a city for city-specific discussion</Text>
-          <CitySearchInput
-            value={location}
-            onChangeText={setLocation}
-            placeholder="Germany"
           />
 
           <TouchableOpacity
@@ -198,16 +198,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
-  pageTitle: {
-    ...typography.h2,
-    color: colors.text,
-    marginBottom: spacing.xl,
-  },
   label: {
     ...typography.bodySmall,
     color: colors.text,
     fontWeight: '600',
-    marginBottom: spacing.sm,
+    marginBottom: 4,
     marginTop: spacing.md,
   },
   infoText: {
@@ -215,7 +210,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontStyle: 'italic',
     marginBottom: spacing.xs,
-    fontSize: 11,
+    marginTop: 2,
+    fontSize: 10,
   },
   input: {
     backgroundColor: colors.card,
