@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedPost, authenticatedPut } from '@/utils/api';
@@ -96,92 +96,100 @@ export default function PostCommunityTopicScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.label}>Category *</Text>
-          <TouchableOpacity 
-            style={styles.categoryButton}
-            onPress={() => setShowCategoryPicker(!showCategoryPicker)}
-            disabled={isEditing}
-          >
-            <Text style={[styles.categoryButtonText, !category && styles.categoryButtonPlaceholder]}>
-              {category || 'Select category...'}
-            </Text>
-          </TouchableOpacity>
-          {showCategoryPicker && (
-            <View style={styles.categoryPicker}>
-              <ScrollView style={styles.categoryPickerScroll}>
-                {CATEGORIES.map((cat) => (
-                  <TouchableOpacity
-                    key={cat}
-                    style={styles.categoryOption}
-                    onPress={() => {
-                      setCategory(cat);
-                      setShowCategoryPicker(false);
-                    }}
-                  >
-                    <Text style={styles.categoryOptionText}>{cat}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          <Text style={styles.label}>Location (optional)</Text>
-          <Text style={styles.infoText}>You can select a city for city-specific discussion</Text>
-          <CitySearchInput
-            value={location}
-            onChangeText={(city) => {
-              console.log('PostCommunityTopicScreen: Location changed to:', city);
-              setLocation(city);
-            }}
-            placeholder="Germany"
-          />
-
-          <Text style={styles.label}>Title *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., Questions about Blue Card application"
-            placeholderTextColor={colors.textLight}
-            value={title}
-            onChangeText={setTitle}
-          />
-
-          <Text style={styles.label}>Description</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Describe your question or topic in detail..."
-            placeholderTextColor={colors.textLight}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={6}
-          />
-
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSubmit}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? (isEditing ? 'Updating...' : 'Posting...') : (isEditing ? 'Update' : 'Post')}
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      <Modal
-        visible={!!error}
-        title="Error"
-        message={error}
-        onClose={() => setError('')}
-        type="error"
+    <>
+      <Stack.Screen
+        options={{
+          title: 'Discussion',
+          headerShown: true,
+        }}
       />
-    </SafeAreaView>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
+          <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
+            <Text style={styles.label}>Category *</Text>
+            <TouchableOpacity 
+              style={styles.categoryButton}
+              onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+              disabled={isEditing}
+            >
+              <Text style={[styles.categoryButtonText, !category && styles.categoryButtonPlaceholder]}>
+                {category || 'Select category...'}
+              </Text>
+            </TouchableOpacity>
+            {showCategoryPicker && (
+              <View style={styles.categoryPicker}>
+                <ScrollView style={styles.categoryPickerScroll}>
+                  {CATEGORIES.map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={styles.categoryOption}
+                      onPress={() => {
+                        setCategory(cat);
+                        setShowCategoryPicker(false);
+                      }}
+                    >
+                      <Text style={styles.categoryOptionText}>{cat}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            <Text style={styles.label}>Location (optional)</Text>
+            <Text style={styles.infoText}>You can select a city for city-specific discussion</Text>
+            <CitySearchInput
+              value={location}
+              onChangeText={(city) => {
+                console.log('PostCommunityTopicScreen: Location changed to:', city);
+                setLocation(city);
+              }}
+              placeholder="Germany"
+            />
+
+            <Text style={styles.label}>Title *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g., Questions about Blue Card application"
+              placeholderTextColor={colors.textLight}
+              value={title}
+              onChangeText={setTitle}
+            />
+
+            <Text style={styles.label}>Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Describe your question or topic in detail..."
+              placeholderTextColor={colors.textLight}
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              numberOfLines={6}
+            />
+
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? (isEditing ? 'Updating...' : 'Posting...') : (isEditing ? 'Update' : 'Post')}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
+
+        <Modal
+          visible={!!error}
+          title="Error"
+          message={error}
+          onClose={() => setError('')}
+          type="error"
+        />
+      </SafeAreaView>
+    </>
   );
 }
 

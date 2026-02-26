@@ -96,7 +96,7 @@ export default function CommunityDetailsScreen() {
           
           setTimeout(() => {
             setUnreadReplyIds(new Set());
-          }, 1000);
+          }, 2000);
         }
       }
       
@@ -310,6 +310,7 @@ export default function CommunityDetailsScreen() {
     : 'Are you sure you want to close this discussion? You can delete it permanently after closing.';
   
   const replyCountValue = topic.replies?.length || 0;
+  const hasComments = replyCountValue > 0;
   
   const categoryColor = CATEGORY_COLORS[topic.category] || CATEGORY_COLORS['General'];
   const categoryBackgroundColor = isClosed ? '#E5E7EB' : categoryColor.background;
@@ -323,7 +324,7 @@ export default function CommunityDetailsScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView style={styles.content}>
-          <View style={styles.mainPostCard}>
+          <View style={[styles.mainPostCard, hasComments && styles.mainPostCardIndented]}>
             <View style={styles.headerRow}>
               <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
                 <Text style={[styles.categoryBadgeText, { color: categoryTextColor }]}>{topic.category}</Text>
@@ -411,8 +412,8 @@ export default function CommunityDetailsScreen() {
           <View style={styles.repliesSection}>
             <Text style={styles.repliesTitle}>Comments ({replyCountValue})</Text>
             
-            {topic.replies && topic.replies.length > 0 ? (
-              topic.replies.map((reply) => {
+            {hasComments ? (
+              topic.replies!.map((reply) => {
                 const replyDate = formatDateToDDMMYYYY(reply.createdAt);
                 const replyAuthor = reply.user.username || reply.user.name;
                 const likeCount = reply.likes || 0;
@@ -424,6 +425,7 @@ export default function CommunityDetailsScreen() {
                     key={reply.id} 
                     style={[
                       styles.replyCard,
+                      styles.replyCardIndented,
                       isUnread && styles.replyCardUnread
                     ]}
                   >
@@ -587,6 +589,10 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
   },
+  mainPostCardIndented: {
+    marginLeft: spacing.md,
+    marginRight: spacing.md,
+  },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -682,6 +688,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  replyCardIndented: {
+    marginLeft: spacing.md,
+    marginRight: spacing.md,
+  },
   replyCardUnread: {
     borderColor: colors.primary,
     borderWidth: 2,
@@ -739,7 +749,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.md,
-    marginRight: spacing.md,
   },
   noRepliesText: {
     ...typography.body,

@@ -144,6 +144,30 @@ export default function SubletScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>Sublet</Text>
+        <View style={styles.pageHeaderRight}>
+          <TouchableOpacity style={styles.locationButton}>
+            <IconSymbol
+              ios_icon_name="location.fill"
+              android_material_icon_name="location-on"
+              size={16}
+              color={colors.text}
+            />
+            <Text style={styles.locationButtonText}>City</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.sortButton}>
+            <IconSymbol
+              ios_icon_name="arrow.up.arrow.down"
+              android_material_icon_name="sort"
+              size={16}
+              color={colors.text}
+            />
+            <Text style={styles.sortButtonText}>Sort</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <View style={styles.header}>
         <View style={styles.searchContainer}>
           <IconSymbol
@@ -301,6 +325,60 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  pageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    minHeight: 26,
+  },
+  pageTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  pageHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  locationButtonText: {
+    ...typography.bodySmall,
+    fontSize: 12,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  sortButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  sortButtonText: {
+    ...typography.bodySmall,
+    fontSize: 12,
+    color: colors.text,
+    fontWeight: '500',
   },
   header: {
     flexDirection: 'row',
