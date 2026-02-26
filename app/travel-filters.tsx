@@ -10,6 +10,9 @@ import { formatDateToDDMMYYYY } from '@/utils/cities';
 export default function TravelFiltersScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  // Preserve from/to city filters from the travel page (they are independent)
+  const preservedFromCity = typeof params.fromCity === 'string' ? params.fromCity : '';
+  const preservedToCity = typeof params.toCity === 'string' ? params.toCity : '';
   const [role, setRole] = useState<'offering' | 'seeking' | null>(null);
   const [types, setTypes] = useState<Set<'companionship' | 'ally'>>(new Set());
   const [dateStart, setDateStart] = useState<Date | null>(null);
@@ -118,7 +121,7 @@ export default function TravelFiltersScreen() {
     
     router.replace({
       pathname: '/(tabs)/travel',
-      params: { filters: filterString }
+      params: { filters: filterString, fromCity: preservedFromCity, toCity: preservedToCity }
     });
   };
 

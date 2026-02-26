@@ -10,6 +10,8 @@ import { formatDateToDDMMYYYY } from '@/utils/cities';
 export default function SubletFiltersScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  // Preserve city filter from the sublet page (city filter is independent)
+  const preservedCity = typeof params.city === 'string' ? params.city : '';
   const [subletType, setSubletType] = useState<'offering' | 'seeking' | null>(null);
   const [dateStart, setDateStart] = useState<Date | null>(null);
   const [dateEnd, setDateEnd] = useState<Date | null>(null);
@@ -126,7 +128,7 @@ export default function SubletFiltersScreen() {
     
     router.replace({
       pathname: '/(tabs)/sublet',
-      params: { filters: filterString }
+      params: { filters: filterString, city: preservedCity }
     });
   };
 

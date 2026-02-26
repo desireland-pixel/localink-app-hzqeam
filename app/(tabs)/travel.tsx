@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Modal as RNModal, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -46,8 +46,14 @@ export default function TravelScreen() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [sortOption, setSortOption] = useState<SortOption>('Newest');
   const [showSortModal, setShowSortModal] = useState(false);
-  const [selectedFrom, setSelectedFrom] = useState<string>('');
-  const [selectedTo, setSelectedTo] = useState<string>('');
+  const [selectedFrom, setSelectedFrom] = useState<string>(() => {
+    // Initialize from city from params if available (preserved from filter page navigation)
+    return typeof params.fromCity === 'string' ? params.fromCity : '';
+  });
+  const [selectedTo, setSelectedTo] = useState<string>(() => {
+    // Initialize to city from params if available (preserved from filter page navigation)
+    return typeof params.toCity === 'string' ? params.toCity : '';
+  });
   const [fromInputValue, setFromInputValue] = useState('');
   const [toInputValue, setToInputValue] = useState('');
   const [fromSuggestions, setFromSuggestions] = useState<string[]>([]);
@@ -57,70 +63,41 @@ export default function TravelScreen() {
   const sortButtonRef = useRef<View>(null);
   const [sortButtonLayout, setSortButtonLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
-  console.log('TravelScreen: Rendering', { postsCount: posts.length, loading });
+  // Sync from/to cities from params when navigating back from filter page
+  React.useEffect(() => {
+    const fromCityParam = typeof params.fromCity === 'string' ? params.fromCity : '';
+    if (fromCityParam !== selectedFrom) {
+      console.log('TravelScreen: Restoring fromCity from params:', fromCityParam);
+      setSelectedFrom(fromCityParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.fromCity]);
+
+  React.useEffect(() => {
+    const toCityParam = typeof params.toCity === 'string' ? params.toCity : '';
+    if (toCityParam !== selectedTo) {
+      console.log('TravelScreen: Restoring toCity from params:', toCityParam);
+      setSelectedTo(toCityParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.toCity]);
+
+  console.log('TravelScreen: Rendering', { postsCount: posts.length, loading, selectedFrom, selectedTo });
 
   const fetchPosts = React.useCallback(async () => {
-    console.log('TravelScreen: Fetching travel posts', 'selectedFrom:', selectedFrom, 'selectedTo:', selectedTo);
+    console.log('TravelScreen: Fetching travel posts');
     if (posts.length === 0) {
       setLoading(true);
     }
     try {
-      // From/To city filtering is done on the frontend only - do NOT pass to backend
+      // DO NOT pass From/To to backend - route filtering is done on frontend only
       const filterParams = params.filters ? `?${params.filters}` : '';
       
       const data = await authenticatedGet<TravelPost[]>(`/api/travel-posts${filterParams}`);
       console.log('TravelScreen: Fetched travel posts', data);
-      let dataArray = Array.isArray(data) ? data : [];
-
-      // Apply from/to city filters on the frontend
-      if (selectedFrom) {
-        dataArray = dataArray.filter(p => p.fromCity.toLowerCase() === selectedFrom.toLowerCase());
-      }
-      if (selectedTo) {
-        dataArray = dataArray.filter(p => p.toCity.toLowerCase() === selectedTo.toLowerCase());
-      }
+      const dataArray = Array.isArray(data) ? data : [];
       
-      let sortedData = [...dataArray];
-      
-      // Helper to parse dd.mm.yyyy or YYYY-MM-DD date strings to timestamp
-      const parseDateStr = (dateStr: string | null | undefined): number => {
-        if (!dateStr) return 0;
-        // Convert dd.mm.yyyy to YYYY-MM-DD for reliable Date parsing
-        const isoStr = parseDateFromDDMMYYYY(dateStr);
-        if (!isoStr) return 0;
-        return new Date(isoStr).getTime();
-      };
-
-      // Apply sorting
-      if (sortOption === 'Newest') {
-        sortedData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      } else if (sortOption === 'Earliest departure') {
-        // Primary: travelDate (Ascending) | Secondary: travelDateTo (Ascending)
-        sortedData.sort((a, b) => {
-          const startA = parseDateStr(a.travelDate);
-          const startB = parseDateStr(b.travelDate);
-          const startDateComparison = startA - startB;
-          if (startDateComparison !== 0) return startDateComparison;
-
-          const endA = parseDateStr(a.travelDateTo || a.travelDate);
-          const endB = parseDateStr(b.travelDateTo || b.travelDate);
-          return endA - endB;
-        });
-      } else if (sortOption === 'Latest departure') {
-        // Primary: travelDateTo (Descending) | Secondary: travelDate (Descending)
-        sortedData.sort((a, b) => {
-          const endA = parseDateStr(a.travelDateTo || a.travelDate);
-          const endB = parseDateStr(b.travelDateTo || b.travelDate);
-          const endDateComparison = endB - endA;
-          if (endDateComparison !== 0) return endDateComparison;
-
-          const startA = parseDateStr(a.travelDate);
-          const startB = parseDateStr(b.travelDate);
-          return startB - startA;
-        });
-      }
-      
-      setPosts(sortedData);
+      setPosts(dataArray);
     } catch (error) {
       console.error('TravelScreen: Error fetching travel posts', error);
       if (posts.length === 0) {
@@ -130,7 +107,7 @@ export default function TravelScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [params.filters, posts.length, sortOption, selectedFrom, selectedTo]);
+  }, [params.filters, posts.length]);
 
   const fetchFavorites = React.useCallback(async () => {
     try {
@@ -146,7 +123,7 @@ export default function TravelScreen() {
   useEffect(() => {
     fetchPosts();
     fetchFavorites();
-  }, [params.filters, sortOption, selectedFrom, selectedTo]);
+  }, [params.filters]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -155,6 +132,64 @@ export default function TravelScreen() {
       fetchFavorites();
     }, [fetchPosts, fetchFavorites])
   );
+
+  // Apply from/to filter and sorting on the frontend
+  const filteredAndSortedPosts = useMemo(() => {
+    console.log('TravelScreen: Applying from/to filter and sorting', { selectedFrom, selectedTo, sortOption });
+    
+    // Step 1: Apply from/to filter
+    let filtered = posts;
+    if (selectedFrom) {
+      filtered = filtered.filter(p => p.fromCity.toLowerCase() === selectedFrom.toLowerCase());
+    }
+    if (selectedTo) {
+      filtered = filtered.filter(p => p.toCity.toLowerCase() === selectedTo.toLowerCase());
+    }
+    
+    // Step 2: Apply search query filter
+    filtered = filtered.filter(post =>
+      post.fromCity.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.toCity.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (post.description && post.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+    
+    // Step 3: Apply sorting
+    const parseDateStr = (dateStr: string | null | undefined): number => {
+      if (!dateStr) return 0;
+      const isoStr = parseDateFromDDMMYYYY(dateStr);
+      if (!isoStr) return 0;
+      return new Date(isoStr).getTime();
+    };
+
+    let sorted = [...filtered];
+    if (sortOption === 'Newest') {
+      sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else if (sortOption === 'Earliest departure') {
+      sorted.sort((a, b) => {
+        const startA = parseDateStr(a.travelDate);
+        const startB = parseDateStr(b.travelDate);
+        const startDateComparison = startA - startB;
+        if (startDateComparison !== 0) return startDateComparison;
+
+        const endA = parseDateStr(a.travelDateTo || a.travelDate);
+        const endB = parseDateStr(b.travelDateTo || b.travelDate);
+        return endA - endB;
+      });
+    } else if (sortOption === 'Latest departure') {
+      sorted.sort((a, b) => {
+        const endA = parseDateStr(a.travelDateTo || a.travelDate);
+        const endB = parseDateStr(b.travelDateTo || b.travelDate);
+        const endDateComparison = endB - endA;
+        if (endDateComparison !== 0) return endDateComparison;
+
+        const startA = parseDateStr(a.travelDate);
+        const startB = parseDateStr(b.travelDate);
+        return startB - startA;
+      });
+    }
+    
+    return sorted;
+  }, [posts, selectedFrom, selectedTo, sortOption, searchQuery]);
 
   const toggleFavorite = async (postId: string) => {
     console.log('TravelScreen: Toggle favorite', postId);
@@ -266,17 +301,8 @@ export default function TravelScreen() {
     setSortOption(option);
     setShowSortModal(false);
   };
-
-  const filteredPosts = posts.filter(post =>
-    post.fromCity.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.toCity.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (post.description && post.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
   
   const hasActiveFilters = params.filters && params.filters.toString().length > 0;
-
-  const fromDisplayText = selectedFrom || 'From';
-  const toDisplayText = selectedTo || 'To';
   
   const sortDisplayText = sortOption === 'Earliest departure' ? 'Earliest dep..' : sortOption === 'Latest departure' ? 'Latest dep..' : sortOption;
 
@@ -420,7 +446,7 @@ export default function TravelScreen() {
           style={[styles.iconButton, hasActiveFilters && styles.iconButtonActive]}
           onPress={() => router.push({
             pathname: '/travel-filters',
-            params: { filters: params.filters || '' }
+            params: { filters: params.filters || '', fromCity: selectedFrom, toCity: selectedTo }
           })}
         >
           <IconSymbol
@@ -449,7 +475,7 @@ export default function TravelScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : filteredPosts.length === 0 ? (
+      ) : filteredAndSortedPosts.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyEmoji}>✈️</Text>
           <Text style={styles.emptyTitle}>No travel buddy matches found</Text>
@@ -468,12 +494,10 @@ export default function TravelScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
           }
         >
-          {filteredPosts.map((post) => {
+          {filteredAndSortedPosts.map((post) => {
             const dateDisplay = formatDateToDDMMYYYY(post.travelDate);
             const dateToDisplay = post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo) : null;
             
-            // Show date range for seeking-ally posts when travelDateTo exists
-            // Show date range for seeking companion posts (type === 'seeking') when travelDateTo exists
             const showDateRange = (post.type === 'seeking-ally' || post.type === 'seeking') && dateToDisplay;
             
             let label = '';

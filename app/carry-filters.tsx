@@ -19,6 +19,8 @@ const CATEGORIES = [
 export default function CarryFiltersScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  // Preserve city filter from the community page (city filter is independent)
+  const preservedCity = typeof params.city === 'string' ? params.city : '';
   const [category, setCategory] = useState<string | null>(null);
   const [status, setStatus] = useState<'open' | 'closed' | null>(null);
   const [hydrated, setHydrated] = useState(false);
@@ -74,7 +76,7 @@ export default function CarryFiltersScreen() {
     
     router.replace({
       pathname: '/(tabs)/carry',
-      params: { filters: filterString }
+      params: { filters: filterString, city: preservedCity }
     });
   };
 

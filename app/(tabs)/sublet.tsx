@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Modal as RNModal, Keyboard } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -42,7 +42,10 @@ export default function SubletScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [selectedCity, setSelectedCity] = useState<string>(() => {
+    // Initialize city from params if available (preserved from filter page navigation)
+    return typeof params.city === 'string' ? params.city : '';
+  });
   const [sortOption, setSortOption] = useState<SortOption>('Newest');
   const [showSortModal, setShowSortModal] = useState(false);
   const [cityInputValue, setCityInputValue] = useState('');
@@ -51,56 +54,33 @@ export default function SubletScreen() {
   const sortButtonRef = useRef<View>(null);
   const [sortButtonLayout, setSortButtonLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
-  console.log('SubletScreen: Rendering', { subletsCount: sublets.length, loading, filters: params.filters });
+  // Sync city from params when navigating back from filter page
+  React.useEffect(() => {
+    const cityParam = typeof params.city === 'string' ? params.city : '';
+    if (cityParam !== selectedCity) {
+      console.log('SubletScreen: Restoring city from params:', cityParam);
+      setSelectedCity(cityParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.city]);
+
+  console.log('SubletScreen: Rendering', { subletsCount: sublets.length, loading, filters: params.filters, selectedCity });
 
   const fetchPosts = React.useCallback(async () => {
-    console.log('SubletScreen: Fetching sublets with filters:', params.filters, 'selectedCity:', selectedCity);
+    console.log('SubletScreen: Fetching sublets with filters:', params.filters);
     if (sublets.length === 0) {
       setLoading(true);
     }
     try {
-      // City filtering is done on the frontend only - do NOT pass city to backend
+      // DO NOT pass city to backend - city filtering is done on frontend only
       const filterParams = params.filters ? `?${params.filters}` : '';
       
       console.log('SubletScreen: API call with params:', filterParams);
       const data = await authenticatedGet<Sublet[]>(`/api/sublets${filterParams}`);
       console.log('SubletScreen: Fetched sublets', data);
-      let dataArray = Array.isArray(data) ? data : [];
-
-      // Apply city filter on the frontend
-      if (selectedCity) {
-        dataArray = dataArray.filter(s => s.city.toLowerCase() === selectedCity.toLowerCase());
-      }
+      const dataArray = Array.isArray(data) ? data : [];
       
-      let sortedData = [...dataArray];
-      
-      // Helper to parse dd.mm.yyyy or YYYY-MM-DD date strings to timestamp
-      const parseDateStr = (dateStr: string | null | undefined): number => {
-        if (!dateStr) return 0;
-        const isoStr = parseDateFromDDMMYYYY(dateStr);
-        if (!isoStr) return 0;
-        return new Date(isoStr).getTime();
-      };
-
-      // Apply sorting
-      if (sortOption === 'Newest') {
-        sortedData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      } else if (sortOption === 'Earliest') {
-        // Sort by availableFrom ascending (earliest available date first)
-        sortedData.sort((a, b) => {
-          const dateA = parseDateStr(a.availableFrom);
-          const dateB = parseDateStr(b.availableFrom);
-          return dateA - dateB;
-        });
-      } else if (sortOption === 'Cheapest') {
-        sortedData.sort((a, b) => {
-          const rentA = a.rent ? parseFloat(a.rent) : Infinity;
-          const rentB = b.rent ? parseFloat(b.rent) : Infinity;
-          return rentA - rentB;
-        });
-      }
-      
-      setSublets(sortedData);
+      setSublets(dataArray);
     } catch (error) {
       console.error('SubletScreen: Error fetching sublets', error);
       if (sublets.length === 0) {
@@ -110,7 +90,7 @@ export default function SubletScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [params.filters, sublets.length, sortOption, selectedCity]);
+  }, [params.filters, sublets.length]);
 
   const fetchFavorites = React.useCallback(async () => {
     try {
@@ -135,6 +115,51 @@ export default function SubletScreen() {
       fetchFavorites();
     }, [fetchPosts, fetchFavorites])
   );
+
+  // Apply city filter and sorting on the frontend
+  const filteredAndSortedSublets = useMemo(() => {
+    console.log('SubletScreen: Applying city filter and sorting', { selectedCity, sortOption });
+    
+    // Step 1: Apply city filter
+    let filtered = sublets;
+    if (selectedCity) {
+      filtered = sublets.filter(s => s.city.toLowerCase() === selectedCity.toLowerCase());
+    }
+    
+    // Step 2: Apply search query filter
+    filtered = filtered.filter(sublet =>
+      sublet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sublet.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (sublet.description && sublet.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+    
+    // Step 3: Apply sorting
+    const parseDateStr = (dateStr: string | null | undefined): number => {
+      if (!dateStr) return 0;
+      const isoStr = parseDateFromDDMMYYYY(dateStr);
+      if (!isoStr) return 0;
+      return new Date(isoStr).getTime();
+    };
+
+    let sorted = [...filtered];
+    if (sortOption === 'Newest') {
+      sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else if (sortOption === 'Earliest') {
+      sorted.sort((a, b) => {
+        const dateA = parseDateStr(a.availableFrom);
+        const dateB = parseDateStr(b.availableFrom);
+        return dateA - dateB;
+      });
+    } else if (sortOption === 'Cheapest') {
+      sorted.sort((a, b) => {
+        const rentA = a.rent ? parseFloat(a.rent) : Infinity;
+        const rentB = b.rent ? parseFloat(b.rent) : Infinity;
+        return rentA - rentB;
+      });
+    }
+    
+    return sorted;
+  }, [sublets, selectedCity, sortOption, searchQuery]);
 
   const toggleFavorite = async (postId: string) => {
     console.log('SubletScreen: Toggle favorite', postId);
@@ -176,7 +201,7 @@ export default function SubletScreen() {
     console.log('SubletScreen: Navigate to filters with current filters:', params.filters);
     router.push({
       pathname: '/sublet-filters',
-      params: { filters: params.filters || '' }
+      params: { filters: params.filters || '', city: selectedCity }
     });
   };
 
@@ -227,15 +252,6 @@ export default function SubletScreen() {
   };
   
   const hasActiveFilters = params.filters && params.filters.toString().length > 0;
-
-  const filteredSublets = sublets.filter(sublet =>
-    sublet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    sublet.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (sublet.description && sublet.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const cityDisplayText = selectedCity || 'City';
-  const showClearIcon = selectedCity.length > 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -358,7 +374,7 @@ export default function SubletScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : filteredSublets.length === 0 ? (
+      ) : filteredAndSortedSublets.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyEmoji}>🏠</Text>
           <Text style={styles.emptyTitle}>No sublet matches found</Text>
@@ -374,7 +390,7 @@ export default function SubletScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
           }
         >
-          {filteredSublets.map((sublet) => {
+          {filteredAndSortedSublets.map((sublet) => {
             const fromDisplay = formatDateToDDMMYYYY(sublet.availableFrom);
             const toDisplay = formatDateToDDMMYYYY(sublet.availableTo);
             const label = sublet.type === 'offering' ? 'Offering' : 'Seeking';
