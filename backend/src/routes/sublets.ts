@@ -7,6 +7,7 @@ import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '../utils/date-forma
 import { regenerateSignedUrls } from '../utils/image-url-regenerator.js';
 
 interface SubletFilters {
+  city?: string; // Independent city filter
   type?: 'offering' | 'seeking';
   availableFrom?: string;
   availableTo?: string;
@@ -63,6 +64,7 @@ export function registerSubletRoutes(app: App) {
       querystring: {
         type: 'object',
         properties: {
+          city: { type: 'string' },
           type: { type: 'string', enum: ['offering', 'seeking'] },
           availableFrom: { type: 'string' },
           availableTo: { type: 'string' },
@@ -84,6 +86,11 @@ export function registerSubletRoutes(app: App) {
       await autoCloseExpiredSublets(app);
 
       const conditions: any[] = [eq(schema.sublets.status, 'active')];
+
+      // City filter (independent from other filters)
+      if (filters.city) {
+        conditions.push(eq(schema.sublets.city, filters.city));
+      }
 
       // Handle type filter
       if (filters.type) {

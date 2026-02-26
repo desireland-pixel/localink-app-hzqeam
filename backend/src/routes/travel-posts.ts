@@ -10,6 +10,8 @@ import { regenerateSignedUrls } from '../utils/image-url-regenerator.js';
 import { formatIncentiveAmount, getIncentiveDisclaimer } from '../utils/incentive-formatter.js';
 
 interface TravelPostFilters {
+  fromCity?: string; // Independent from/to city filter
+  toCity?: string; // Independent from/to city filter
   role?: 'offering' | 'seeking'; // Single role filter
   type?: string; // Multi-select: 'companionship' or 'ally' (can be comma-separated)
   travelDate?: string;
@@ -103,6 +105,8 @@ export function registerTravelPostRoutes(app: App) {
       querystring: {
         type: 'object',
         properties: {
+          fromCity: { type: 'string' },
+          toCity: { type: 'string' },
           role: { type: 'string', enum: ['offering', 'seeking'] },
           type: { type: 'string' }, // 'companionship,ally' for multi-select
           travelDate: { type: 'string' },
@@ -182,6 +186,15 @@ export function registerTravelPostRoutes(app: App) {
             conditions.push(or(...typeConditions)!);
           }
         }
+      }
+
+      // Independent from/to city filters
+      if (filters.fromCity) {
+        conditions.push(eq(schema.travelPosts.fromCity, filters.fromCity));
+      }
+
+      if (filters.toCity) {
+        conditions.push(eq(schema.travelPosts.toCity, filters.toCity));
       }
 
       if (filters.travelDate) {
