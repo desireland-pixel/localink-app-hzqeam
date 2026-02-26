@@ -1012,20 +1012,6 @@ export function registerCommunityRoutes(app: App) {
       const limit = parseInt(filters.limit || '20');
       const offset = parseInt(filters.offset || '0');
 
-      // Determine sort order
-      let orderByClause: any;
-      if (filters.sort === 'trending') {
-        // Sort by replyCount DESC, then by latest reply (most recent comment first)
-        // We'll use createdAt as fallback for posts with same reply count
-        orderByClause = [desc(schema.discussionTopics.repliesCount), desc(schema.discussionTopics.updatedAt)];
-      } else if (filters.sort === 'oldest') {
-        // Sort by createdAt ASC (oldest posts first)
-        orderByClause = asc(schema.discussionTopics.createdAt);
-      } else {
-        // Default: newest (sort by createdAt DESC)
-        orderByClause = desc(schema.discussionTopics.createdAt);
-      }
-
       const topics = await app.db
         .select({
           id: schema.discussionTopics.id,
@@ -1043,13 +1029,34 @@ export function registerCommunityRoutes(app: App) {
         })
         .from(schema.discussionTopics)
         .leftJoin(schema.profiles, eq(schema.discussionTopics.userId, schema.profiles.userId))
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .limit(limit)
-        .offset(offset)
-        .orderBy(orderByClause);
+        .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+      // Apply sorting after retrieving data
+      let sortedTopics = topics;
+      if (filters.sort === 'trending') {
+        // Sort by actual replyCount DESC, then by updatedAt DESC (latest activity first)
+        sortedTopics = topics.sort((a, b) => {
+          const replyCountDiff = (b.replyCount || 0) - (a.replyCount || 0);
+          if (replyCountDiff !== 0) return replyCountDiff;
+          // Secondary sort: latest updated first
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        });
+      } else if (filters.sort === 'oldest') {
+        // Sort by createdAt ASC (oldest posts first)
+        sortedTopics = topics.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      } else {
+        // Default: newest (sort by createdAt DESC)
+        sortedTopics = topics.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }
+
+      // Apply pagination after sorting
+      const paginatedTopics = sortedTopics.slice(
+        parseInt(filters.offset || '0'),
+        parseInt(filters.offset || '0') + parseInt(filters.limit || '20')
+      );
 
       // Transform to include user object and formatted metadata
-      const result = topics.map(topic => {
+      const result = paginatedTopics.map(topic => {
         const date = new Date(topic.createdAt);
         const formattedDate = date.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
         return {
