@@ -65,21 +65,20 @@ export default function TravelScreen() {
       setLoading(true);
     }
     try {
-      let filterParams = params.filters ? `?${params.filters}` : '';
-      
-      // Add from/to city filters if selected
-      if (selectedFrom) {
-        const fromParam = `fromCity=${encodeURIComponent(selectedFrom)}`;
-        filterParams = filterParams ? `${filterParams}&${fromParam}` : `?${fromParam}`;
-      }
-      if (selectedTo) {
-        const toParam = `toCity=${encodeURIComponent(selectedTo)}`;
-        filterParams = filterParams ? `${filterParams}&${toParam}` : `?${toParam}`;
-      }
+      // From/To city filtering is done on the frontend only - do NOT pass to backend
+      const filterParams = params.filters ? `?${params.filters}` : '';
       
       const data = await authenticatedGet<TravelPost[]>(`/api/travel-posts${filterParams}`);
       console.log('TravelScreen: Fetched travel posts', data);
-      const dataArray = Array.isArray(data) ? data : [];
+      let dataArray = Array.isArray(data) ? data : [];
+
+      // Apply from/to city filters on the frontend
+      if (selectedFrom) {
+        dataArray = dataArray.filter(p => p.fromCity.toLowerCase() === selectedFrom.toLowerCase());
+      }
+      if (selectedTo) {
+        dataArray = dataArray.filter(p => p.toCity.toLowerCase() === selectedTo.toLowerCase());
+      }
       
       let sortedData = [...dataArray];
       
@@ -285,7 +284,7 @@ export default function TravelScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.pageHeader}>
         <Text style={styles.pageTitle}>Travel</Text>
-        <View style={styles.pageHeaderRight}>
+        <View style={styles.pageHeaderCenter}>
           <View style={styles.routeContainer}>
             <View style={styles.routeButtonContainer}>
               {!selectedFrom ? (
@@ -384,6 +383,8 @@ export default function TravelScreen() {
               )}
             </View>
           </View>
+        </View>
+        <View style={styles.pageHeaderRight}>
           <View ref={sortButtonRef} collapsable={false}>
             <TouchableOpacity style={styles.sortButton} onPress={handleSortPress}>
               <IconSymbol
@@ -683,13 +684,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     lineHeight: 18,
+    flex: 0,
+  },
+  pageHeaderCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pageHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    flex: 1,
-    justifyContent: 'center',
+    flex: 0,
   },
   routeContainer: {
     flexDirection: 'row',
@@ -698,11 +701,11 @@ const styles = StyleSheet.create({
   },
   routeButtonContainer: {
     position: 'relative',
-    minWidth: 60,
-    maxWidth: 100,
+    minWidth: 90,
+    maxWidth: 130,
   },
   routeInput: {
-    paddingHorizontal: spacing.xs,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     backgroundColor: colors.card,
     borderRadius: 999,
@@ -712,6 +715,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 14,
     textAlign: 'center',
+    borderWidth: 0,
+    minWidth: 72,
   },
   routeSelectedContainer: {
     flexDirection: 'row',
@@ -722,6 +727,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: 999,
     minHeight: 28,
+    borderWidth: 0,
   },
   routeSelectedText: {
     fontSize: 12,
@@ -772,6 +778,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     minHeight: 28,
     justifyContent: 'center',
+    borderWidth: 0,
   },
   sortButtonText: {
     fontSize: 12,

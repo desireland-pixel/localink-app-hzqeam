@@ -59,18 +59,18 @@ export default function SubletScreen() {
       setLoading(true);
     }
     try {
-      let filterParams = params.filters ? `?${params.filters}` : '';
-      
-      // Add city filter if selected
-      if (selectedCity) {
-        const cityParam = `city=${encodeURIComponent(selectedCity)}`;
-        filterParams = filterParams ? `${filterParams}&${cityParam}` : `?${cityParam}`;
-      }
+      // City filtering is done on the frontend only - do NOT pass city to backend
+      const filterParams = params.filters ? `?${params.filters}` : '';
       
       console.log('SubletScreen: API call with params:', filterParams);
       const data = await authenticatedGet<Sublet[]>(`/api/sublets${filterParams}`);
       console.log('SubletScreen: Fetched sublets', data);
-      const dataArray = Array.isArray(data) ? data : [];
+      let dataArray = Array.isArray(data) ? data : [];
+
+      // Apply city filter on the frontend
+      if (selectedCity) {
+        dataArray = dataArray.filter(s => s.city.toLowerCase() === selectedCity.toLowerCase());
+      }
       
       let sortedData = [...dataArray];
       
@@ -241,7 +241,7 @@ export default function SubletScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.pageHeader}>
         <Text style={styles.pageTitle}>Sublet</Text>
-        <View style={styles.pageHeaderRight}>
+        <View style={styles.pageHeaderCenter}>
           <View style={styles.cityButtonContainer}>
             {!selectedCity ? (
               <View style={styles.cityInputWrapper}>
@@ -301,6 +301,8 @@ export default function SubletScreen() {
               </View>
             )}
           </View>
+        </View>
+        <View style={styles.pageHeaderRight}>
           <View ref={sortButtonRef} collapsable={false}>
             <TouchableOpacity style={styles.sortButton} onPress={handleSortPress}>
               <IconSymbol
@@ -542,17 +544,23 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 18,
   },
-  pageHeaderRight: {
-    flexDirection: 'row',
+  pageHeaderCenter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    gap: spacing.sm,
-    flex: 1,
     justifyContent: 'center',
+    zIndex: 1,
+    pointerEvents: 'box-none',
+  },
+  pageHeaderRight: {
+    marginLeft: 'auto',
+    zIndex: 2,
   },
   cityButtonContainer: {
     position: 'relative',
-    minWidth: 80,
-    maxWidth: 180,
+    minWidth: 120,
+    maxWidth: 200,
   },
   cityInputWrapper: {
     flexDirection: 'row',
@@ -563,6 +571,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: 999,
     minHeight: 28,
+    borderWidth: 0,
   },
   cityInput: {
     flex: 1,
@@ -571,7 +580,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 14,
     paddingVertical: 0,
-    minWidth: 40,
+    minWidth: 72,
   },
   citySelectedContainer: {
     flexDirection: 'row',
@@ -582,6 +591,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: 999,
     minHeight: 28,
+    borderWidth: 0,
   },
   citySelectedText: {
     fontSize: 12,
@@ -632,6 +642,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     minHeight: 28,
     justifyContent: 'center',
+    borderWidth: 0,
   },
   sortButtonText: {
     fontSize: 12,

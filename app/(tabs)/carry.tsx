@@ -1,11 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Modal as RNModal, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, authenticatedDelete, apiGet } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -27,19 +27,8 @@ interface CommunityTopic {
   replyCount?: number;
   repliesCount?: number | string;
   unreadRepliesCount?: number;
+  lastReplyDate?: string;
 }
-
-const CATEGORIES = [
-  'All',
-  'Visa',
-  'Insurance',
-  'Housing',
-  'Jobs',
-  'Healthcare',
-  'Banking',
-  'Education',
-  'General',
-];
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
@@ -52,6 +41,8 @@ const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } =
   'General': { background: '#FDE68A', text: '#78350F' },
 };
 
+type SortOption = 'Newest' | 'Trending' | 'Oldest';
+
 export default function CommunityScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -59,25 +50,45 @@ export default function CommunityScreen() {
   const [topics, setTopics] = useState<CommunityTopic[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [cityInputValue, setCityInputValue] = useState('');
+  const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
+  const [showCitySuggestions, setShowCitySuggestions] = useState(false);
+  const [sortOption, setSortOption] = useState<SortOption>('Newest');
+  const [showSortModal, setShowSortModal] = useState(false);
+  const sortButtonRef = useRef<View>(null);
+  const [sortButtonLayout, setSortButtonLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
-  console.log('CommunityScreen: Rendering', { topicsCount: topics.length, loading });
+  console.log('CommunityScreen: Rendering', { topicsCount: topics.length, loading, selectedCity, sortOption });
 
   const fetchTopics = React.useCallback(async () => {
-    console.log('CommunityScreen: Fetching community topics');
+    console.log('CommunityScreen: Fetching community topics', { selectedCity, sortOption });
     if (topics.length === 0) {
       setLoading(true);
     }
     try {
-      const filterParams = params.filters ? `?${params.filters}` : '';
-      const data = await authenticatedGet<CommunityTopic[]>(`/api/community/topics${filterParams}`);
+      // Use /api/community-posts which supports city and sort params
+      const queryParams = new URLSearchParams();
+      queryParams.append('limit', '100');
+      if (selectedCity) {
+        queryParams.append('city', selectedCity);
+      }
+      // Map frontend sort options to backend sort values
+      if (sortOption === 'Newest') {
+        queryParams.append('sort', 'newest');
+      } else if (sortOption === 'Trending') {
+        queryParams.append('sort', 'trending');
+      } else if (sortOption === 'Oldest') {
+        queryParams.append('sort', 'oldest');
+      }
+
+      const data = await authenticatedGet<CommunityTopic[]>(`/api/community-posts?${queryParams.toString()}`);
       console.log('CommunityScreen: Fetched community topics', data);
       const dataArray = Array.isArray(data) ? data : [];
-      const sortedData = dataArray.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
       // Fetch unread reply counts for own topics
-      const ownTopics = sortedData.filter(t => t.userId === user?.id);
+      const ownTopics = dataArray.filter(t => t.userId === user?.id);
       if (ownTopics.length > 0) {
         const unreadResults = await Promise.allSettled(
           ownTopics.map(t =>
@@ -92,7 +103,7 @@ export default function CommunityScreen() {
         });
       }
 
-      setTopics(sortedData);
+      setTopics(dataArray);
     } catch (error) {
       console.error('CommunityScreen: Error fetching community topics', error);
       if (topics.length === 0) {
@@ -102,7 +113,7 @@ export default function CommunityScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [params.filters, topics.length, user?.id]);
+  }, [topics.length, user?.id, selectedCity, sortOption]);
 
   const fetchFavorites = React.useCallback(async () => {
     try {
@@ -118,7 +129,7 @@ export default function CommunityScreen() {
   useEffect(() => {
     fetchTopics();
     fetchFavorites();
-  }, [fetchTopics, fetchFavorites]);
+  }, [selectedCity, sortOption]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -160,45 +171,133 @@ export default function CommunityScreen() {
     fetchFavorites();
   };
 
-  const filteredTopics = topics.filter(topic =>
-    topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (topic.description && topic.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    topic.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleCityInputChange = async (text: string) => {
+    setCityInputValue(text);
+    if (text.trim().length > 0) {
+      try {
+        const response = await apiGet<{ cities: string[] }>(`/api/cities/search?q=${encodeURIComponent(text)}&limit=8`);
+        setCitySuggestions(response.cities);
+        setShowCitySuggestions(response.cities.length > 0);
+      } catch (error) {
+        console.error('CommunityScreen: Error searching cities:', error);
+        setCitySuggestions([]);
+        setShowCitySuggestions(false);
+      }
+    } else {
+      setCitySuggestions([]);
+      setShowCitySuggestions(false);
+    }
+  };
+
+  const handleCitySelect = (city: string) => {
+    console.log('CommunityScreen: City selected:', city);
+    setSelectedCity(city);
+    setCityInputValue('');
+    setShowCitySuggestions(false);
+    Keyboard.dismiss();
+  };
+
+  const handleClearCity = () => {
+    console.log('CommunityScreen: Clear city selection');
+    setSelectedCity('');
+    setCityInputValue('');
+    setShowCitySuggestions(false);
+  };
+
+  const handleSortPress = () => {
+    sortButtonRef.current?.measure((x, y, width, height, pageX, pageY) => {
+      setSortButtonLayout({ x: pageX, y: pageY, width, height });
+      setShowSortModal(true);
+    });
+  };
+
+  const handleSortSelect = (option: SortOption) => {
+    setSortOption(option);
+    setShowSortModal(false);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <View style={styles.searchContainer}>
-          <IconSymbol
-            ios_icon_name="magnifyingglass"
-            android_material_icon_name="search"
-            size={20}
-            color={colors.textSecondary}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search discussions..."
-            placeholderTextColor={colors.textLight}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
-          />
+      {/* Page Header: Community | City | Sort */}
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>Community</Text>
+        <View style={styles.pageHeaderCenter}>
+          <View style={styles.cityButtonContainer}>
+            {!selectedCity ? (
+              <View style={styles.cityInputWrapper}>
+                <IconSymbol
+                  ios_icon_name="location.fill"
+                  android_material_icon_name="location-on"
+                  size={14}
+                  color={colors.text}
+                />
+                <TextInput
+                  style={styles.cityInput}
+                  placeholder="City"
+                  placeholderTextColor={colors.textSecondary}
+                  value={cityInputValue}
+                  onChangeText={handleCityInputChange}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
+              </View>
+            ) : (
+              <View style={styles.citySelectedContainer}>
+                <IconSymbol
+                  ios_icon_name="location.fill"
+                  android_material_icon_name="location-on"
+                  size={14}
+                  color={colors.text}
+                />
+                <Text style={styles.citySelectedText} numberOfLines={1}>{selectedCity}</Text>
+                <TouchableOpacity onPress={handleClearCity} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <IconSymbol
+                    ios_icon_name="xmark"
+                    android_material_icon_name="close"
+                    size={14}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
+            {showCitySuggestions && citySuggestions.length > 0 && (
+              <View style={styles.citySuggestionsContainer}>
+                <ScrollView
+                  style={styles.citySuggestionsList}
+                  keyboardShouldPersistTaps="always"
+                  nestedScrollEnabled={true}
+                >
+                  {citySuggestions.map((city, index) => (
+                    <TouchableOpacity
+                      key={`${city}-${index}`}
+                      style={styles.citySuggestionItem}
+                      onPress={() => handleCitySelect(city)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.citySuggestionText} numberOfLines={1}>{city}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
         </View>
-        <TouchableOpacity
-          style={[styles.iconButton, params.filters && styles.iconButtonActive]}
-          onPress={() => router.push({
-            pathname: '/carry-filters',
-            params: { filters: params.filters || '' }
-          })}
-        >
-          <IconSymbol
-            ios_icon_name="line.3.horizontal.decrease.circle"
-            android_material_icon_name="filter-list"
-            size={24}
-            color={params.filters ? colors.primary : colors.text}
-          />
-        </TouchableOpacity>
+        <View style={styles.pageHeaderRight}>
+          <View ref={sortButtonRef} collapsable={false}>
+            <TouchableOpacity style={styles.sortButton} onPress={handleSortPress}>
+              <IconSymbol
+                ios_icon_name="arrow.up.arrow.down"
+                android_material_icon_name="sort"
+                size={12}
+                color={colors.text}
+              />
+              <Text style={styles.sortButtonText}>{sortOption}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.header}>
         <TouchableOpacity
           style={styles.iconButton}
           onPress={() => {
@@ -215,11 +314,13 @@ export default function CommunityScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.separator} />
+
       {loading && topics.length === 0 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : filteredTopics.length === 0 ? (
+      ) : topics.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyEmoji}>💬</Text>
           <Text style={styles.emptyTitle}>No discussions yet</Text>
@@ -235,13 +336,13 @@ export default function CommunityScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView 
+        <ScrollView
           style={styles.content}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
           }
         >
-          {filteredTopics.map((topic) => {
+          {topics.map((topic) => {
             const authorName = topic.user?.username || topic.user?.name || 'Unknown';
             const createdDate = formatDateToDDMMYYYY(topic.createdAt);
             const isFavorited = favorites.has(topic.id);
@@ -249,13 +350,13 @@ export default function CommunityScreen() {
             const isOwnPost = topic.userId === user?.id;
             const locationDisplay = topic.location || 'Germany';
             const hasUnreadReplies = isOwnPost && (topic.unreadRepliesCount ?? 0) > 0;
-            
+
             const categoryColor = CATEGORY_COLORS[topic.category] || CATEGORY_COLORS['General'];
             const categoryBackgroundColor = isOpen ? categoryColor.background : '#E5E7EB';
             const categoryTextColor = isOpen ? categoryColor.text : '#6B7280';
-            
+
             const replyCountValue = topic.replyCount ?? (topic.repliesCount !== undefined ? parseInt(String(topic.repliesCount), 10) || 0 : 0);
-            
+
             return (
               <TouchableOpacity
                 key={topic.id}
@@ -276,7 +377,7 @@ export default function CommunityScreen() {
                       </View>
                     )}
                     {!isOwnPost && (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         onPress={(e) => {
                           e.stopPropagation();
                           console.log('CommunityScreen: Heart button pressed for', topic.id);
@@ -326,6 +427,59 @@ export default function CommunityScreen() {
           })}
         </ScrollView>
       )}
+
+      {/* Sort Modal */}
+      <RNModal
+        visible={showSortModal}
+        transparent
+        animationType="none"
+        onRequestClose={() => setShowSortModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.sortModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSortModal(false)}
+        >
+          <View
+            style={[
+              styles.sortModalContent,
+              {
+                position: 'absolute',
+                top: sortButtonLayout.y + sortButtonLayout.height + 4,
+                right: 16,
+              }
+            ]}
+          >
+            {(['Newest', 'Trending', 'Oldest'] as SortOption[]).map((option, index, array) => {
+              const isSelected = sortOption === option;
+              const isLast = index === array.length - 1;
+              return (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.sortOption,
+                    isSelected && styles.sortOptionSelected,
+                    isLast && styles.sortOptionLast
+                  ]}
+                  onPress={() => handleSortSelect(option)}
+                >
+                  <Text style={[styles.sortOptionText, isSelected && styles.sortOptionTextSelected]}>
+                    {option}
+                  </Text>
+                  {isSelected && (
+                    <IconSymbol
+                      ios_icon_name="checkmark"
+                      android_material_icon_name="check"
+                      size={18}
+                      color={colors.primary}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </RNModal>
     </SafeAreaView>
   );
 }
@@ -335,40 +489,140 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
+  pageHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingVertical: 2,
+    minHeight: 24,
   },
-  searchContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: Platform.OS === 'android' ? spacing.xs : spacing.sm,
-    gap: spacing.sm,
-    height: Platform.OS === 'android' ? 40 : undefined,
-  },
-  searchInput: {
-    flex: 1,
-    ...typography.body,
+  pageTitle: {
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.text,
+    lineHeight: 18,
+  },
+  pageHeaderCenter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+    pointerEvents: 'box-none',
+  },
+  pageHeaderRight: {
+    marginLeft: 'auto',
+    zIndex: 2,
+  },
+  cityButtonContainer: {
+    position: 'relative',
+    minWidth: 100,
+    maxWidth: 200,
+  },
+  cityInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    backgroundColor: colors.card,
+    borderRadius: 999,
+    minHeight: 28,
+    borderWidth: 0,
+  },
+  cityInput: {
+    flex: 1,
+    fontSize: 12,
+    color: colors.text,
+    fontWeight: '500',
+    lineHeight: 14,
     paddingVertical: 0,
+    minWidth: 60,
   },
-  iconButton: {
-    padding: spacing.xs,
+  citySelectedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    backgroundColor: colors.card,
+    borderRadius: 999,
+    minHeight: 28,
+    borderWidth: 0,
   },
-  iconButtonActive: {
+  citySelectedText: {
+    fontSize: 12,
+    color: colors.text,
+    fontWeight: '500',
+    lineHeight: 14,
+    flex: 1,
+  },
+  citySuggestionsContainer: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: colors.border,
+    marginTop: 4,
+    maxHeight: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1001,
+  },
+  citySuggestionsList: {
+    maxHeight: 200,
+  },
+  citySuggestionItem: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  citySuggestionText: {
+    ...typography.body,
+    color: colors.text,
+    fontSize: 12,
+  },
+  sortButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    backgroundColor: colors.card,
+    borderRadius: 999,
+    minHeight: 28,
+    justifyContent: 'center',
+    borderWidth: 0,
+  },
+  sortButtonText: {
+    fontSize: 12,
+    color: colors.text,
+    fontWeight: '500',
+    lineHeight: 14,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 2,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginHorizontal: 0,
+    marginTop: 2,
+  },
+  iconButton: {
+    padding: spacing.xs,
   },
   loadingContainer: {
     flex: 1,
@@ -515,5 +769,44 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '700',
+  },
+  sortModalOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  sortModalContent: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.xs,
+    minWidth: 180,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  sortOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  sortOptionLast: {
+    borderBottomWidth: 0,
+  },
+  sortOptionSelected: {
+    backgroundColor: colors.highlight,
+  },
+  sortOptionText: {
+    ...typography.body,
+    color: colors.text,
+    fontSize: 14,
+  },
+  sortOptionTextSelected: {
+    color: colors.primary,
+    fontWeight: '600',
   },
 });
