@@ -981,4 +981,5 @@ export function registerCommunityRoutes(app: App) {
       return reply.status(500).send({ error: 'Failed to fetch unread topics count' });
     }
   });
+
 }
