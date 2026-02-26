@@ -1,6 +1,6 @@
 import type { App} from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, or, gte, lte, between, desc, isNotNull, isNull, ne } from 'drizzle-orm';
+import { eq, and, or, gte, lte, between, desc, asc, isNotNull, isNull, ne } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { TRAVEL_CITIES } from '../cities.js';
 import { generateShortId } from '../utils/short-id.js';
@@ -18,6 +18,7 @@ interface TravelPostFilters {
   travelDateFrom?: string;
   travelDateTo?: string;
   incentive?: string; // 'true' or 'false'
+  sort?: 'newest' | 'earliest-departure' | 'latest-departure'; // Sorting option
   limit?: string;
   offset?: string;
 }
@@ -112,6 +113,7 @@ export function registerTravelPostRoutes(app: App) {
           travelDateFrom: { type: 'string' },
           travelDateTo: { type: 'string' },
           incentive: { type: 'string', enum: ['true', 'false'] },
+          sort: { type: 'string', enum: ['newest', 'earliest-departure', 'latest-departure'] },
           limit: { type: 'string' },
           offset: { type: 'string' },
         },
@@ -234,6 +236,19 @@ export function registerTravelPostRoutes(app: App) {
       const limit = parseInt(filters.limit || '20');
       const offset = parseInt(filters.offset || '0');
 
+      // Determine sort order
+      let orderByClause: any;
+      if (filters.sort === 'earliest-departure') {
+        // Primary sort by travelDate ASC, Secondary sort by travelDateTo ASC
+        orderByClause = [asc(schema.travelPosts.travelDate), asc(schema.travelPosts.travelDateTo)];
+      } else if (filters.sort === 'latest-departure') {
+        // Primary sort by travelDateTo DESC, Secondary sort by travelDate DESC
+        orderByClause = [desc(schema.travelPosts.travelDateTo), desc(schema.travelPosts.travelDate)];
+      } else {
+        // Default: newest (sort by createdAt DESC)
+        orderByClause = desc(schema.travelPosts.createdAt);
+      }
+
       const posts = await app.db
         .select({
           id: schema.travelPosts.id,
@@ -259,7 +274,7 @@ export function registerTravelPostRoutes(app: App) {
         .where(and(...conditions))
         .limit(limit)
         .offset(offset)
-        .orderBy(desc(schema.travelPosts.createdAt));
+        .orderBy(orderByClause);
 
       // Transform to include user object, format dates, and add formatted title
       const result = await Promise.all(posts.map(async (post) => {

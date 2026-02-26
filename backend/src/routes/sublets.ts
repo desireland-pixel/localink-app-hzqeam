@@ -1,6 +1,6 @@
 import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, or, gte, lte, isNull, isNotNull, desc } from 'drizzle-orm';
+import { eq, and, or, gte, lte, isNull, isNotNull, desc, asc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { generateShortId } from '../utils/short-id.js';
 import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '../utils/date-format.js';
@@ -14,6 +14,7 @@ interface SubletFilters {
   minRent?: string;
   maxRent?: string;
   cityRegistrationRequired?: string;
+  sort?: 'newest' | 'earliest' | 'cheapest'; // Sorting option
   limit?: string;
   offset?: string;
 }
@@ -70,6 +71,7 @@ export function registerSubletRoutes(app: App) {
           minRent: { type: 'string' },
           maxRent: { type: 'string' },
           cityRegistrationRequired: { type: 'string', enum: ['yes', 'no'] },
+          sort: { type: 'string', enum: ['newest', 'earliest', 'cheapest'] },
           limit: { type: 'string' },
           offset: { type: 'string' },
         },
@@ -121,6 +123,19 @@ export function registerSubletRoutes(app: App) {
       const limit = parseInt(filters.limit || '20');
       const offset = parseInt(filters.offset || '0');
 
+      // Determine sort order
+      let orderByClause: any;
+      if (filters.sort === 'earliest') {
+        // Earliest: sort by availableFrom DESC (reversed logic - latest dates first)
+        orderByClause = desc(schema.sublets.availableFrom);
+      } else if (filters.sort === 'cheapest') {
+        // Cheapest: sort by rent ASC
+        orderByClause = asc(schema.sublets.rent);
+      } else {
+        // Default: newest (sort by createdAt DESC)
+        orderByClause = desc(schema.sublets.createdAt);
+      }
+
       const sublets = await app.db
         .select({
           id: schema.sublets.id,
@@ -147,7 +162,7 @@ export function registerSubletRoutes(app: App) {
         .where(and(...conditions))
         .limit(limit)
         .offset(offset)
-        .orderBy(desc(schema.sublets.createdAt));
+        .orderBy(orderByClause);
 
       // Transform to include user object and format dates
       const result = await Promise.all(sublets.map(async (sublet) => {
