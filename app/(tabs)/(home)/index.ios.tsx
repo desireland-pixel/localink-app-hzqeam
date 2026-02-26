@@ -32,6 +32,7 @@ interface CommunityTopic {
   updatedAt: string;
   replyCount?: number;
   unreadRepliesCount?: number;
+  location?: string;
   user: {
     id: string;
     name: string;
@@ -251,6 +252,7 @@ export default function CommunityScreen() {
                 const replyCount = topic.replyCount || 0;
                 const createdDate = formatDateToDDMMYYYY(topic.createdAt);
                 const authorName = topic.user.username || topic.user.name;
+                const locationDisplay = topic.location || 'Germany';
                 const isOwnTopic = topic.userId === user?.id;
                 const hasUnreadReplies = isOwnTopic && (topic.unreadRepliesCount || 0) > 0;
                 
@@ -304,6 +306,8 @@ export default function CommunityScreen() {
                         <Text style={styles.authorText}>{authorName}</Text>
                         <Text style={styles.dateSeparator}> • </Text>
                         <Text style={styles.dateText}>{createdDate}</Text>
+                        <Text style={styles.dateSeparator}> • </Text>
+                        <Text style={styles.locationText}>{locationDisplay}</Text>
                       </View>
                       <View style={styles.replyCountContainer}>
                         <IconSymbol
@@ -508,6 +512,8 @@ const styles = StyleSheet.create({
   authorDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    flexWrap: 'wrap',
   },
   authorText: {
     ...typography.bodySmall,
@@ -520,6 +526,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   dateText: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 11,
+  },
+  locationText: {
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 11,

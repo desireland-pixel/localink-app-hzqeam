@@ -46,6 +46,7 @@ interface CommunityTopic {
   status: 'open' | 'closed';
   createdAt: string;
   updatedAt: string;
+  location?: string;
   user: {
     id: string;
     name: string;
@@ -300,6 +301,7 @@ export default function CommunityDetailsScreen() {
   const isOwnPost = topic.userId === user?.id;
   const createdDate = formatDateToDDMMYYYY(topic.createdAt);
   const authorName = topic.user.username || topic.user.name;
+  const locationDisplay = topic.location || 'Germany';
   const isClosed = topic.status === 'closed';
   const deleteButtonText = isClosed ? 'Delete' : 'Close';
   const deleteModalTitle = isClosed ? 'Delete Discussion' : 'Close Discussion';
@@ -388,6 +390,8 @@ export default function CommunityDetailsScreen() {
                 <Text style={styles.authorText}>{authorName}</Text>
                 <Text style={styles.dateSeparator}> • </Text>
                 <Text style={styles.dateText}>{createdDate}</Text>
+                <Text style={styles.dateSeparator}> • </Text>
+                <Text style={styles.locationText}>{locationDisplay}</Text>
               </View>
               {isOwnPost && (
                 <View style={styles.iconButtonBox}>
@@ -472,7 +476,7 @@ export default function CommunityDetailsScreen() {
                 );
               })
             ) : (
-              <Text style={styles.noRepliesText}>No comments yet. Be the first to comment!</Text>
+              <Text style={styles.noRepliesText}>👋🏻 Be the first to share your comment!</Text>
             )}
           </View>
         </ScrollView>
@@ -635,6 +639,8 @@ const styles = StyleSheet.create({
   authorDateContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    flexWrap: 'wrap',
   },
   authorText: {
     ...typography.bodySmall,
@@ -647,6 +653,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   dateText: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 12,
+  },
+  locationText: {
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 12,
