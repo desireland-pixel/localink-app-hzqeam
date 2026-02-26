@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Modal as RNModal } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -9,6 +9,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { useAuth } from '@/contexts/AuthContext';
+import { CitySearchInput } from '@/components/CitySearchInput';
 
 interface Sublet {
   id: string;
@@ -18,6 +19,7 @@ interface Sublet {
   city: string;
   availableFrom: string;
   availableTo: string;
+  moveInDate?: string;
   rent?: string;
   type: 'offering' | 'seeking';
   imageUrls?: string[];
@@ -41,9 +43,13 @@ export default function SubletScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [selectedCity, setSelectedCity] = useState<string>('Germany');
+  const [selectedCity, setSelectedCity] = useState<string>('');
   const [sortOption, setSortOption] = useState<SortOption>('Default');
   const [showSortModal, setShowSortModal] = useState(false);
+  const [showCityModal, setShowCityModal] = useState(false);
+  const [citySearchQuery, setCitySearchQuery] = useState('');
+  const sortButtonRef = useRef<View>(null);
+  const [sortButtonLayout, setSortButtonLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
   console.log('SubletScreen: Rendering', { subletsCount: sublets.length, loading, filters: params.filters });
 
@@ -65,7 +71,29 @@ export default function SubletScreen() {
       if (sortOption === 'Newest' || sortOption === 'Default') {
         sortedData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       } else if (sortOption === 'Earliest') {
-        sortedData.sort((a, b) => new Date(a.availableFrom).getTime() - new Date(b.availableFrom).getTime());
+        // Earliest sort logic: offering cases sort by availableFrom ascending, 
+        // seeking cases sort by moveInDate ascending, 
+        // past dates are considered "available now" and kept at the very top
+        sortedData.sort((a, b) => {
+          const dateA = a.type === 'offering' ? a.availableFrom : (a.moveInDate || a.availableFrom);
+          const dateB = b.type === 'offering' ? b.availableFrom : (b.moveInDate || b.availableFrom);
+          
+          const now = new Date();
+          now.setHours(0, 0, 0, 0);
+          
+          const dateAObj = new Date(dateA);
+          const dateBObj = new Date(dateB);
+          
+          const isAPast = dateAObj < now;
+          const isBPast = dateBObj < now;
+          
+          // Past dates (available now) come first
+          if (isAPast && !isBPast) return -1;
+          if (!isAPast && isBPast) return 1;
+          
+          // Both past or both future, sort by date ascending
+          return dateAObj.getTime() - dateBObj.getTime();
+        });
       } else if (sortOption === 'Cheapest') {
         sortedData.sort((a, b) => {
           const rentA = a.rent ? parseFloat(a.rent) : Infinity;
@@ -155,10 +183,21 @@ export default function SubletScreen() {
   };
 
   const handleCityPress = () => {
-    console.log('SubletScreen: Navigate to filters for city selection');
-    router.push({
-      pathname: '/sublet-filters',
-      params: { filters: params.filters || '' }
+    console.log('SubletScreen: Open city selection modal');
+    setShowCityModal(true);
+  };
+
+  const handleCitySelect = (city: string) => {
+    console.log('SubletScreen: City selected:', city);
+    setSelectedCity(city);
+    setShowCityModal(false);
+    setCitySearchQuery('');
+  };
+
+  const handleSortPress = (event: any) => {
+    sortButtonRef.current?.measure((x, y, width, height, pageX, pageY) => {
+      setSortButtonLayout({ x: pageX, y: pageY, width, height });
+      setShowSortModal(true);
     });
   };
 
@@ -176,30 +215,21 @@ export default function SubletScreen() {
   );
 
   const sortDisplayText = sortOption === 'Default' ? 'Newest' : sortOption;
+  const cityDisplayText = selectedCity || 'City';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.pageHeader}>
         <Text style={styles.pageTitle}>Sublet</Text>
         <View style={styles.pageHeaderRight}>
-          <TouchableOpacity style={styles.locationButton} onPress={handleCityPress}>
-            <IconSymbol
-              ios_icon_name="location.fill"
-              android_material_icon_name="location-on"
-              size={16}
-              color={colors.text}
-            />
-            <Text style={styles.locationButtonText}>City</Text>
+          <TouchableOpacity style={styles.cityButton} onPress={handleCityPress}>
+            <Text style={styles.cityButtonText} numberOfLines={1}>{cityDisplayText}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.sortButton} onPress={() => setShowSortModal(true)}>
-            <IconSymbol
-              ios_icon_name="arrow.up.arrow.down"
-              android_material_icon_name="sort"
-              size={16}
-              color={colors.text}
-            />
-            <Text style={styles.sortButtonText}>{sortDisplayText}</Text>
-          </TouchableOpacity>
+          <View ref={sortButtonRef} collapsable={false}>
+            <TouchableOpacity style={styles.sortButton} onPress={handleSortPress}>
+              <Text style={styles.sortButtonText}>{sortDisplayText}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -353,27 +383,79 @@ export default function SubletScreen() {
         </ScrollView>
       )}
 
-      {/* Sort Modal */}
+      {/* City Selection Modal */}
       <RNModal
-        visible={showSortModal}
+        visible={showCityModal}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowSortModal(false)}
+        onRequestClose={() => setShowCityModal(false)}
       >
         <TouchableOpacity 
           style={styles.modalOverlay} 
           activeOpacity={1} 
+          onPress={() => setShowCityModal(false)}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.cityModalContent}>
+              <Text style={styles.cityModalTitle}>Select City</Text>
+              <CitySearchInput
+                value={citySearchQuery}
+                onChangeText={(city) => {
+                  setCitySearchQuery(city);
+                  handleCitySelect(city);
+                }}
+                placeholder="Search city..."
+                style={styles.citySearchInput}
+              />
+              <TouchableOpacity
+                style={styles.clearCityButton}
+                onPress={() => {
+                  setSelectedCity('');
+                  setShowCityModal(false);
+                  setCitySearchQuery('');
+                }}
+              >
+                <Text style={styles.clearCityButtonText}>Clear Selection</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </RNModal>
+
+      {/* Sort Modal */}
+      <RNModal
+        visible={showSortModal}
+        transparent
+        animationType="none"
+        onRequestClose={() => setShowSortModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.sortModalOverlay} 
+          activeOpacity={1} 
           onPress={() => setShowSortModal(false)}
         >
-          <View style={styles.sortModalContent}>
-            <Text style={styles.sortModalTitle}>Sort by</Text>
-            {(['Default', 'Newest', 'Earliest', 'Cheapest'] as SortOption[]).map((option) => {
+          <View 
+            style={[
+              styles.sortModalContent,
+              {
+                position: 'absolute',
+                top: sortButtonLayout.y + sortButtonLayout.height + 4,
+                right: 16,
+              }
+            ]}
+          >
+            {(['Default', 'Newest', 'Earliest', 'Cheapest'] as SortOption[]).map((option, index, array) => {
               const isSelected = sortOption === option;
               const displayText = option === 'Default' ? 'Default (Newest)' : option;
+              const isLast = index === array.length - 1;
               return (
                 <TouchableOpacity
                   key={option}
-                  style={[styles.sortOption, isSelected && styles.sortOptionSelected]}
+                  style={[
+                    styles.sortOption, 
+                    isSelected && styles.sortOptionSelected,
+                    isLast && styles.sortOptionLast
+                  ]}
                   onPress={() => handleSortSelect(option)}
                 >
                   <Text style={[styles.sortOptionText, isSelected && styles.sortOptionTextSelected]}>
@@ -383,7 +465,7 @@ export default function SubletScreen() {
                     <IconSymbol
                       ios_icon_name="checkmark"
                       android_material_icon_name="check"
-                      size={20}
+                      size={18}
                       color={colors.primary}
                     />
                   )}
@@ -406,54 +488,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 4,
-    minHeight: 26,
-    marginLeft: 20,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 2,
+    minHeight: 24,
   },
   pageTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.text,
+    lineHeight: 18,
   },
   pageHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    marginLeft: 75.6, // 20mm = 75.6px
   },
-  locationButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+  cityButton: {
     paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: 2,
     backgroundColor: colors.card,
     borderRadius: borderRadius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
+    width: 75.6, // 20mm = 75.6px
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  locationButtonText: {
-    ...typography.bodySmall,
+  cityButtonText: {
     fontSize: 12,
     color: colors.text,
     fontWeight: '500',
+    lineHeight: 14,
   },
   sortButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: 2,
     backgroundColor: colors.card,
     borderRadius: borderRadius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   sortButtonText: {
-    ...typography.bodySmall,
     fontSize: 12,
     color: colors.text,
     fontWeight: '500',
+    lineHeight: 14,
   },
   header: {
     flexDirection: 'row',
@@ -637,25 +717,56 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sortModalContent: {
+  cityModalContent: {
     backgroundColor: colors.background,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     marginHorizontal: spacing.xl,
-    width: '80%',
+    width: 300,
   },
-  sortModalTitle: {
+  cityModalTitle: {
     ...typography.h3,
     color: colors.text,
     marginBottom: spacing.md,
+  },
+  citySearchInput: {
+    marginBottom: spacing.md,
+  },
+  clearCityButton: {
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+  clearCityButtonText: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  sortModalOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  sortModalContent: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.xs,
+    minWidth: 180,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
   },
   sortOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  sortOptionLast: {
+    borderBottomWidth: 0,
   },
   sortOptionSelected: {
     backgroundColor: colors.highlight,
@@ -663,6 +774,7 @@ const styles = StyleSheet.create({
   sortOptionText: {
     ...typography.body,
     color: colors.text,
+    fontSize: 14,
   },
   sortOptionTextSelected: {
     color: colors.primary,
