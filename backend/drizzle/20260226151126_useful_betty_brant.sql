@@ -1,0 +1,1 @@
+ALTER TABLE "discussion_topics" ADD COLUMN "location" text DEFAULT 'Germany' NOT NULL;
