@@ -244,17 +244,31 @@ export default function SubletScreen() {
         <View style={styles.pageHeaderRight}>
           <View style={styles.cityButtonContainer}>
             {!selectedCity ? (
-              <TextInput
-                style={styles.cityInput}
-                placeholder="City"
-                placeholderTextColor={colors.textSecondary}
-                value={cityInputValue}
-                onChangeText={handleCityInputChange}
-                autoCapitalize="words"
-                autoCorrect={false}
-              />
+              <View style={styles.cityInputWrapper}>
+                <IconSymbol
+                  ios_icon_name="location.fill"
+                  android_material_icon_name="location-on"
+                  size={14}
+                  color={colors.text}
+                />
+                <TextInput
+                  style={styles.cityInput}
+                  placeholder="City"
+                  placeholderTextColor={colors.textSecondary}
+                  value={cityInputValue}
+                  onChangeText={handleCityInputChange}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
+              </View>
             ) : (
               <View style={styles.citySelectedContainer}>
+                <IconSymbol
+                  ios_icon_name="location.fill"
+                  android_material_icon_name="location-on"
+                  size={14}
+                  color={colors.text}
+                />
                 <Text style={styles.citySelectedText} numberOfLines={1}>{selectedCity}</Text>
                 <TouchableOpacity onPress={handleClearCity} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                   <IconSymbol
@@ -280,7 +294,7 @@ export default function SubletScreen() {
                       onPress={() => handleCitySelect(city)}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.citySuggestionText}>{city}</Text>
+                      <Text style={styles.citySuggestionText} numberOfLines={1}>{city}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -533,23 +547,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
   },
   cityButtonContainer: {
     position: 'relative',
     minWidth: 80,
-    maxWidth: 120,
+    maxWidth: 180,
   },
-  cityInput: {
+  cityInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     backgroundColor: colors.card,
     borderRadius: 999,
     minHeight: 28,
+  },
+  cityInput: {
+    flex: 1,
     fontSize: 12,
     color: colors.text,
     fontWeight: '500',
     lineHeight: 14,
+    paddingVertical: 0,
+    minWidth: 40,
   },
   citySelectedContainer: {
     flexDirection: 'row',
@@ -653,7 +675,7 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: colors.border,
-    marginHorizontal: spacing.md,
+    marginHorizontal: 0,
     marginTop: 2,
   },
   loadingContainer: {

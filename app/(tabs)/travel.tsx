@@ -278,6 +278,8 @@ export default function TravelScreen() {
 
   const fromDisplayText = selectedFrom || 'From';
   const toDisplayText = selectedTo || 'To';
+  
+  const sortDisplayText = sortOption === 'Earliest departure' ? 'Earliest dep..' : sortOption === 'Latest departure' ? 'Latest dep..' : sortOption;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -323,7 +325,7 @@ export default function TravelScreen() {
                         onPress={() => handleFromSelect(city)}
                         activeOpacity={0.7}
                       >
-                        <Text style={styles.routeSuggestionText}>{city}</Text>
+                        <Text style={styles.routeSuggestionText} numberOfLines={1}>{city}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -374,7 +376,7 @@ export default function TravelScreen() {
                         onPress={() => handleToSelect(city)}
                         activeOpacity={0.7}
                       >
-                        <Text style={styles.routeSuggestionText}>{city}</Text>
+                        <Text style={styles.routeSuggestionText} numberOfLines={1}>{city}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -390,7 +392,7 @@ export default function TravelScreen() {
                 size={12}
                 color={colors.text}
               />
-              <Text style={styles.sortButtonText}>{sortOption}</Text>
+              <Text style={styles.sortButtonText}>{sortDisplayText}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -687,7 +689,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
   },
   routeContainer: {
     flexDirection: 'row',
@@ -813,7 +815,7 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: colors.border,
-    marginHorizontal: spacing.md,
+    marginHorizontal: 0,
     marginTop: 2,
   },
   loadingContainer: {
