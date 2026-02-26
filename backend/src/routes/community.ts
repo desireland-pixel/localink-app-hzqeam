@@ -1,6 +1,6 @@
 import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, desc, sql, count } from 'drizzle-orm';
+import { eq, and, desc, asc, sql, count } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { generateShortId } from '../utils/short-id.js';
 import { sendPushNotification } from '../utils/push-notifications.js';
@@ -979,6 +979,97 @@ export function registerCommunityRoutes(app: App) {
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id }, 'Failed to fetch unread topics count');
       return reply.status(500).send({ error: 'Failed to fetch unread topics count' });
+    }
+  });
+
+  // List community posts with city filtering and sorting
+  app.fastify.get('/api/community-posts', {
+    schema: {
+      description: 'List community discussion posts with city filtering and sorting',
+      tags: ['community'],
+      querystring: {
+        type: 'object',
+        properties: {
+          city: { type: 'string' },
+          sort: { type: 'string', enum: ['newest', 'trending', 'oldest'] },
+          limit: { type: 'string' },
+          offset: { type: 'string' },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const filters = request.query as { city?: string; sort?: 'newest' | 'trending' | 'oldest'; limit?: string; offset?: string };
+    app.logger.info({ filters }, 'Listing community posts');
+
+    try {
+      const conditions: any[] = [];
+
+      // Filter by city if provided
+      if (filters.city) {
+        conditions.push(eq(schema.discussionTopics.location, filters.city));
+      }
+
+      const limit = parseInt(filters.limit || '20');
+      const offset = parseInt(filters.offset || '0');
+
+      // Determine sort order
+      let orderByClause: any;
+      if (filters.sort === 'trending') {
+        // Sort by replyCount DESC, then by latest reply (most recent comment first)
+        // We'll use createdAt as fallback for posts with same reply count
+        orderByClause = [desc(schema.discussionTopics.repliesCount), desc(schema.discussionTopics.updatedAt)];
+      } else if (filters.sort === 'oldest') {
+        // Sort by createdAt ASC (oldest posts first)
+        orderByClause = asc(schema.discussionTopics.createdAt);
+      } else {
+        // Default: newest (sort by createdAt DESC)
+        orderByClause = desc(schema.discussionTopics.createdAt);
+      }
+
+      const topics = await app.db
+        .select({
+          id: schema.discussionTopics.id,
+          userId: schema.discussionTopics.userId,
+          category: schema.discussionTopics.category,
+          location: schema.discussionTopics.location,
+          title: schema.discussionTopics.title,
+          description: schema.discussionTopics.description,
+          status: schema.discussionTopics.status,
+          unreadRepliesCount: schema.discussionTopics.unreadRepliesCount,
+          replyCount: sql<number>`(SELECT COUNT(*) FROM ${schema.discussionReplies} WHERE ${schema.discussionReplies.topicId} = ${schema.discussionTopics.id})`,
+          createdAt: schema.discussionTopics.createdAt,
+          updatedAt: schema.discussionTopics.updatedAt,
+          username: schema.profiles.username,
+        })
+        .from(schema.discussionTopics)
+        .leftJoin(schema.profiles, eq(schema.discussionTopics.userId, schema.profiles.userId))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .limit(limit)
+        .offset(offset)
+        .orderBy(orderByClause);
+
+      // Transform to include user object and formatted metadata
+      const result = topics.map(topic => {
+        const date = new Date(topic.createdAt);
+        const formattedDate = date.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
+        return {
+          ...topic,
+          shortId: generateShortId(topic.id),
+          isOwner: false, // Set to false for list endpoint (frontend can determine based on userId)
+          user: {
+            id: topic.userId,
+            username: topic.username || 'Unknown User',
+          },
+          username: undefined,
+          byline: `by ${topic.username || 'Unknown User'} on ${formattedDate}`,
+        };
+      });
+
+      app.logger.info({ count: result.length }, 'Community posts listed successfully');
+      return result;
+    } catch (error) {
+      app.logger.error({ err: error }, 'Failed to list community posts');
+      return reply.status(500).send({ error: 'Failed to list community posts' });
     }
   });
 
