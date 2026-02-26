@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { authenticatedGet, authenticatedPost, BACKEND_URL, getBearerToken } from '@/utils/api';
+import { authenticatedGet, authenticatedPost, authenticatedDelete, BACKEND_URL, getBearerToken } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -55,6 +55,10 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [showDeletedPostModal, setShowDeletedPostModal] = useState(false);
+  const [showDeleteMessageModal, setShowDeleteMessageModal] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  const [deletingMessage, setDeletingMessage] = useState(false);
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
 
   console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length, currentUserId: user?.id });
 
@@ -256,6 +260,30 @@ export default function ChatScreen() {
     }
   }, [messages]);
 
+  const handleDeleteMessage = async () => {
+    if (!messageToDelete || !id) return;
+    console.log('[ChatScreen] Deleting message:', messageToDelete);
+    setDeletingMessage(true);
+    try {
+      const conversationId = typeof id === 'string' ? id : String(id);
+      await authenticatedDelete(`/api/conversations/${conversationId}/messages/${messageToDelete}`, {});
+      console.log('[ChatScreen] Message deleted successfully');
+      setShowDeleteMessageModal(false);
+      setMessageToDelete(null);
+      setSelectedMessageId(null);
+      // Remove the deleted message from local state immediately
+      setMessages(prev => prev.filter(m => m.id !== messageToDelete));
+    } catch (err: any) {
+      console.error('[ChatScreen] Error deleting message:', err);
+      setError(err.message || 'Failed to delete message');
+      setShowDeleteMessageModal(false);
+      setMessageToDelete(null);
+      setSelectedMessageId(null);
+    } finally {
+      setDeletingMessage(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!newMessage.trim() || sending) return;
 
@@ -344,6 +372,7 @@ export default function ChatScreen() {
     const messageSenderId = item.senderId;
     const isOwnMessage = currentUserId === messageSenderId;
     const time = timeDisplay(item.createdAt);
+    const isSelected = selectedMessageId === item.id;
 
     let statusIcon = null;
     let statusColor = 'rgba(255, 255, 255, 0.7)';
@@ -362,33 +391,62 @@ export default function ChatScreen() {
     }
 
     return (
-      <View
-        style={[
-          styles.messageBubble,
-          isOwnMessage ? styles.ownMessage : styles.otherMessage,
-        ]}
-      >
-        <View style={styles.messageContent}>
-          <Text style={[
-            styles.messageText,
-            isOwnMessage && styles.ownMessageText
-          ]}>
-            {item.content}
-          </Text>
-          <View style={styles.messageFooter}>
+      <View style={[styles.messageRow, isOwnMessage ? styles.messageRowOwn : styles.messageRowOther]}>
+        <Pressable
+          onLongPress={() => {
+            setSelectedMessageId(isSelected ? null : item.id);
+          }}
+          onPress={() => {
+            if (isSelected) {
+              setSelectedMessageId(null);
+            }
+          }}
+          style={[
+            styles.messageBubble,
+            isOwnMessage ? styles.ownMessage : styles.otherMessage,
+            isSelected && styles.messageBubbleSelected,
+          ]}
+        >
+          <View style={styles.messageContent}>
             <Text style={[
-              styles.messageTime,
-              isOwnMessage && styles.ownMessageTime
+              styles.messageText,
+              isOwnMessage && styles.ownMessageText
             ]}>
-              {time}
+              {item.content}
             </Text>
-            {isOwnMessage && statusIcon && (
-              <Text style={[styles.statusIcon, { color: statusColor }]}>
-                {statusIcon}
+            <View style={styles.messageFooter}>
+              <Text style={[
+                styles.messageTime,
+                isOwnMessage && styles.ownMessageTime
+              ]}>
+                {time}
               </Text>
-            )}
+              {isOwnMessage && statusIcon && (
+                <Text style={[styles.statusIcon, { color: statusColor }]}>
+                  {statusIcon}
+                </Text>
+              )}
+            </View>
           </View>
-        </View>
+        </Pressable>
+        {isSelected && (
+          <TouchableOpacity
+            style={[styles.deleteMessageButton, isOwnMessage ? styles.deleteMessageButtonOwn : styles.deleteMessageButtonOther]}
+            onPress={() => {
+              setMessageToDelete(item.id);
+              setShowDeleteMessageModal(true);
+              setSelectedMessageId(null);
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <IconSymbol
+              ios_icon_name="trash"
+              android_material_icon_name="delete"
+              size={16}
+              color="#FF3B30"
+            />
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -492,6 +550,33 @@ export default function ChatScreen() {
         onClose={() => setShowDeletedPostModal(false)}
         type="info"
       />
+
+      <Modal
+        visible={showDeleteMessageModal}
+        title="Delete Message"
+        message="Are you sure you want to delete this message? This action cannot be undone."
+        onClose={() => {
+          setShowDeleteMessageModal(false);
+          setMessageToDelete(null);
+        }}
+        type="warning"
+        actions={[
+          {
+            text: 'Cancel',
+            onPress: () => {
+              setShowDeleteMessageModal(false);
+              setMessageToDelete(null);
+            },
+            style: 'cancel',
+          },
+          {
+            text: deletingMessage ? 'Deleting...' : 'Delete',
+            onPress: handleDeleteMessage,
+            style: 'destructive',
+            disabled: deletingMessage,
+          },
+        ]}
+      />
     </SafeAreaView>
   );
 }
@@ -547,12 +632,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  messageRowOwn: {
+    justifyContent: 'flex-end',
+  },
+  messageRowOther: {
+    justifyContent: 'flex-start',
+  },
   messageBubble: {
     maxWidth: '75%',
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    marginBottom: spacing.sm,
+  },
+  messageBubbleSelected: {
+    opacity: 0.8,
   },
   ownMessage: {
     alignSelf: 'flex-end',
@@ -563,6 +661,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  deleteMessageButton: {
+    padding: spacing.xs,
+    borderRadius: borderRadius.sm,
+    backgroundColor: '#FEE2E2',
+    marginHorizontal: spacing.xs,
+  },
+  deleteMessageButtonOwn: {
+    marginRight: 0,
+    marginLeft: spacing.xs,
+  },
+  deleteMessageButtonOther: {
+    marginLeft: 0,
+    marginRight: spacing.xs,
   },
   messageContent: {
     flexDirection: 'column',

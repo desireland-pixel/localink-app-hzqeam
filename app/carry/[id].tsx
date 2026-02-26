@@ -68,6 +68,9 @@ export default function CommunityDetailsScreen() {
   const [deleting, setDeleting] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [unreadReplyIds, setUnreadReplyIds] = useState<Set<string>>(new Set());
+  const [showDeleteCommentModal, setShowDeleteCommentModal] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+  const [deletingComment, setDeletingComment] = useState(false);
 
   console.log('CommunityDetailsScreen: Viewing topic', { id });
 
@@ -278,6 +281,33 @@ export default function CommunityDetailsScreen() {
     }
   };
 
+  const handleDeleteComment = async () => {
+    if (!commentToDelete) return;
+    console.log('[CommunityDetails] Deleting comment:', commentToDelete);
+    setDeletingComment(true);
+    try {
+      await authenticatedDelete(`/api/community/replies/${commentToDelete}`, {});
+      console.log('[CommunityDetails] Comment deleted successfully');
+      setShowDeleteCommentModal(false);
+      setCommentToDelete(null);
+      // Remove the deleted reply from local state immediately
+      setTopic(prev => {
+        if (!prev || !prev.replies) return prev;
+        return {
+          ...prev,
+          replies: prev.replies.filter(r => r.id !== commentToDelete),
+        };
+      });
+    } catch (err) {
+      console.error('[CommunityDetails] Error deleting comment:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete comment');
+      setShowDeleteCommentModal(false);
+      setCommentToDelete(null);
+    } finally {
+      setDeletingComment(false);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -419,6 +449,7 @@ export default function CommunityDetailsScreen() {
                 const likeCount = reply.likes || 0;
                 const isLiked = reply.isLikedByMe || false;
                 const isUnread = unreadReplyIds.has(reply.id);
+                const isOwnComment = reply.userId === user?.id;
                 
                 return (
                   <View 
@@ -433,6 +464,23 @@ export default function CommunityDetailsScreen() {
                       <Text style={styles.replyAuthor}>{replyAuthor}</Text>
                       <Text style={styles.replyDateSeparator}> • </Text>
                       <Text style={styles.replyDate}>{replyDate}</Text>
+                      {isOwnComment && (
+                        <TouchableOpacity
+                          style={styles.deleteCommentButton}
+                          onPress={() => {
+                            setCommentToDelete(reply.id);
+                            setShowDeleteCommentModal(true);
+                          }}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <IconSymbol
+                            ios_icon_name="trash"
+                            android_material_icon_name="delete"
+                            size={14}
+                            color="#FF3B30"
+                          />
+                        </TouchableOpacity>
+                      )}
                     </View>
                     <View style={styles.replyContentWrapper}>
                       <Text style={styles.replyContent}>{reply.content}</Text>
@@ -547,6 +595,33 @@ export default function CommunityDetailsScreen() {
             onPress: handleDelete,
             style: 'destructive',
             disabled: deleting,
+          },
+        ]}
+      />
+
+      <Modal
+        visible={showDeleteCommentModal}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment? This action cannot be undone."
+        onClose={() => {
+          setShowDeleteCommentModal(false);
+          setCommentToDelete(null);
+        }}
+        type="warning"
+        actions={[
+          {
+            text: 'Cancel',
+            onPress: () => {
+              setShowDeleteCommentModal(false);
+              setCommentToDelete(null);
+            },
+            style: 'cancel',
+          },
+          {
+            text: deletingComment ? 'Deleting...' : 'Delete',
+            onPress: handleDeleteComment,
+            style: 'destructive',
+            disabled: deletingComment,
           },
         ]}
       />
@@ -696,6 +771,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
+  },
+  deleteCommentButton: {
+    marginLeft: 'auto',
+    paddingLeft: spacing.sm,
   },
   replyAuthor: {
     ...typography.bodySmall,

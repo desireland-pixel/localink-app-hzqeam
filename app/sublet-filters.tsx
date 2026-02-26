@@ -4,7 +4,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Keyboa
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { CitySearchInput } from '@/components/CitySearchInput';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 
@@ -12,7 +11,6 @@ export default function SubletFiltersScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [subletType, setSubletType] = useState<'offering' | 'seeking' | null>(null);
-  const [city, setCity] = useState('');
   const [dateStart, setDateStart] = useState<Date | null>(null);
   const [dateEnd, setDateEnd] = useState<Date | null>(null);
   const [showStartPicker, setShowStartPicker] = useState(false);
@@ -22,7 +20,7 @@ export default function SubletFiltersScreen() {
   const [cityRegistration, setCityRegistration] = useState<boolean | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
-  console.log('[SubletFiltersScreen] Rendering', { subletType, city, minRent, maxRent, cityRegistration, hydrated });
+  console.log('[SubletFiltersScreen] Rendering', { subletType, minRent, maxRent, cityRegistration, hydrated });
   
   // Use useFocusEffect to reinitialize filter state every time screen gains focus
   useFocusEffect(
@@ -32,7 +30,6 @@ export default function SubletFiltersScreen() {
       
       // Reset all filters first
       setSubletType(null);
-      setCity('');
       setDateStart(null);
       setDateEnd(null);
       setMinRent('');
@@ -47,12 +44,6 @@ export default function SubletFiltersScreen() {
         if (type === 'offering' || type === 'seeking') {
           console.log('[SubletFiltersScreen] Setting subletType:', type);
           setSubletType(type);
-        }
-        
-        const cityParam = urlParams.get('city');
-        if (cityParam) {
-          console.log('[SubletFiltersScreen] Setting city:', cityParam);
-          setCity(cityParam);
         }
         
         const fromDate = urlParams.get('availableFrom');
@@ -94,7 +85,7 @@ export default function SubletFiltersScreen() {
   );
 
   const handleApply = () => {
-    console.log('[SubletFiltersScreen] Applying filters', { subletType, city, dateStart, dateEnd, minRent, maxRent, cityRegistration });
+    console.log('[SubletFiltersScreen] Applying filters', { subletType, dateStart, dateEnd, minRent, maxRent, cityRegistration });
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -124,7 +115,6 @@ export default function SubletFiltersScreen() {
     
     const params = new URLSearchParams();
     if (subletType) params.append('type', subletType);
-    if (city) params.append('city', city);
     if (dateStart) params.append('availableFrom', dateStart.toISOString().split('T')[0]);
     if (dateEnd) params.append('availableTo', dateEnd.toISOString().split('T')[0]);
     if (minRent) params.append('minRent', minRent);
@@ -143,7 +133,6 @@ export default function SubletFiltersScreen() {
   const handleReset = () => {
     console.log('[SubletFiltersScreen] Resetting filters');
     setSubletType(null);
-    setCity('');
     setDateStart(null);
     setDateEnd(null);
     setMinRent('');
@@ -154,7 +143,7 @@ export default function SubletFiltersScreen() {
   const dateStartDisplay = dateStart ? formatDateToDDMMYYYY(dateStart) : '';
   const dateEndDisplay = dateEnd ? formatDateToDDMMYYYY(dateEnd) : '';
   
-  const hasActiveFilters = subletType !== null || city !== '' || dateStart !== null || dateEnd !== null || minRent !== '' || maxRent !== '' || cityRegistration !== null;
+  const hasActiveFilters = subletType !== null || dateStart !== null || dateEnd !== null || minRent !== '' || maxRent !== '' || cityRegistration !== null;
 
   // Don't render inputs until hydration is complete
   if (!hydrated) {
@@ -191,13 +180,6 @@ export default function SubletFiltersScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-
-        <Text style={styles.sectionTitle}>City</Text>
-        <CitySearchInput
-          value={city}
-          onChangeText={setCity}
-          placeholder="Search city..."
-        />
 
         <Text style={styles.sectionTitle}>Date</Text>
         <View style={styles.row}>

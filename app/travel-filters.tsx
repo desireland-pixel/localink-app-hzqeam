@@ -4,7 +4,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingV
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { CitySearchInput } from '@/components/CitySearchInput';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 
@@ -13,8 +12,6 @@ export default function TravelFiltersScreen() {
   const params = useLocalSearchParams();
   const [role, setRole] = useState<'offering' | 'seeking' | null>(null);
   const [types, setTypes] = useState<Set<'companionship' | 'ally'>>(new Set());
-  const [fromCity, setFromCity] = useState('');
-  const [toCity, setToCity] = useState('');
   const [dateStart, setDateStart] = useState<Date | null>(null);
   const [dateEnd, setDateEnd] = useState<Date | null>(null);
   const [showStartPicker, setShowStartPicker] = useState(false);
@@ -22,7 +19,7 @@ export default function TravelFiltersScreen() {
   const [incentive, setIncentive] = useState<boolean | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
-  console.log('[TravelFiltersScreen] Rendering', { role, types: Array.from(types), fromCity, toCity, hydrated });
+  console.log('[TravelFiltersScreen] Rendering', { role, types: Array.from(types), hydrated });
   
   // Use useFocusEffect to reinitialize filter state every time screen gains focus
   useFocusEffect(
@@ -33,8 +30,6 @@ export default function TravelFiltersScreen() {
       // Reset all filters first
       setRole(null);
       setTypes(new Set());
-      setFromCity('');
-      setToCity('');
       setDateStart(null);
       setDateEnd(null);
       setIncentive(null);
@@ -62,18 +57,6 @@ export default function TravelFiltersScreen() {
             console.log('[TravelFiltersScreen] Setting types:', Array.from(newTypes));
             setTypes(newTypes);
           }
-        }
-        
-        const from = urlParams.get('fromCity');
-        if (from) {
-          console.log('[TravelFiltersScreen] Setting fromCity:', from);
-          setFromCity(from);
-        }
-        
-        const to = urlParams.get('toCity');
-        if (to) {
-          console.log('[TravelFiltersScreen] Setting toCity:', to);
-          setToCity(to);
         }
         
         const fromDate = urlParams.get('travelDateFrom');
@@ -113,7 +96,7 @@ export default function TravelFiltersScreen() {
   };
 
   const handleApply = () => {
-    console.log('[TravelFiltersScreen] Applying filters', { role, types: Array.from(types), fromCity, toCity, dateStart, dateEnd });
+    console.log('[TravelFiltersScreen] Applying filters', { role, types: Array.from(types), dateStart, dateEnd });
     
     const params = new URLSearchParams();
     
@@ -126,8 +109,6 @@ export default function TravelFiltersScreen() {
       params.append('type', typeArray.join(','));
     }
     
-    if (fromCity) params.append('fromCity', fromCity);
-    if (toCity) params.append('toCity', toCity);
     if (dateStart) params.append('travelDateFrom', dateStart.toISOString().split('T')[0]);
     if (dateEnd) params.append('travelDateTo', dateEnd.toISOString().split('T')[0]);
     if (incentive !== null) params.append('incentive', String(incentive));
@@ -145,8 +126,6 @@ export default function TravelFiltersScreen() {
     console.log('[TravelFiltersScreen] Resetting filters');
     setRole(null);
     setTypes(new Set());
-    setFromCity('');
-    setToCity('');
     setDateStart(null);
     setDateEnd(null);
     setIncentive(null);
@@ -155,7 +134,7 @@ export default function TravelFiltersScreen() {
   const dateStartDisplay = dateStart ? formatDateToDDMMYYYY(dateStart) : '';
   const dateEndDisplay = dateEnd ? formatDateToDDMMYYYY(dateEnd) : '';
   
-  const hasActiveFilters = role !== null || types.size > 0 || fromCity !== '' || toCity !== '' || dateStart !== null || dateEnd !== null || incentive !== null;
+  const hasActiveFilters = role !== null || types.size > 0 || dateStart !== null || dateEnd !== null || incentive !== null;
 
   // Don't render inputs until hydration is complete
   if (!hydrated) {
@@ -212,22 +191,6 @@ export default function TravelFiltersScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-
-        <Text style={styles.sectionTitle}>From</Text>
-        <CitySearchInput
-          value={fromCity}
-          onChangeText={setFromCity}
-          placeholder="Search city or type India/Germany..."
-          cityType="travel"
-        />
-
-        <Text style={styles.sectionTitle}>To</Text>
-        <CitySearchInput
-          value={toCity}
-          onChangeText={setToCity}
-          placeholder="Search city or type India/Germany..."
-          cityType="travel"
-        />
 
         <Text style={styles.sectionTitle}>Date</Text>
         <View style={styles.row}>
