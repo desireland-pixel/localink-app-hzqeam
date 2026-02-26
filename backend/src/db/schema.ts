@@ -180,6 +180,7 @@ export const discussionTopics = pgTable('discussion_topics', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   category: text('category').notNull(), // e.g., "Visa", "Travel Insurance", "Health", etc.
+  location: text('location').default('Germany').notNull(), // City/location, defaults to Germany
   title: text('title').notNull(),
   description: text('description'),
   status: text('status', { enum: ['open', 'closed'] }).default('open').notNull(),

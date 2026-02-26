@@ -14,6 +14,7 @@ interface DiscussionTopicFilters {
 
 interface DiscussionTopicBody {
   category: string;
+  location?: string;
   title: string;
   description?: string;
 }
@@ -63,9 +64,11 @@ export function registerCommunityRoutes(app: App) {
           id: schema.discussionTopics.id,
           userId: schema.discussionTopics.userId,
           category: schema.discussionTopics.category,
+          location: schema.discussionTopics.location,
           title: schema.discussionTopics.title,
           description: schema.discussionTopics.description,
           status: schema.discussionTopics.status,
+          unreadRepliesCount: schema.discussionTopics.unreadRepliesCount,
           replyCount: sql<number>`(SELECT COUNT(*) FROM ${schema.discussionReplies} WHERE ${schema.discussionReplies.topicId} = ${schema.discussionTopics.id})`,
           createdAt: schema.discussionTopics.createdAt,
           updatedAt: schema.discussionTopics.updatedAt,
@@ -130,6 +133,7 @@ export function registerCommunityRoutes(app: App) {
           id: schema.discussionTopics.id,
           userId: schema.discussionTopics.userId,
           category: schema.discussionTopics.category,
+          location: schema.discussionTopics.location,
           title: schema.discussionTopics.title,
           description: schema.discussionTopics.description,
           status: schema.discussionTopics.status,
@@ -209,6 +213,7 @@ export function registerCommunityRoutes(app: App) {
         required: ['category', 'title'],
         properties: {
           category: { type: 'string' },
+          location: { type: 'string' },
           title: { type: 'string' },
           description: { type: 'string' },
         },
@@ -227,6 +232,7 @@ export function registerCommunityRoutes(app: App) {
         .values({
           userId: session.user.id,
           category: body.category,
+          location: body.location || 'Germany',
           title: body.title,
           description: body.description,
         })
@@ -256,6 +262,7 @@ export function registerCommunityRoutes(app: App) {
         type: 'object',
         properties: {
           category: { type: 'string' },
+          location: { type: 'string' },
           title: { type: 'string' },
           description: { type: 'string' },
           status: { type: 'string', enum: ['open', 'closed'] },
@@ -287,6 +294,7 @@ export function registerCommunityRoutes(app: App) {
 
       const updateData: any = { updatedAt: new Date() };
       if (body.category !== undefined) updateData.category = body.category;
+      if (body.location !== undefined) updateData.location = body.location;
       if (body.title !== undefined) updateData.title = body.title;
       if (body.description !== undefined) updateData.description = body.description;
       if (body.status !== undefined) updateData.status = body.status;
