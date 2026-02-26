@@ -359,6 +359,7 @@ export function registerFavoriteRoutes(app: App) {
                 id: schema.discussionTopics.id,
                 userId: schema.discussionTopics.userId,
                 category: schema.discussionTopics.category,
+                location: schema.discussionTopics.location,
                 title: schema.discussionTopics.title,
                 description: schema.discussionTopics.description,
                 status: schema.discussionTopics.status,
