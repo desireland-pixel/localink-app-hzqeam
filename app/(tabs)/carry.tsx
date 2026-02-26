@@ -16,6 +16,7 @@ interface CommunityTopic {
   title: string;
   description?: string;
   status: 'open' | 'closed';
+  location?: string;
   createdAt: string;
   updatedAt: string;
   user?: {
@@ -25,6 +26,7 @@ interface CommunityTopic {
   };
   replyCount?: number;
   repliesCount?: number | string;
+  unreadRepliesCount?: number;
 }
 
 const CATEGORIES = [
@@ -73,6 +75,23 @@ export default function CommunityScreen() {
       console.log('CommunityScreen: Fetched community topics', data);
       const dataArray = Array.isArray(data) ? data : [];
       const sortedData = dataArray.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      // Fetch unread reply counts for own topics
+      const ownTopics = sortedData.filter(t => t.userId === user?.id);
+      if (ownTopics.length > 0) {
+        const unreadResults = await Promise.allSettled(
+          ownTopics.map(t =>
+            authenticatedGet<{ unreadCount: number }>(`/api/community/topics/${t.id}/unread-replies`)
+          )
+        );
+        ownTopics.forEach((t, idx) => {
+          const result = unreadResults[idx];
+          if (result.status === 'fulfilled') {
+            t.unreadRepliesCount = result.value.unreadCount;
+          }
+        });
+      }
+
       setTopics(sortedData);
     } catch (error) {
       console.error('CommunityScreen: Error fetching community topics', error);
@@ -83,7 +102,7 @@ export default function CommunityScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [params.filters, topics.length]);
+  }, [params.filters, topics.length, user?.id]);
 
   const fetchFavorites = React.useCallback(async () => {
     try {
@@ -228,6 +247,8 @@ export default function CommunityScreen() {
             const isFavorited = favorites.has(topic.id);
             const isOpen = topic.status === 'open';
             const isOwnPost = topic.userId === user?.id;
+            const locationDisplay = topic.location || 'Germany';
+            const hasUnreadReplies = isOwnPost && (topic.unreadRepliesCount ?? 0) > 0;
             
             const categoryColor = CATEGORY_COLORS[topic.category] || CATEGORY_COLORS['General'];
             const categoryBackgroundColor = isOpen ? categoryColor.background : '#E5E7EB';
@@ -238,7 +259,7 @@ export default function CommunityScreen() {
             return (
               <TouchableOpacity
                 key={topic.id}
-                style={styles.card}
+                style={[styles.card, hasUnreadReplies && styles.cardUnread]}
                 onPress={() => {
                   console.log('CommunityScreen: View topic', topic.id);
                   router.push(`/carry/${topic.id}`);
@@ -283,8 +304,14 @@ export default function CommunityScreen() {
                   <View style={styles.authorDateContainer}>
                     <Text style={styles.cardAuthor}>{authorName}</Text>
                     <Text style={styles.cardDate}> • {createdDate}</Text>
+                    <Text style={styles.cardDate}> • {locationDisplay}</Text>
                   </View>
                   <View style={styles.replyCountContainer}>
+                    {hasUnreadReplies && (
+                      <View style={styles.unreadBadge}>
+                        <Text style={styles.unreadBadgeText}>{topic.unreadRepliesCount}</Text>
+                      </View>
+                    )}
                     <IconSymbol
                       ios_icon_name="bubble.left.fill"
                       android_material_icon_name="chat-bubble"
@@ -393,6 +420,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  cardUnread: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -470,5 +501,19 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 11,
+  },
+  unreadBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  unreadBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, TextInput, ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { apiGet } from '@/utils/api';
@@ -16,12 +16,14 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
   const [query, setQuery] = useState(value);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const selectedFromSuggestion = useRef(false);
 
   useEffect(() => {
     setQuery(value);
   }, [value]);
 
   const handleQueryChange = async (text: string) => {
+    selectedFromSuggestion.current = false;
     setQuery(text);
     
     if (text.trim().length > 0) {
@@ -43,6 +45,7 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
 
   const handleSelectCity = (city: string) => {
     console.log('[CitySearchInput] City selected:', city);
+    selectedFromSuggestion.current = true;
     setQuery(city);
     onChangeText(city);
     setShowSuggestions(false);
@@ -50,17 +53,18 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
   };
 
   const handleBlur = () => {
-    // Delay to allow tap on suggestion - increased delay for better reliability
+    // Delay to allow tap on suggestion
     setTimeout(() => {
       setShowSuggestions(false);
-      // Update parent with current query even if not from suggestions
-      if (query !== value) {
+      // Only update parent with typed query if user did NOT select from suggestions
+      if (!selectedFromSuggestion.current && query !== value) {
         onChangeText(query);
       }
-    }, 500);
+    }, 300);
   };
 
   const handleFocus = async () => {
+    selectedFromSuggestion.current = false;
     if (query.trim().length > 0) {
       try {
         const typeParam = cityType !== 'all' ? `&type=${cityType}` : '';
@@ -74,7 +78,7 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
   };
 
   return (
-    <View style={[styles.container, style, { height: -5 }]}>
+    <View style={[styles.container, style]}>
       <TextInput
         style={styles.input}
         placeholder={placeholder}
@@ -119,7 +123,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,

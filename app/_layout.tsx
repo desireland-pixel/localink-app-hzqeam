@@ -140,7 +140,7 @@ export default function RootLayout() {
                   name="post-community-topic" 
                   options={{ 
                     headerShown: true,
-                    title: 'Discussion',
+                    title: '',
                     headerBackTitle: 'Cancel'
                   }} 
                 />
