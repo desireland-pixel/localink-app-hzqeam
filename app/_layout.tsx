@@ -92,7 +92,7 @@ export default function RootLayout() {
                   name="personal-details" 
                   options={{ 
                     headerShown: true,
-                    title: 'Personal Details',
+                    title: 'Personal details',
                     headerBackTitle: 'Back'
                   }} 
                 />

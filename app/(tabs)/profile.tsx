@@ -68,7 +68,6 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.menuSection}>
-          {Platform.OS === 'ios' && <Text style={styles.sectionTitle}>Personal Details</Text>}
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
@@ -332,12 +331,6 @@ const styles = StyleSheet.create({
   },
   menuSection: {
     marginTop: spacing.xs,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: spacing.sm,
   },
   menuItem: {
     flexDirection: 'row',

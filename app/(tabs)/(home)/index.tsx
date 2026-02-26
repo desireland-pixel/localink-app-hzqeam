@@ -77,12 +77,27 @@ export default function CommunityScreen() {
     }
   }, [selectedCategory, selectedStatus]);
 
+  const scrollViewRef = React.useRef<ScrollView>(null);
+
   useFocusEffect(
     React.useCallback(() => {
       console.log('CommunityScreen: Screen focused, refreshing topics');
       fetchTopics();
     }, [fetchTopics])
   );
+
+  // Auto-scroll to unread post when topics are loaded
+  useEffect(() => {
+    if (topics.length > 0 && scrollViewRef.current) {
+      const unreadPostIndex = topics.findIndex(t => t.userId === user?.id && (t.unreadRepliesCount || 0) > 0);
+      if (unreadPostIndex !== -1 && unreadPostIndex > 2) {
+        // Scroll to unread post after a short delay to ensure layout is complete
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: unreadPostIndex * 150, animated: true });
+        }, 300);
+      }
+    }
+  }, [topics, user?.id]);
 
   useEffect(() => {
     fetchTopics();
@@ -206,6 +221,7 @@ export default function CommunityScreen() {
         </View>
       ) : (
         <ScrollView 
+          ref={scrollViewRef}
           style={styles.content}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />

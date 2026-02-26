@@ -336,19 +336,30 @@ export default function TravelDetailsScreen() {
             </View>
           )}
 
-          <View style={styles.dateContainer}>
-            <Text style={styles.dateLabel}>Travel Date:</Text>
-            <Text style={styles.dateText}>
-              {travelDateDisplay || 'Not specified'}
-              {travelDateToDisplay && travelPost.type === 'seeking' && ` - ${travelDateToDisplay}`}
-            </Text>
-          </View>
-
-          {travelDateToDisplay && travelPost.type !== 'seeking' && (
+          {travelPost.type === 'seeking-ally' && travelDateToDisplay ? (
             <View style={styles.dateContainer}>
-              <Text style={styles.dateLabel}>Travel Date To:</Text>
-              <Text style={styles.dateText}>{travelDateToDisplay}</Text>
+              <Text style={styles.dateLabel}>Travel Date:</Text>
+              <Text style={styles.dateText}>
+                {travelDateDisplay} - {travelDateToDisplay}
+              </Text>
             </View>
+          ) : (
+            <>
+              <View style={styles.dateContainer}>
+                <Text style={styles.dateLabel}>Travel Date:</Text>
+                <Text style={styles.dateText}>
+                  {travelDateDisplay || 'Not specified'}
+                  {travelDateToDisplay && travelPost.type === 'seeking' && ` - ${travelDateToDisplay}`}
+                </Text>
+              </View>
+
+              {travelDateToDisplay && travelPost.type !== 'seeking' && travelPost.type !== 'seeking-ally' && (
+                <View style={styles.dateContainer}>
+                  <Text style={styles.dateLabel}>Travel Date To:</Text>
+                  <Text style={styles.dateText}>{travelDateToDisplay}</Text>
+                </View>
+              )}
+            </>
           )}
 
           {travelPost.companionshipFor && (

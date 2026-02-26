@@ -332,7 +332,7 @@ export default function PostSubletScreen() {
 
           {subletType === 'offering' && (
             <>
-              <Text style={styles.label}>Title *</Text>
+              <Text style={[styles.label, styles.labelReduced]}>Title *</Text>
               <TextInput
                 style={styles.input}
                 placeholder="e.g., Cozy 2-bedroom apartment"
@@ -517,7 +517,7 @@ export default function PostSubletScreen() {
 
           {subletType === 'seeking' && (
             <>
-              <Text style={styles.label}>Title *</Text>
+              <Text style={[styles.label, styles.labelReduced]}>Title *</Text>
               <TextInput
                 style={styles.input}
                 placeholder="e.g., Looking for 1-bedroom apartment"
@@ -721,6 +721,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: spacing.sm,
     marginTop: spacing.md,
+  },
+  labelReduced: {
+    marginTop: spacing.xs,
   },
   infoText: {
     ...typography.bodySmall,

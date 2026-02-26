@@ -405,7 +405,7 @@ export default function CommunityDetailsScreen() {
           </View>
 
           <View style={styles.repliesSection}>
-            <Text style={styles.repliesTitle}>Replies ({replyCountValue})</Text>
+            <Text style={styles.repliesTitle}>Comments ({replyCountValue})</Text>
             
             {topic.replies && topic.replies.length > 0 ? (
               topic.replies.map((reply) => {
@@ -472,7 +472,7 @@ export default function CommunityDetailsScreen() {
                 );
               })
             ) : (
-              <Text style={styles.noRepliesText}>No replies yet. Be the first to comment!</Text>
+              <Text style={styles.noRepliesText}>No comments yet. Be the first to comment!</Text>
             )}
           </View>
         </ScrollView>
