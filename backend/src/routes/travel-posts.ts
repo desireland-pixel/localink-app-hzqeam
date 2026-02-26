@@ -12,8 +12,6 @@ import { formatIncentiveAmount, getIncentiveDisclaimer } from '../utils/incentiv
 interface TravelPostFilters {
   role?: 'offering' | 'seeking'; // Single role filter
   type?: string; // Multi-select: 'companionship' or 'ally' (can be comma-separated)
-  fromCity?: string;
-  toCity?: string;
   travelDate?: string;
   travelDateFrom?: string;
   travelDateTo?: string;
@@ -107,8 +105,6 @@ export function registerTravelPostRoutes(app: App) {
         properties: {
           role: { type: 'string', enum: ['offering', 'seeking'] },
           type: { type: 'string' }, // 'companionship,ally' for multi-select
-          fromCity: { type: 'string' },
-          toCity: { type: 'string' },
           travelDate: { type: 'string' },
           travelDateFrom: { type: 'string' },
           travelDateTo: { type: 'string' },
@@ -186,14 +182,6 @@ export function registerTravelPostRoutes(app: App) {
             conditions.push(or(...typeConditions)!);
           }
         }
-      }
-
-      if (filters.fromCity) {
-        conditions.push(eq(schema.travelPosts.fromCity, filters.fromCity));
-      }
-
-      if (filters.toCity) {
-        conditions.push(eq(schema.travelPosts.toCity, filters.toCity));
       }
 
       if (filters.travelDate) {
