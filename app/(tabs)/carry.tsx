@@ -36,7 +36,7 @@ const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } =
   'Housing': { background: '#D1FAE5', text: '#065F46' },
   'Jobs': { background: '#FCE7F3', text: '#9F1239' },
   'Healthcare': { background: '#E0E7FF', text: '#3730A3' },
-  'Banking': { background: '#FED7AA', text: '#9A3412' },
+  'Finance': { background: '#FED7AA', text: '#9A3412' },
   'Education': { background: '#E9D5FF', text: '#6B21A8' },
   'General': { background: '#FDE68A', text: '#78350F' },
 };
@@ -220,8 +220,19 @@ export default function CommunityScreen() {
     if (text.trim().length > 0) {
       try {
         const response = await apiGet<{ cities: string[] }>(`/api/cities/search?q=${encodeURIComponent(text)}&limit=8`);
-        setCitySuggestions(response.cities);
-        setShowCitySuggestions(response.cities.length > 0);
+        
+        // Pin Germany for first 3 characters typed
+        let suggestions = response.cities;
+        const textLength = text.trim().length;
+        if (textLength >= 1 && textLength <= 3) {
+          // Remove Germany from its current position if it exists
+          suggestions = suggestions.filter(city => city.toLowerCase() !== 'germany');
+          // Add Germany at the beginning
+          suggestions = ['Germany', ...suggestions];
+        }
+        
+        setCitySuggestions(suggestions);
+        setShowCitySuggestions(suggestions.length > 0);
       } catch (error) {
         console.error('CommunityScreen: Error searching cities:', error);
         setCitySuggestions([]);
@@ -277,7 +288,7 @@ export default function CommunityScreen() {
                 />
                 <TextInput
                   style={styles.cityInput}
-                  placeholder="City"
+                  placeholder="Location"
                   placeholderTextColor={colors.textSecondary}
                   value={cityInputValue}
                   onChangeText={handleCityInputChange}
@@ -596,7 +607,7 @@ const styles = StyleSheet.create({
   },
   cityButtonContainer: {
     position: 'relative',
-    minWidth: 100,
+    minWidth: 120,
     maxWidth: 200,
   },
   cityInputWrapper: {
@@ -617,7 +628,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 14,
     paddingVertical: 0,
-    minWidth: 60,
+    minWidth: 72,
   },
   citySelectedContainer: {
     flexDirection: 'row',

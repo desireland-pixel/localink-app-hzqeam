@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { authenticatedGet, authenticatedPost, authenticatedDelete, apiGet } from '@/utils/api';
-import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '@/utils/cities';
+import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY, getCityCode } from '@/utils/cities';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface TravelPost {
@@ -306,6 +306,10 @@ export default function TravelScreen() {
   
   const sortDisplayText = sortOption === 'Earliest departure' ? 'Earliest dep..' : sortOption === 'Latest departure' ? 'Latest dep..' : sortOption;
 
+  // Get display codes for selected cities
+  const fromDisplayCode = selectedFrom ? getCityCode(selectedFrom) : '';
+  const toDisplayCode = selectedTo ? getCityCode(selectedTo) : '';
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.pageHeader}>
@@ -325,7 +329,7 @@ export default function TravelScreen() {
                 />
               ) : (
                 <View style={styles.routeSelectedContainer}>
-                  <Text style={styles.routeSelectedText} numberOfLines={1}>{selectedFrom}</Text>
+                  <Text style={styles.routeSelectedText} numberOfLines={1}>{fromDisplayCode}</Text>
                   <TouchableOpacity onPress={handleClearFrom} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <IconSymbol
                       ios_icon_name="xmark"
@@ -376,7 +380,7 @@ export default function TravelScreen() {
                 />
               ) : (
                 <View style={styles.routeSelectedContainer}>
-                  <Text style={styles.routeSelectedText} numberOfLines={1}>{selectedTo}</Text>
+                  <Text style={styles.routeSelectedText} numberOfLines={1}>{toDisplayCode}</Text>
                   <TouchableOpacity onPress={handleClearTo} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <IconSymbol
                       ios_icon_name="xmark"

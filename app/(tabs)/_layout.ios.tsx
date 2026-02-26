@@ -28,6 +28,9 @@ export default function TabLayout() {
           fontSize: 12,
           fontWeight: '600',
         },
+        // Enable horizontal swipe between tabs
+        swipeEnabled: true,
+        animationEnabled: true,
       }}
     >
       <Tabs.Screen

@@ -9,14 +9,14 @@ import Modal from '@/components/ui/Modal';
 import { CitySearchInput } from '@/components/CitySearchInput';
 
 const CATEGORIES = [
-  'Visa',
-  'Insurance',
-  'Housing',
-  'Jobs',
-  'Healthcare',
-  'Banking',
-  'Education',
   'General',
+  'Education',
+  'Finance',
+  'Healthcare',
+  'Housing',
+  'Insurance',
+  'Job',
+  'Visa',
 ];
 
 export default function PostCommunityTopicScreen() {
