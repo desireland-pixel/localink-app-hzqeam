@@ -203,6 +203,7 @@ export default function TravelScreen() {
           {filteredPosts.map((post) => {
             const dateDisplay = formatDateToDDMMYYYY(post.travelDate);
             const dateToDisplay = post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo) : null;
+            const showDateRange = post.type === 'seeking-ally' && dateToDisplay;
             
             let label = '';
             let iconCompanionship = false;
@@ -304,9 +305,15 @@ export default function TravelScreen() {
                       size={14}
                       color={colors.textSecondary}
                     />
-                    {dateDisplay && <Text style={styles.dateText}>{dateDisplay}</Text>}
-                    {dateDisplay && dateToDisplay && <Text style={styles.dateSeparator}>-</Text>}
-                    {dateToDisplay && <Text style={styles.dateText}>{dateToDisplay}</Text>}
+                    {showDateRange ? (
+                      <>
+                        <Text style={styles.dateText}>{dateDisplay}</Text>
+                        <Text style={styles.dateSeparator}>-</Text>
+                        <Text style={styles.dateText}>{dateToDisplay}</Text>
+                      </>
+                    ) : (
+                      <Text style={styles.dateText}>{dateDisplay}</Text>
+                    )}
                   </View>
                 )}
                 {post.type === 'seeking' && post.companionshipFor && (

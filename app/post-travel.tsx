@@ -49,6 +49,8 @@ export default function PostTravelScreen() {
   const [travelDateTo, setTravelDateTo] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDateToPicker, setShowDateToPicker] = useState(false);
+  const [neededFromDate, setNeededFromDate] = useState<Date | null>(null);
+  const [showNeededFromPicker, setShowNeededFromPicker] = useState(false);
   const [companionshipFor, setCompanionshipFor] = useState('');
   const [showCompanionshipDropdown, setShowCompanionshipDropdown] = useState(false);
   const [canOfferCompanionship, setCanOfferCompanionship] = useState(false);
@@ -107,6 +109,14 @@ export default function PostTravelScreen() {
           const dateTo = parseDateFromDDMMYYYY(data.travelDateTo);
           if (dateTo) {
             setTravelDateTo(new Date(dateTo));
+          }
+        }
+        
+        // For seeking-ally, travelDate is "Needed from Date" and travelDateTo is "Needed by Date"
+        if (data.type === 'seeking-ally' && data.travelDate) {
+          const fromDate = parseDateFromDDMMYYYY(data.travelDate);
+          if (fromDate) {
+            setNeededFromDate(new Date(fromDate));
           }
         }
       } catch (err) {
@@ -175,6 +185,30 @@ export default function PostTravelScreen() {
       }
     }
 
+    // Validate dates for seeking-ally
+    if (travelMode === 'seeking-ally') {
+      if (!neededFromDate) {
+        setError('Please select Needed from Date');
+        return;
+      }
+      
+      const fromDate = new Date(neededFromDate);
+      fromDate.setHours(0, 0, 0, 0);
+      
+      if (fromDate < today) {
+        setError('Needed from Date cannot be older than today');
+        return;
+      }
+      
+      const byDate = new Date(travelDate);
+      byDate.setHours(0, 0, 0, 0);
+      
+      if (byDate < fromDate) {
+        setError('Needed by Date cannot be older than Needed from Date');
+        return;
+      }
+    }
+
     setLoading(true);
     setError('');
     
@@ -212,6 +246,11 @@ export default function PostTravelScreen() {
         postData.type = 'seeking-ally';
         postData.item = item.trim();
         postData.allyConsent = consentAccepted;
+        // For seeking-ally, travelDate is "Needed by Date" and we need to send "Needed from Date" as travelDate
+        if (neededFromDate) {
+          postData.travelDate = dateToISOString(neededFromDate);
+          postData.travelDateTo = dateToISOString(travelDate);
+        }
         // Add incentive for seeking ally
         if (incentiveEnabled && incentiveAmount) {
           const amount = parseFloat(incentiveAmount);
@@ -287,7 +326,7 @@ export default function PostTravelScreen() {
                 <View style={styles.radioCircle}>
                   {travelMode === 'seeking-ally' && <View style={styles.radioCircleSelected} />}
                 </View>
-                <Text style={styles.radioText}>seeking an ally</Text>
+                <Text style={styles.radioText}>seeking an ally (delivery support)</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -590,22 +629,21 @@ export default function PostTravelScreen() {
                   </View>
                   <Text style={styles.incentiveLabel}>I&apos;d like to offer an incentive (optional): €</Text>
                 </TouchableOpacity>
-                {incentiveEnabled && (
-                  <TextInput
-                    style={styles.incentiveInput}
-                    value={incentiveAmount}
-                    onChangeText={(text) => {
-                      // Regex to allow xx.xx format (00.01 to 99.99)
-                      if (/^\d{0,2}(\.\d{0,2})?$/.test(text) || text === '') {
-                        setIncentiveAmount(text);
-                      }
-                    }}
-                    keyboardType="decimal-pad"
-                    placeholder="00.00"
-                    placeholderTextColor={colors.textLight}
-                    maxLength={5}
-                  />
-                )}
+                <TextInput
+                  style={[styles.incentiveInput, !incentiveEnabled && styles.incentiveInputDisabled]}
+                  value={incentiveAmount}
+                  onChangeText={(text) => {
+                    // Regex to allow xx.xx format (00.01 to 99.99)
+                    if (/^\d{0,2}(\.\d{0,2})?$/.test(text) || text === '') {
+                      setIncentiveAmount(text);
+                    }
+                  }}
+                  keyboardType="decimal-pad"
+                  placeholder="00.00"
+                  placeholderTextColor={colors.textLight}
+                  maxLength={5}
+                  editable={incentiveEnabled}
+                />
               </View>
 
               <TouchableOpacity
@@ -686,6 +724,28 @@ export default function PostTravelScreen() {
                 </View>
               )}
 
+              <Text style={styles.label}>Needed from Date *</Text>
+              <TouchableOpacity 
+                style={styles.dateButton}
+                onPress={() => setShowNeededFromPicker(true)}
+              >
+                <Text style={[styles.dateButtonText, !neededFromDate && styles.dateButtonPlaceholder]}>
+                  {neededFromDate ? formatDateToDDMMYYYY(neededFromDate) : formatDateToDDMMYYYY(new Date())}
+                </Text>
+              </TouchableOpacity>
+              {showNeededFromPicker && (
+                <DateTimePicker
+                  value={neededFromDate || new Date()}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={(event, selectedDate) => {
+                    setShowNeededFromPicker(false);
+                    if (selectedDate) setNeededFromDate(selectedDate);
+                  }}
+                />
+              )}
+
               <Text style={styles.label}>Needed by Date *</Text>
               <TouchableOpacity 
                 style={styles.dateButton}
@@ -695,10 +755,10 @@ export default function PostTravelScreen() {
               </TouchableOpacity>
               {showDatePicker && (
                 <DateTimePicker
-                  value={travelDate || new Date()}
+                  value={travelDate || neededFromDate || new Date()}
                   mode="date"
                   display="default"
-                  minimumDate={new Date()}
+                  minimumDate={neededFromDate || new Date()}
                   onChange={(event, selectedDate) => {
                     setShowDatePicker(false);
                     if (selectedDate) setTravelDate(selectedDate);
@@ -742,22 +802,21 @@ export default function PostTravelScreen() {
                   </View>
                   <Text style={styles.incentiveLabel}>I&apos;d like to offer an incentive (optional): €</Text>
                 </TouchableOpacity>
-                {incentiveEnabled && (
-                  <TextInput
-                    style={styles.incentiveInput}
-                    value={incentiveAmount}
-                    onChangeText={(text) => {
-                      // Regex to allow xx.xx format (00.01 to 99.99)
-                      if (/^\d{0,2}(\.\d{0,2})?$/.test(text) || text === '') {
-                        setIncentiveAmount(text);
-                      }
-                    }}
-                    keyboardType="decimal-pad"
-                    placeholder="00.00"
-                    placeholderTextColor={colors.textLight}
-                    maxLength={5}
-                  />
-                )}
+                <TextInput
+                  style={[styles.incentiveInput, !incentiveEnabled && styles.incentiveInputDisabled]}
+                  value={incentiveAmount}
+                  onChangeText={(text) => {
+                    // Regex to allow xx.xx format (00.01 to 99.99)
+                    if (/^\d{0,2}(\.\d{0,2})?$/.test(text) || text === '') {
+                      setIncentiveAmount(text);
+                    }
+                  }}
+                  keyboardType="decimal-pad"
+                  placeholder="00.00"
+                  placeholderTextColor={colors.textLight}
+                  maxLength={5}
+                  editable={incentiveEnabled}
+                />
               </View>
 
               <TouchableOpacity
@@ -821,11 +880,11 @@ const styles = StyleSheet.create({
   radioLabel: {
     ...typography.body,
     color: colors.text,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
     fontWeight: '600',
   },
   radioButtons: {
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   radioOption: {
     flexDirection: 'row',
@@ -1078,5 +1137,9 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
     marginLeft: 36,
+  },
+  incentiveInputDisabled: {
+    opacity: 0.5,
+    backgroundColor: colors.border,
   },
 });

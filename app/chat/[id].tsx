@@ -586,14 +586,14 @@ const styles = StyleSheet.create({
   messageTime: {
     ...typography.bodySmall,
     color: colors.textLight,
-    fontSize: 10,
+    fontSize: 9,
   },
   ownMessageTime: {
     color: 'rgba(255, 255, 255, 0.7)',
   },
   statusIcon: {
     ...typography.bodySmall,
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
   },
   inputContainer: {
@@ -622,6 +622,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     marginRight: spacing.sm,
     maxHeight: 100,
+    minHeight: 44,
     ...typography.body,
     color: colors.text,
   },
