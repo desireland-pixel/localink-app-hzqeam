@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, RefreshControl, ActivityIndicator, Modal as RNModal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -8,6 +8,7 @@ import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/util
 import { useAuth } from '@/contexts/AuthContext';
 import { IconSymbol } from '@/components/IconSymbol';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
+import { CitySearchInput } from '@/components/CitySearchInput';
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
@@ -40,6 +41,8 @@ interface CommunityTopic {
   };
 }
 
+type SortOption = 'Default' | 'Newest' | 'Trending' | 'Oldest';
+
 export default function CommunityScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -48,6 +51,10 @@ export default function CommunityScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'open' | 'closed'>('all');
+  const [selectedCity, setSelectedCity] = useState<string>('Germany');
+  const [showCityPicker, setShowCityPicker] = useState(false);
+  const [sortOption, setSortOption] = useState<SortOption>('Default');
+  const [showSortModal, setShowSortModal] = useState(false);
 
   console.log('CommunityScreen: Rendering', { topicsCount: topics.length, selectedCategory, selectedStatus });
 
@@ -65,9 +72,21 @@ export default function CommunityScreen() {
       const data = await authenticatedGet<CommunityTopic[]>(endpoint);
       console.log('CommunityScreen: Fetched topics', data);
       
-      const sortedTopics = data.sort((a, b) => {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
+      let sortedTopics = [...data];
+      
+      // Apply sorting
+      if (sortOption === 'Newest' || sortOption === 'Default') {
+        sortedTopics.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      } else if (sortOption === 'Trending') {
+        sortedTopics.sort((a, b) => (b.replyCount || 0) - (a.replyCount || 0));
+      } else if (sortOption === 'Oldest') {
+        sortedTopics.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      }
+      
+      // Filter by city
+      if (selectedCity !== 'Germany') {
+        sortedTopics = sortedTopics.filter(t => t.location === selectedCity);
+      }
       
       setTopics(sortedTopics);
     } catch (error: any) {
@@ -76,7 +95,7 @@ export default function CommunityScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedCategory, selectedStatus]);
+  }, [selectedCategory, selectedStatus, sortOption, selectedCity]);
 
   const scrollViewRef = React.useRef<ScrollView>(null);
 
@@ -89,13 +108,14 @@ export default function CommunityScreen() {
 
   // Auto-scroll to unread post when topics are loaded
   useEffect(() => {
-    if (topics.length > 0 && scrollViewRef.current) {
-      const unreadPostIndex = topics.findIndex(t => t.userId === user?.id && (t.unreadRepliesCount || 0) > 0);
-      if (unreadPostIndex !== -1 && unreadPostIndex > 2) {
+    if (topics.length > 0 && scrollViewRef.current && user?.id) {
+      const unreadPostIndex = topics.findIndex(t => t.userId === user.id && (t.unreadRepliesCount || 0) > 0);
+      if (unreadPostIndex !== -1) {
         // Scroll to unread post after a short delay to ensure layout is complete
         setTimeout(() => {
-          scrollViewRef.current?.scrollTo({ y: unreadPostIndex * 150, animated: true });
-        }, 300);
+          const scrollY = Math.max(0, unreadPostIndex * 180 - 100);
+          scrollViewRef.current?.scrollTo({ y: scrollY, animated: true });
+        }, 500);
       }
     }
   }, [topics, user?.id]);
@@ -130,32 +150,44 @@ export default function CommunityScreen() {
     }
   };
 
+  const handleCitySelect = (city: string) => {
+    setSelectedCity(city);
+    setShowCityPicker(false);
+  };
+
+  const handleSortSelect = (option: SortOption) => {
+    setSortOption(option);
+    setShowSortModal(false);
+  };
+
   const categories = ['Visa', 'Insurance', 'Housing', 'Jobs', 'Healthcare', 'Banking', 'Education', 'General'];
 
   const filteredTopics = topics;
+
+  const sortDisplayText = sortOption === 'Default' ? 'Newest' : sortOption;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.pageHeader}>
         <Text style={styles.pageTitle}>Community</Text>
         <View style={styles.pageHeaderRight}>
-          <TouchableOpacity style={styles.locationButton}>
+          <TouchableOpacity style={styles.locationButton} onPress={() => setShowCityPicker(true)}>
             <IconSymbol
               ios_icon_name="location.fill"
               android_material_icon_name="location-on"
               size={16}
               color={colors.text}
             />
-            <Text style={styles.locationButtonText}>City</Text>
+            <Text style={styles.locationButtonText}>{selectedCity}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.sortButton}>
+          <TouchableOpacity style={styles.sortButton} onPress={() => setShowSortModal(true)}>
             <IconSymbol
               ios_icon_name="arrow.up.arrow.down"
               android_material_icon_name="sort"
               size={16}
               color={colors.text}
             />
-            <Text style={styles.sortButtonText}>Sort</Text>
+            <Text style={styles.sortButtonText}>{sortDisplayText}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -333,6 +365,11 @@ export default function CommunityScreen() {
                         color={colors.textLight}
                       />
                       <Text style={styles.replyCountText}>{replyCount}</Text>
+                      {hasUnreadReplies && (
+                        <View style={styles.unreadBadge}>
+                          <Text style={styles.unreadBadgeText}>{topic.unreadRepliesCount}</Text>
+                        </View>
+                      )}
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -341,6 +378,76 @@ export default function CommunityScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* City Picker Modal */}
+      <RNModal
+        visible={showCityPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCityPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select City</Text>
+              <TouchableOpacity onPress={() => setShowCityPicker(false)}>
+                <IconSymbol
+                  ios_icon_name="xmark"
+                  android_material_icon_name="close"
+                  size={24}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            </View>
+            <CitySearchInput
+              value={selectedCity}
+              onChangeText={handleCitySelect}
+              placeholder="Search city..."
+            />
+          </View>
+        </View>
+      </RNModal>
+
+      {/* Sort Modal */}
+      <RNModal
+        visible={showSortModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSortModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowSortModal(false)}
+        >
+          <View style={styles.sortModalContent}>
+            <Text style={styles.sortModalTitle}>Sort by</Text>
+            {(['Default', 'Newest', 'Trending', 'Oldest'] as SortOption[]).map((option) => {
+              const isSelected = sortOption === option;
+              const displayText = option === 'Default' ? 'Default (Newest)' : option;
+              return (
+                <TouchableOpacity
+                  key={option}
+                  style={[styles.sortOption, isSelected && styles.sortOptionSelected]}
+                  onPress={() => handleSortSelect(option)}
+                >
+                  <Text style={[styles.sortOptionText, isSelected && styles.sortOptionTextSelected]}>
+                    {displayText}
+                  </Text>
+                  {isSelected && (
+                    <IconSymbol
+                      ios_icon_name="checkmark"
+                      android_material_icon_name="check"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </RNModal>
     </SafeAreaView>
   );
 }
@@ -357,9 +464,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
     minHeight: 26,
+    marginLeft: 20,
   },
   pageTitle: {
     fontSize: 18,
@@ -409,9 +515,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingVertical: 2,
   },
   addButton: {
     backgroundColor: colors.primary,
@@ -423,8 +527,6 @@ const styles = StyleSheet.create({
   },
   categoryScroll: {
     maxHeight: 50,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   categoryScrollContent: {
     paddingHorizontal: spacing.lg,
@@ -457,8 +559,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     gap: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   statusFilterButton: {
     paddingHorizontal: spacing.md,
@@ -614,5 +714,72 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 11,
+  },
+  unreadBadge: {
+    backgroundColor: colors.success,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 4,
+  },
+  unreadBadgeText: {
+    ...typography.caption,
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    padding: spacing.lg,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    ...typography.h3,
+    color: colors.text,
+  },
+  sortModalContent: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginHorizontal: spacing.xl,
+    marginTop: 'auto',
+    marginBottom: 'auto',
+  },
+  sortModalTitle: {
+    ...typography.h3,
+    color: colors.text,
+    marginBottom: spacing.md,
+  },
+  sortOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  sortOptionSelected: {
+    backgroundColor: colors.highlight,
+  },
+  sortOptionText: {
+    ...typography.body,
+    color: colors.text,
+  },
+  sortOptionTextSelected: {
+    color: colors.primary,
+    fontWeight: '600',
   },
 });
