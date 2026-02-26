@@ -734,7 +734,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
   dateButton: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
