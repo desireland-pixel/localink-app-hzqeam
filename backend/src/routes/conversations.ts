@@ -618,4 +618,83 @@ export function registerConversationRoutes(app: App) {
       return reply.status(500).send({ error: 'Failed to mark messages as read' });
     }
   });
+
+  // Delete a message from conversation
+  app.fastify.delete('/api/conversations/:conversationId/messages/:messageId', {
+    schema: {
+      description: 'Delete a message from a conversation (user must be participant in conversation)',
+      tags: ['conversations'],
+      params: {
+        type: 'object',
+        properties: {
+          conversationId: { type: 'string', format: 'uuid' },
+          messageId: { type: 'string', format: 'uuid' },
+        },
+        required: ['conversationId', 'messageId'],
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    const { conversationId, messageId } = request.params as { conversationId: string; messageId: string };
+    app.logger.info({ userId: session.user.id, conversationId, messageId }, 'Deleting message');
+
+    try {
+      // Verify user is a participant in the conversation
+      const conversation = await app.db.query.conversations.findFirst({
+        where: eq(schema.conversations.id, conversationId),
+      });
+
+      if (!conversation) {
+        app.logger.warn({ conversationId }, 'Conversation not found');
+        return reply.status(404).send({ error: 'Conversation not found' });
+      }
+
+      // Check if user is a participant
+      const isParticipant =
+        conversation.participant1Id === session.user.id ||
+        conversation.participant2Id === session.user.id;
+
+      if (!isParticipant) {
+        app.logger.warn({ userId: session.user.id, conversationId }, 'Unauthorized - user is not a participant');
+        return reply.status(403).send({ error: 'You must be a participant in this conversation to delete messages' });
+      }
+
+      // Check if message exists and belongs to this conversation
+      const message = await app.db.query.messages.findFirst({
+        where: eq(schema.messages.id, messageId),
+      });
+
+      if (!message) {
+        app.logger.warn({ messageId }, 'Message not found');
+        return reply.status(404).send({ error: 'Message not found' });
+      }
+
+      if (message.conversationId !== conversationId) {
+        app.logger.warn({ messageId, conversationId }, 'Message does not belong to this conversation');
+        return reply.status(400).send({ error: 'Message does not belong to this conversation' });
+      }
+
+      // Delete the message
+      await app.db
+        .delete(schema.messages)
+        .where(eq(schema.messages.id, messageId));
+
+      app.logger.info({ messageId, conversationId, userId: session.user.id }, 'Message deleted successfully');
+      return { success: true, message: 'Message deleted successfully' };
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id, conversationId, messageId }, 'Failed to delete message');
+      return reply.status(500).send({ error: 'Failed to delete message' });
+    }
+  });
 }
