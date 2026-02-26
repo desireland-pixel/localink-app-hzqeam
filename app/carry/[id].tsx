@@ -324,7 +324,7 @@ export default function CommunityDetailsScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView style={styles.content}>
-          <View style={[styles.mainPostCard, hasComments && styles.mainPostCardIndented]}>
+          <View style={styles.mainPostCard}>
             <View style={styles.headerRow}>
               <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
                 <Text style={[styles.categoryBadgeText, { color: categoryTextColor }]}>{topic.category}</Text>
@@ -588,10 +588,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     borderWidth: 1.5,
     borderColor: colors.border,
-  },
-  mainPostCardIndented: {
-    marginLeft: spacing.md,
-    marginRight: spacing.md,
   },
   headerRow: {
     flexDirection: 'row',
