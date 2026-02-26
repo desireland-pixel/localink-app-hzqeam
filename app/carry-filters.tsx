@@ -7,8 +7,8 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 
 const CATEGORIES = [
   'General',
-  'Banking',
   'Education',
+  'Finance',
   'Healthcare',
   'Housing',
   'Insurance',

@@ -81,6 +81,53 @@ export const GERMAN_CITIES = [
   'Salzgitter',
 ];
 
+// City/Country code mapping for travel page
+export const CITY_CODES: { [key: string]: string } = {
+  // Countries
+  'India': 'IND',
+  'Germany': 'DE',
+  
+  // Indian cities
+  'Ahmedabad': 'AMD',
+  'Bengaluru': 'BLR',
+  'Bangalore': 'BLR',
+  'Chennai': 'MAA',
+  'Delhi': 'DEL',
+  'Goa': 'GOI',
+  'Hyderabad': 'HYD',
+  'Kochi': 'COK',
+  'Cochin': 'COK',
+  'Kolkata': 'CCU',
+  'Mumbai': 'BOM',
+  'Thiruvananthapuram': 'TRV',
+  'Trivandrum': 'TRV',
+  
+  // German cities
+  'Berlin': 'BER',
+  'Cologne': 'CGN',
+  'Düsseldorf': 'DUS',
+  'Dusseldorf': 'DUS',
+  'Frankfurt': 'FRA',
+  'Hamburg': 'HAM',
+  'Hannover': 'HAJ',
+  'Hanover': 'HAJ',
+  'Munich': 'MUC',
+  'Stuttgart': 'STR',
+};
+
+// Get city code for display (returns code if available, otherwise original name)
+export function getCityCode(cityName: string): string {
+  if (!cityName) return '';
+  return CITY_CODES[cityName] || cityName;
+}
+
+// Get full city name from code (for reverse lookup)
+export function getCityFromCode(code: string): string {
+  if (!code) return '';
+  const entry = Object.entries(CITY_CODES).find(([_, c]) => c === code);
+  return entry ? entry[0] : code;
+}
+
 // Format Date object to dd.mm.yyyy string
 export function formatDateToDDMMYYYY(date: Date | string): string {
   if (typeof date === 'string') {
