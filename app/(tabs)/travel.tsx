@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Modal as RNModal } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
@@ -33,6 +33,8 @@ interface TravelPost {
   };
 }
 
+type SortOption = 'Default' | 'Newest first' | 'Earliest departure' | 'Latest departure';
+
 export default function TravelScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -42,6 +44,8 @@ export default function TravelScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [sortOption, setSortOption] = useState<SortOption>('Default');
+  const [showSortModal, setShowSortModal] = useState(false);
 
   console.log('TravelScreen: Rendering', { postsCount: posts.length, loading });
 
@@ -55,7 +59,22 @@ export default function TravelScreen() {
       const data = await authenticatedGet<TravelPost[]>(`/api/travel-posts${filterParams}`);
       console.log('TravelScreen: Fetched travel posts', data);
       const dataArray = Array.isArray(data) ? data : [];
-      const sortedData = dataArray.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      let sortedData = [...dataArray];
+      
+      // Apply sorting
+      if (sortOption === 'Newest first' || sortOption === 'Default') {
+        sortedData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      } else if (sortOption === 'Earliest departure') {
+        sortedData.sort((a, b) => new Date(a.travelDate).getTime() - new Date(b.travelDate).getTime());
+      } else if (sortOption === 'Latest departure') {
+        sortedData.sort((a, b) => {
+          const dateA = a.travelDateTo ? new Date(a.travelDateTo).getTime() : new Date(a.travelDate).getTime();
+          const dateB = b.travelDateTo ? new Date(b.travelDateTo).getTime() : new Date(b.travelDate).getTime();
+          return dateB - dateA;
+        });
+      }
+      
       setPosts(sortedData);
     } catch (error) {
       console.error('TravelScreen: Error fetching travel posts', error);
@@ -66,7 +85,7 @@ export default function TravelScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [params.filters, posts.length]);
+  }, [params.filters, posts.length, sortOption]);
 
   const fetchFavorites = React.useCallback(async () => {
     try {
@@ -82,7 +101,7 @@ export default function TravelScreen() {
   useEffect(() => {
     fetchPosts();
     fetchFavorites();
-  }, [params.filters]);
+  }, [params.filters, sortOption]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -123,6 +142,19 @@ export default function TravelScreen() {
     fetchFavorites();
   };
 
+  const handleRoutePress = () => {
+    console.log('TravelScreen: Navigate to filters for route selection');
+    router.push({
+      pathname: '/travel-filters',
+      params: { filters: params.filters || '' }
+    });
+  };
+
+  const handleSortSelect = (option: SortOption) => {
+    setSortOption(option);
+    setShowSortModal(false);
+  };
+
   const filteredPosts = posts.filter(post =>
     post.fromCity.toLowerCase().includes(searchQuery.toLowerCase()) ||
     post.toCity.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -131,28 +163,31 @@ export default function TravelScreen() {
   
   const hasActiveFilters = params.filters && params.filters.toString().length > 0;
 
+  const sortDisplayText = sortOption === 'Default' ? 'Newest first' : sortOption;
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.pageHeader}>
         <Text style={styles.pageTitle}>Travel</Text>
         <View style={styles.pageHeaderRight}>
-          <TouchableOpacity style={styles.routeButton}>
+          <TouchableOpacity style={styles.routeButton} onPress={handleRoutePress}>
+            <Text style={styles.routeButtonText}>Dep</Text>
             <IconSymbol
               ios_icon_name="arrow.right"
               android_material_icon_name="arrow-forward"
-              size={16}
+              size={12}
               color={colors.text}
             />
-            <Text style={styles.routeButtonText}>Route</Text>
+            <Text style={styles.routeButtonText}>Arr</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.sortButton}>
+          <TouchableOpacity style={styles.sortButton} onPress={() => setShowSortModal(true)}>
             <IconSymbol
               ios_icon_name="arrow.up.arrow.down"
               android_material_icon_name="sort"
               size={16}
               color={colors.text}
             />
-            <Text style={styles.sortButtonText}>Sort</Text>
+            <Text style={styles.sortButtonText}>{sortDisplayText}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -362,6 +397,47 @@ export default function TravelScreen() {
           })}
         </ScrollView>
       )}
+
+      {/* Sort Modal */}
+      <RNModal
+        visible={showSortModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSortModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowSortModal(false)}
+        >
+          <View style={styles.sortModalContent}>
+            <Text style={styles.sortModalTitle}>Sort by</Text>
+            {(['Default', 'Newest first', 'Earliest departure', 'Latest departure'] as SortOption[]).map((option) => {
+              const isSelected = sortOption === option;
+              const displayText = option === 'Default' ? 'Default (Newest first)' : option;
+              return (
+                <TouchableOpacity
+                  key={option}
+                  style={[styles.sortOption, isSelected && styles.sortOptionSelected]}
+                  onPress={() => handleSortSelect(option)}
+                >
+                  <Text style={[styles.sortOptionText, isSelected && styles.sortOptionTextSelected]}>
+                    {displayText}
+                  </Text>
+                  {isSelected && (
+                    <IconSymbol
+                      ios_icon_name="checkmark"
+                      android_material_icon_name="check"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </RNModal>
     </SafeAreaView>
   );
 }
@@ -376,10 +452,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingVertical: 4,
     minHeight: 26,
+    marginLeft: 20,
   },
   pageTitle: {
     fontSize: 18,
@@ -429,10 +504,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 2,
     gap: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   searchContainer: {
     flex: 1,
@@ -628,5 +701,42 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     lineHeight: 20,
     fontSize: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sortModalContent: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginHorizontal: spacing.xl,
+    width: '80%',
+  },
+  sortModalTitle: {
+    ...typography.h3,
+    color: colors.text,
+    marginBottom: spacing.md,
+  },
+  sortOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  sortOptionSelected: {
+    backgroundColor: colors.highlight,
+  },
+  sortOptionText: {
+    ...typography.body,
+    color: colors.text,
+  },
+  sortOptionTextSelected: {
+    color: colors.primary,
+    fontWeight: '600',
   },
 });

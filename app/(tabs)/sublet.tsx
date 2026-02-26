@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Modal as RNModal } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,6 +30,8 @@ interface Sublet {
   };
 }
 
+type SortOption = 'Default' | 'Newest' | 'Earliest' | 'Cheapest';
+
 export default function SubletScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -39,6 +41,9 @@ export default function SubletScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [selectedCity, setSelectedCity] = useState<string>('Germany');
+  const [sortOption, setSortOption] = useState<SortOption>('Default');
+  const [showSortModal, setShowSortModal] = useState(false);
 
   console.log('SubletScreen: Rendering', { subletsCount: sublets.length, loading, filters: params.filters });
 
@@ -53,7 +58,22 @@ export default function SubletScreen() {
       const data = await authenticatedGet<Sublet[]>(`/api/sublets${filterParams}`);
       console.log('SubletScreen: Fetched sublets', data);
       const dataArray = Array.isArray(data) ? data : [];
-      const sortedData = dataArray.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      let sortedData = [...dataArray];
+      
+      // Apply sorting
+      if (sortOption === 'Newest' || sortOption === 'Default') {
+        sortedData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      } else if (sortOption === 'Earliest') {
+        sortedData.sort((a, b) => new Date(a.availableFrom).getTime() - new Date(b.availableFrom).getTime());
+      } else if (sortOption === 'Cheapest') {
+        sortedData.sort((a, b) => {
+          const rentA = a.rent ? parseFloat(a.rent) : Infinity;
+          const rentB = b.rent ? parseFloat(b.rent) : Infinity;
+          return rentA - rentB;
+        });
+      }
+      
       setSublets(sortedData);
     } catch (error) {
       console.error('SubletScreen: Error fetching sublets', error);
@@ -64,7 +84,7 @@ export default function SubletScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [params.filters, sublets.length]);
+  }, [params.filters, sublets.length, sortOption]);
 
   const fetchFavorites = React.useCallback(async () => {
     try {
@@ -133,6 +153,19 @@ export default function SubletScreen() {
       params: { filters: params.filters || '' }
     });
   };
+
+  const handleCityPress = () => {
+    console.log('SubletScreen: Navigate to filters for city selection');
+    router.push({
+      pathname: '/sublet-filters',
+      params: { filters: params.filters || '' }
+    });
+  };
+
+  const handleSortSelect = (option: SortOption) => {
+    setSortOption(option);
+    setShowSortModal(false);
+  };
   
   const hasActiveFilters = params.filters && params.filters.toString().length > 0;
 
@@ -142,12 +175,14 @@ export default function SubletScreen() {
     (sublet.description && sublet.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const sortDisplayText = sortOption === 'Default' ? 'Newest' : sortOption;
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.pageHeader}>
         <Text style={styles.pageTitle}>Sublet</Text>
         <View style={styles.pageHeaderRight}>
-          <TouchableOpacity style={styles.locationButton}>
+          <TouchableOpacity style={styles.locationButton} onPress={handleCityPress}>
             <IconSymbol
               ios_icon_name="location.fill"
               android_material_icon_name="location-on"
@@ -156,14 +191,14 @@ export default function SubletScreen() {
             />
             <Text style={styles.locationButtonText}>City</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.sortButton}>
+          <TouchableOpacity style={styles.sortButton} onPress={() => setShowSortModal(true)}>
             <IconSymbol
               ios_icon_name="arrow.up.arrow.down"
               android_material_icon_name="sort"
               size={16}
               color={colors.text}
             />
-            <Text style={styles.sortButtonText}>Sort</Text>
+            <Text style={styles.sortButtonText}>{sortDisplayText}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -317,6 +352,47 @@ export default function SubletScreen() {
           })}
         </ScrollView>
       )}
+
+      {/* Sort Modal */}
+      <RNModal
+        visible={showSortModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSortModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowSortModal(false)}
+        >
+          <View style={styles.sortModalContent}>
+            <Text style={styles.sortModalTitle}>Sort by</Text>
+            {(['Default', 'Newest', 'Earliest', 'Cheapest'] as SortOption[]).map((option) => {
+              const isSelected = sortOption === option;
+              const displayText = option === 'Default' ? 'Default (Newest)' : option;
+              return (
+                <TouchableOpacity
+                  key={option}
+                  style={[styles.sortOption, isSelected && styles.sortOptionSelected]}
+                  onPress={() => handleSortSelect(option)}
+                >
+                  <Text style={[styles.sortOptionText, isSelected && styles.sortOptionTextSelected]}>
+                    {displayText}
+                  </Text>
+                  {isSelected && (
+                    <IconSymbol
+                      ios_icon_name="checkmark"
+                      android_material_icon_name="check"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </RNModal>
     </SafeAreaView>
   );
 }
@@ -331,10 +407,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingVertical: 4,
     minHeight: 26,
+    marginLeft: 20,
   },
   pageTitle: {
     fontSize: 18,
@@ -384,10 +459,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 2,
     gap: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   searchContainer: {
     flex: 1,
@@ -557,5 +630,42 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
     fontSize: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sortModalContent: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginHorizontal: spacing.xl,
+    width: '80%',
+  },
+  sortModalTitle: {
+    ...typography.h3,
+    color: colors.text,
+    marginBottom: spacing.md,
+  },
+  sortOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  sortOptionSelected: {
+    backgroundColor: colors.highlight,
+  },
+  sortOptionText: {
+    ...typography.body,
+    color: colors.text,
+  },
+  sortOptionTextSelected: {
+    color: colors.primary,
+    fontWeight: '600',
   },
 });
