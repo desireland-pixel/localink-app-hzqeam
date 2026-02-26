@@ -34,7 +34,7 @@ interface TravelPost {
   };
 }
 
-type SortOption = 'Default' | 'Newest first' | 'Earliest departure' | 'Latest departure';
+type SortOption = 'Newest' | 'Earliest departure' | 'Latest departure';
 
 export default function TravelScreen() {
   const router = useRouter();
@@ -45,7 +45,7 @@ export default function TravelScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [sortOption, setSortOption] = useState<SortOption>('Default');
+  const [sortOption, setSortOption] = useState<SortOption>('Newest');
   const [showSortModal, setShowSortModal] = useState(false);
   const [showFromModal, setShowFromModal] = useState(false);
   const [showToModal, setShowToModal] = useState(false);
@@ -59,12 +59,23 @@ export default function TravelScreen() {
   console.log('TravelScreen: Rendering', { postsCount: posts.length, loading });
 
   const fetchPosts = React.useCallback(async () => {
-    console.log('TravelScreen: Fetching travel posts');
+    console.log('TravelScreen: Fetching travel posts', 'selectedFrom:', selectedFrom, 'selectedTo:', selectedTo);
     if (posts.length === 0) {
       setLoading(true);
     }
     try {
-      const filterParams = params.filters ? `?${params.filters}` : '';
+      let filterParams = params.filters ? `?${params.filters}` : '';
+      
+      // Add from/to city filters if selected
+      if (selectedFrom) {
+        const fromParam = `fromCity=${encodeURIComponent(selectedFrom)}`;
+        filterParams = filterParams ? `${filterParams}&${fromParam}` : `?${fromParam}`;
+      }
+      if (selectedTo) {
+        const toParam = `toCity=${encodeURIComponent(selectedTo)}`;
+        filterParams = filterParams ? `${filterParams}&${toParam}` : `?${toParam}`;
+      }
+      
       const data = await authenticatedGet<TravelPost[]>(`/api/travel-posts${filterParams}`);
       console.log('TravelScreen: Fetched travel posts', data);
       const dataArray = Array.isArray(data) ? data : [];
@@ -72,10 +83,10 @@ export default function TravelScreen() {
       let sortedData = [...dataArray];
       
       // Apply sorting
-      if (sortOption === 'Newest first' || sortOption === 'Default') {
+      if (sortOption === 'Newest') {
         sortedData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       } else if (sortOption === 'Earliest departure') {
-        // Primary: Start Date (Ascending) | Secondary: End Date (Ascending)
+        // Primary: travelDate (Ascending) | Secondary: travelDateTo (Ascending)
         sortedData.sort((a, b) => {
           const startDateComparison = new Date(a.travelDate).getTime() - new Date(b.travelDate).getTime();
           if (startDateComparison !== 0) return startDateComparison;
@@ -85,7 +96,7 @@ export default function TravelScreen() {
           return new Date(endDateA).getTime() - new Date(endDateB).getTime();
         });
       } else if (sortOption === 'Latest departure') {
-        // Primary: End Date (Descending) | Secondary: Start Date (Descending)
+        // Primary: travelDateTo (Descending) | Secondary: travelDate (Descending)
         sortedData.sort((a, b) => {
           const endDateA = a.travelDateTo || a.travelDate;
           const endDateB = b.travelDateTo || b.travelDate;
@@ -106,7 +117,7 @@ export default function TravelScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [params.filters, posts.length, sortOption]);
+  }, [params.filters, posts.length, sortOption, selectedFrom, selectedTo]);
 
   const fetchFavorites = React.useCallback(async () => {
     try {
@@ -122,7 +133,7 @@ export default function TravelScreen() {
   useEffect(() => {
     fetchPosts();
     fetchFavorites();
-  }, [params.filters, sortOption]);
+  }, [params.filters, sortOption, selectedFrom, selectedTo]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -207,7 +218,6 @@ export default function TravelScreen() {
   
   const hasActiveFilters = params.filters && params.filters.toString().length > 0;
 
-  const sortDisplayText = sortOption === 'Default' ? 'Newest first' : sortOption;
   const fromDisplayText = selectedFrom || 'From';
   const toDisplayText = selectedTo || 'To';
 
@@ -232,7 +242,13 @@ export default function TravelScreen() {
           </View>
           <View ref={sortButtonRef} collapsable={false}>
             <TouchableOpacity style={styles.sortButton} onPress={handleSortPress}>
-              <Text style={styles.sortButtonText}>{sortDisplayText}</Text>
+              <IconSymbol
+                ios_icon_name="arrow.up.arrow.down"
+                android_material_icon_name="sort"
+                size={12}
+                color={colors.text}
+              />
+              <Text style={styles.sortButtonText}>{sortOption}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -309,8 +325,9 @@ export default function TravelScreen() {
             const dateDisplay = formatDateToDDMMYYYY(post.travelDate);
             const dateToDisplay = post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo) : null;
             
+            // Show date range for seeking-ally posts when travelDateTo exists
             // Show date range for seeking companion posts (type === 'seeking') when travelDateTo exists
-            const showDateRange = post.type === 'seeking' && dateToDisplay;
+            const showDateRange = (post.type === 'seeking-ally' || post.type === 'seeking') && dateToDisplay;
             
             let label = '';
             let iconCompanionship = false;
@@ -548,9 +565,8 @@ export default function TravelScreen() {
               }
             ]}
           >
-            {(['Default', 'Newest first', 'Earliest departure', 'Latest departure'] as SortOption[]).map((option, index, array) => {
+            {(['Newest', 'Earliest departure', 'Latest departure'] as SortOption[]).map((option, index, array) => {
               const isSelected = sortOption === option;
-              const displayText = option === 'Default' ? 'Default (Newest first)' : option;
               const isLast = index === array.length - 1;
               return (
                 <TouchableOpacity
@@ -563,7 +579,7 @@ export default function TravelScreen() {
                   onPress={() => handleSortSelect(option)}
                 >
                   <Text style={[styles.sortOptionText, isSelected && styles.sortOptionTextSelected]}>
-                    {displayText}
+                    {option}
                   </Text>
                   {isSelected && (
                     <IconSymbol
@@ -592,7 +608,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.md + 7.56, // 16 + 2mm indent
     paddingVertical: 2,
     minHeight: 24,
   },
@@ -606,7 +622,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginLeft: 75.6, // 20mm = 75.6px
+    flex: 1,
+    justifyContent: 'center',
   },
   routeContainer: {
     flexDirection: 'row',
@@ -615,11 +632,13 @@ const styles = StyleSheet.create({
   },
   routeButton: {
     paddingHorizontal: spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: 4,
     backgroundColor: colors.card,
-    borderRadius: borderRadius.sm,
-    width: 45.36, // 12mm = 45.36px
-    height: 18,
+    borderRadius: 999, // Completely round
+    borderWidth: 1,
+    borderColor: colors.border,
+    minWidth: 50,
+    minHeight: 28,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -630,13 +649,17 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   sortButton: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.sm,
-    height: 18,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    backgroundColor: colors.card,
+    borderRadius: 999, // Completely round
+    borderWidth: 1,
+    borderColor: colors.border,
+    minHeight: 28,
+    justifyContent: 'center',
   },
   sortButtonText: {
     fontSize: 12,
@@ -647,7 +670,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.md + 7.56, // 16 + 2mm indent
     paddingVertical: 2,
     gap: spacing.sm,
   },

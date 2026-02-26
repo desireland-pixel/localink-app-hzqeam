@@ -32,7 +32,7 @@ interface Sublet {
   };
 }
 
-type SortOption = 'Default' | 'Newest' | 'Earliest' | 'Cheapest';
+type SortOption = 'Newest' | 'Earliest' | 'Cheapest';
 
 export default function SubletScreen() {
   const router = useRouter();
@@ -44,7 +44,7 @@ export default function SubletScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [selectedCity, setSelectedCity] = useState<string>('');
-  const [sortOption, setSortOption] = useState<SortOption>('Default');
+  const [sortOption, setSortOption] = useState<SortOption>('Newest');
   const [showSortModal, setShowSortModal] = useState(false);
   const [showCityModal, setShowCityModal] = useState(false);
   const [citySearchQuery, setCitySearchQuery] = useState('');
@@ -54,12 +54,19 @@ export default function SubletScreen() {
   console.log('SubletScreen: Rendering', { subletsCount: sublets.length, loading, filters: params.filters });
 
   const fetchPosts = React.useCallback(async () => {
-    console.log('SubletScreen: Fetching sublets with filters:', params.filters);
+    console.log('SubletScreen: Fetching sublets with filters:', params.filters, 'selectedCity:', selectedCity);
     if (sublets.length === 0) {
       setLoading(true);
     }
     try {
-      const filterParams = params.filters ? `?${params.filters}` : '';
+      let filterParams = params.filters ? `?${params.filters}` : '';
+      
+      // Add city filter if selected
+      if (selectedCity) {
+        const cityParam = `city=${encodeURIComponent(selectedCity)}`;
+        filterParams = filterParams ? `${filterParams}&${cityParam}` : `?${cityParam}`;
+      }
+      
       console.log('SubletScreen: API call with params:', filterParams);
       const data = await authenticatedGet<Sublet[]>(`/api/sublets${filterParams}`);
       console.log('SubletScreen: Fetched sublets', data);
@@ -68,12 +75,11 @@ export default function SubletScreen() {
       let sortedData = [...dataArray];
       
       // Apply sorting
-      if (sortOption === 'Newest' || sortOption === 'Default') {
+      if (sortOption === 'Newest') {
         sortedData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       } else if (sortOption === 'Earliest') {
-        // Earliest sort logic: offering cases sort by availableFrom ascending, 
-        // seeking cases sort by moveInDate ascending, 
-        // past dates are considered "available now" and kept at the very top
+        // Earliest sort logic: sort by availableFrom/moveInDate ascending
+        // Past dates are considered "available immediately" and kept at the top
         sortedData.sort((a, b) => {
           const dateA = a.type === 'offering' ? a.availableFrom : (a.moveInDate || a.availableFrom);
           const dateB = b.type === 'offering' ? b.availableFrom : (b.moveInDate || b.availableFrom);
@@ -87,7 +93,7 @@ export default function SubletScreen() {
           const isAPast = dateAObj < now;
           const isBPast = dateBObj < now;
           
-          // Past dates (available now) come first
+          // Past dates (available immediately) come first
           if (isAPast && !isBPast) return -1;
           if (!isAPast && isBPast) return 1;
           
@@ -112,7 +118,7 @@ export default function SubletScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [params.filters, sublets.length, sortOption]);
+  }, [params.filters, sublets.length, sortOption, selectedCity]);
 
   const fetchFavorites = React.useCallback(async () => {
     try {
@@ -214,7 +220,6 @@ export default function SubletScreen() {
     (sublet.description && sublet.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const sortDisplayText = sortOption === 'Default' ? 'Newest' : sortOption;
   const cityDisplayText = selectedCity || 'City';
 
   return (
@@ -223,11 +228,23 @@ export default function SubletScreen() {
         <Text style={styles.pageTitle}>Sublet</Text>
         <View style={styles.pageHeaderRight}>
           <TouchableOpacity style={styles.cityButton} onPress={handleCityPress}>
+            <IconSymbol
+              ios_icon_name="location.fill"
+              android_material_icon_name="location-on"
+              size={12}
+              color={colors.text}
+            />
             <Text style={styles.cityButtonText} numberOfLines={1}>{cityDisplayText}</Text>
           </TouchableOpacity>
           <View ref={sortButtonRef} collapsable={false}>
             <TouchableOpacity style={styles.sortButton} onPress={handleSortPress}>
-              <Text style={styles.sortButtonText}>{sortDisplayText}</Text>
+              <IconSymbol
+                ios_icon_name="arrow.up.arrow.down"
+                android_material_icon_name="sort"
+                size={12}
+                color={colors.text}
+              />
+              <Text style={styles.sortButtonText}>{sortOption}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -444,9 +461,8 @@ export default function SubletScreen() {
               }
             ]}
           >
-            {(['Default', 'Newest', 'Earliest', 'Cheapest'] as SortOption[]).map((option, index, array) => {
+            {(['Newest', 'Earliest', 'Cheapest'] as SortOption[]).map((option, index, array) => {
               const isSelected = sortOption === option;
-              const displayText = option === 'Default' ? 'Default (Newest)' : option;
               const isLast = index === array.length - 1;
               return (
                 <TouchableOpacity
@@ -459,7 +475,7 @@ export default function SubletScreen() {
                   onPress={() => handleSortSelect(option)}
                 >
                   <Text style={[styles.sortOptionText, isSelected && styles.sortOptionTextSelected]}>
-                    {displayText}
+                    {option}
                   </Text>
                   {isSelected && (
                     <IconSymbol
@@ -488,7 +504,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.md + 7.56, // 16 + 2mm indent
     paddingVertical: 2,
     minHeight: 24,
   },
@@ -502,17 +518,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginLeft: 75.6, // 20mm = 75.6px
+    flex: 1,
+    justifyContent: 'center',
   },
   cityButton: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.sm,
-    width: 75.6, // 20mm = 75.6px
-    height: 18,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    backgroundColor: colors.card,
+    borderRadius: 999, // Completely round
+    borderWidth: 1,
+    borderColor: colors.border,
+    minHeight: 28,
+    justifyContent: 'center',
   },
   cityButtonText: {
     fontSize: 12,
@@ -521,13 +541,17 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   sortButton: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.sm,
-    height: 18,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    backgroundColor: colors.card,
+    borderRadius: 999, // Completely round
+    borderWidth: 1,
+    borderColor: colors.border,
+    minHeight: 28,
+    justifyContent: 'center',
   },
   sortButtonText: {
     fontSize: 12,
@@ -538,7 +562,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.md + 7.56, // 16 + 2mm indent
     paddingVertical: 2,
     gap: spacing.sm,
   },
