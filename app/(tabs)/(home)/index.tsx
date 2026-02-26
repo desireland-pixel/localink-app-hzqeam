@@ -98,6 +98,7 @@ export default function CommunityScreen() {
   }, [selectedCategory, selectedStatus, sortOption, selectedCity]);
 
   const scrollViewRef = React.useRef<ScrollView>(null);
+  const [topicCardHeights, setTopicCardHeights] = React.useState<{ [key: string]: number }>({});
 
   useFocusEffect(
     React.useCallback(() => {
@@ -111,14 +112,22 @@ export default function CommunityScreen() {
     if (topics.length > 0 && scrollViewRef.current && user?.id) {
       const unreadPostIndex = topics.findIndex(t => t.userId === user.id && (t.unreadRepliesCount || 0) > 0);
       if (unreadPostIndex !== -1) {
-        // Scroll to unread post after a short delay to ensure layout is complete
+        console.log('CommunityScreen: Found unread post at index', unreadPostIndex);
+        // Calculate scroll position based on card heights
         setTimeout(() => {
-          const scrollY = Math.max(0, unreadPostIndex * 180 - 100);
+          let scrollY = 0;
+          for (let i = 0; i < unreadPostIndex; i++) {
+            const cardHeight = topicCardHeights[topics[i].id] || 180;
+            scrollY += cardHeight + spacing.md;
+          }
+          // Add some offset to show the card nicely
+          scrollY = Math.max(0, scrollY - 50);
+          console.log('CommunityScreen: Scrolling to position', scrollY);
           scrollViewRef.current?.scrollTo({ y: scrollY, animated: true });
-        }, 500);
+        }, 300);
       }
     }
-  }, [topics, user?.id]);
+  }, [topics, user?.id, topicCardHeights]);
 
   useEffect(() => {
     fetchTopics();
@@ -312,6 +321,10 @@ export default function CommunityScreen() {
                     hasUnreadReplies && styles.topicCardUnread
                   ]}
                   onPress={() => handleViewTopic(topic.id)}
+                  onLayout={(event) => {
+                    const { height } = event.nativeEvent.layout;
+                    setTopicCardHeights(prev => ({ ...prev, [topic.id]: height }));
+                  }}
                 >
                   <View style={styles.topicHeader}>
                     <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
@@ -463,7 +476,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingVertical: 4,
     minHeight: 26,
     marginLeft: 20,
   },
