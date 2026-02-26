@@ -8,7 +8,6 @@ import { regenerateSignedUrls } from '../utils/image-url-regenerator.js';
 
 interface SubletFilters {
   type?: 'offering' | 'seeking';
-  city?: string;
   availableFrom?: string;
   availableTo?: string;
   minRent?: string;
@@ -65,7 +64,6 @@ export function registerSubletRoutes(app: App) {
         type: 'object',
         properties: {
           type: { type: 'string', enum: ['offering', 'seeking'] },
-          city: { type: 'string' },
           availableFrom: { type: 'string' },
           availableTo: { type: 'string' },
           minRent: { type: 'string' },
@@ -90,10 +88,6 @@ export function registerSubletRoutes(app: App) {
       // Handle type filter
       if (filters.type) {
         conditions.push(eq(schema.sublets.type, filters.type));
-      }
-
-      if (filters.city) {
-        conditions.push(eq(schema.sublets.city, filters.city));
       }
 
       if (filters.availableFrom) {
