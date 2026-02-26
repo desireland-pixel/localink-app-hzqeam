@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Modal as RNModal, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -51,7 +51,11 @@ export default function CommunityScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCity, setSelectedCity] = useState<string>(() => {
+    // Initialize city from params if available (preserved from filter page navigation)
+    return typeof params.city === 'string' ? params.city : '';
+  });
   const [cityInputValue, setCityInputValue] = useState('');
   const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
@@ -60,10 +64,20 @@ export default function CommunityScreen() {
   const sortButtonRef = useRef<View>(null);
   const [sortButtonLayout, setSortButtonLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
+  // Sync city from params when navigating back from filter page
+  React.useEffect(() => {
+    const cityParam = typeof params.city === 'string' ? params.city : '';
+    if (cityParam !== selectedCity) {
+      console.log('CommunityScreen: Restoring city from params:', cityParam);
+      setSelectedCity(cityParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.city]);
+
   console.log('CommunityScreen: Rendering', { topicsCount: topics.length, loading, selectedCity, sortOption });
 
   const fetchTopics = React.useCallback(async () => {
-    console.log('CommunityScreen: Fetching community topics', { selectedCity, sortOption });
+    console.log('CommunityScreen: Fetching community topics', { selectedCity, sortOption, filters: params.filters });
     if (topics.length === 0) {
       setLoading(true);
     }
@@ -82,7 +96,6 @@ export default function CommunityScreen() {
       } else if (sortOption === 'Oldest') {
         queryParams.append('sort', 'oldest');
       }
-
       const data = await authenticatedGet<CommunityTopic[]>(`/api/community-posts?${queryParams.toString()}`);
       console.log('CommunityScreen: Fetched community topics', data);
       const dataArray = Array.isArray(data) ? data : [];
@@ -125,6 +138,37 @@ export default function CommunityScreen() {
       console.error('CommunityScreen: Error fetching favorites', error);
     }
   }, []);
+
+  // Compute filtered topics based on carry-filters params and search query
+  const filteredTopics = useMemo(() => {
+    let filtered = topics;
+
+    // Apply carry-filters page filters (category, status) - independent from city
+    if (params.filters) {
+      const filterString = params.filters as string;
+      const urlFilterParams = new URLSearchParams(filterString);
+      const category = urlFilterParams.get('category');
+      const status = urlFilterParams.get('status');
+      if (category) {
+        filtered = filtered.filter(t => t.category === category);
+      }
+      if (status) {
+        filtered = filtered.filter(t => t.status === status);
+      }
+    }
+
+    // Apply search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(t =>
+        t.title.toLowerCase().includes(q) ||
+        (t.description && t.description.toLowerCase().includes(q)) ||
+        t.category.toLowerCase().includes(q)
+      );
+    }
+
+    return filtered;
+  }, [topics, params.filters, searchQuery]);
 
   useEffect(() => {
     fetchTopics();
@@ -298,6 +342,39 @@ export default function CommunityScreen() {
       </View>
 
       <View style={styles.header}>
+        <View style={styles.searchContainer}>
+          <IconSymbol
+            ios_icon_name="magnifyingglass"
+            android_material_icon_name="search"
+            size={20}
+            color={colors.textSecondary}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search community..."
+            placeholderTextColor={colors.textLight}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+          />
+        </View>
+        <TouchableOpacity
+          style={[styles.iconButton, (params.filters && params.filters.toString().length > 0) && styles.iconButtonActive]}
+          onPress={() => {
+            console.log('CommunityScreen: Navigate to carry filters');
+            router.push({
+              pathname: '/carry-filters',
+              params: { filters: params.filters || '', city: selectedCity }
+            });
+          }}
+        >
+          <IconSymbol
+            ios_icon_name="line.3.horizontal.decrease.circle"
+            android_material_icon_name="filter-list"
+            size={24}
+            color={(params.filters && params.filters.toString().length > 0) ? colors.primary : colors.text}
+          />
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.iconButton}
           onPress={() => {
@@ -320,7 +397,7 @@ export default function CommunityScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : topics.length === 0 ? (
+      ) : filteredTopics.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyEmoji}>💬</Text>
           <Text style={styles.emptyTitle}>No discussions yet</Text>
@@ -342,7 +419,7 @@ export default function CommunityScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
           }
         >
-          {topics.map((topic) => {
+          {filteredTopics.map((topic) => {
             const authorName = topic.user?.username || topic.user?.name || 'Unknown';
             const createdDate = formatDateToDDMMYYYY(topic.createdAt);
             const isFavorited = favorites.has(topic.id);
@@ -355,6 +432,7 @@ export default function CommunityScreen() {
             const categoryBackgroundColor = isOpen ? categoryColor.background : '#E5E7EB';
             const categoryTextColor = isOpen ? categoryColor.text : '#6B7280';
 
+            // Use replyCount (from SQL query) if available, otherwise fall back to repliesCount
             const replyCountValue = topic.replyCount ?? (topic.repliesCount !== undefined ? parseInt(String(topic.repliesCount), 10) || 0 : 0);
 
             return (
@@ -611,9 +689,27 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: 2,
+    gap: spacing.sm,
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: Platform.OS === 'android' ? spacing.xs : spacing.sm,
+    gap: spacing.sm,
+    height: Platform.OS === 'android' ? 40 : undefined,
+  },
+  searchInput: {
+    flex: 1,
+    ...typography.body,
+    color: colors.text,
+    paddingVertical: 0,
   },
   separator: {
     height: 1,
@@ -623,6 +719,12 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: spacing.xs,
+  },
+  iconButtonActive: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
   },
   loadingContainer: {
     flex: 1,
