@@ -276,7 +276,7 @@ export default function AuthScreen() {
               <Text style={styles.title}>LokaLinc</Text>
               <Text style={styles.tagline}>Living and Moving together</Text>
               <Text style={styles.subtitle}>
-                {mode === "signin" ? "Welcome back!" : mode === "signup" ? "Create your account" : "Reset your password"}
+                {mode === "signin" ? "Welcome back!" : mode === "signup" ? "Join the community" : "Reset your password"}
               </Text>
             </View>
 
@@ -286,7 +286,7 @@ export default function AuthScreen() {
                   <Text style={styles.label}>Email</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Enter your email"
+                    placeholder="Email"
                     placeholderTextColor={colors.textLight}
                     value={email}
                     onChangeText={setEmail}
@@ -325,7 +325,7 @@ export default function AuthScreen() {
                       <Text style={styles.label}>Full Name *</Text>
                       <TextInput
                         style={styles.input}
-                        placeholder="Enter your full name"
+                        placeholder="Full Name *"
                         placeholderTextColor={colors.textLight}
                         value={name}
                         onChangeText={setName}
@@ -340,7 +340,7 @@ export default function AuthScreen() {
                   <Text style={styles.label}>{mode === "signup" ? "Email *" : "Email"}</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Enter your email"
+                    placeholder={mode === "signup" ? "Email *" : "Email"}
                     placeholderTextColor={colors.textLight}
                     value={email}
                     onChangeText={setEmail}
@@ -356,7 +356,7 @@ export default function AuthScreen() {
                   <View style={styles.passwordContainer}>
                     <TextInput
                       style={styles.passwordInput}
-                      placeholder="Enter your password"
+                      placeholder={mode === "signup" ? "Password *" : "Password"}
                       placeholderTextColor={colors.textLight}
                       value={password}
                       onChangeText={setPassword}
@@ -386,7 +386,7 @@ export default function AuthScreen() {
                       <Text style={styles.label}>Username *</Text>
                       <TextInput
                         style={styles.input}
-                        placeholder="Enter your username"
+                        placeholder="Username *"
                         placeholderTextColor={colors.textLight}
                         value={username}
                         onChangeText={setUsername}
@@ -401,7 +401,7 @@ export default function AuthScreen() {
                       <CitySearchInput
                         value={city}
                         onChangeText={setCity}
-                        placeholder="Search city..."
+                        placeholder="City *"
                       />
                     </View>
 
@@ -485,11 +485,17 @@ export default function AuthScreen() {
                   onPress={() => setMode(mode === "signin" ? "signup" : "signin")}
                   disabled={loading}
                 >
-                  <Text style={styles.switchModeText}>
-                    {mode === "signin"
-                      ? "Don't have an account? Sign Up"
-                      : "Already have an account? Sign In"}
-                  </Text>
+                  {mode === "signin" ? (
+                    <Text style={styles.switchModeText}>
+                      <Text style={styles.switchModeTextBlack}>Don&apos;t have an account? </Text>
+                      <Text style={styles.switchModeTextBold}>Sign Up</Text>
+                    </Text>
+                  ) : (
+                    <Text style={styles.switchModeText}>
+                      <Text style={styles.switchModeTextBlack}>Already have an account? </Text>
+                      <Text style={styles.switchModeTextBold}>Sign In</Text>
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </>
             )}
@@ -554,11 +560,11 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   logo: {
-    width: 100,
-    height: 100,
+    width: 80,
+    height: 80,
     marginBottom: spacing.sm,
   },
   title: {
@@ -570,13 +576,14 @@ const styles = StyleSheet.create({
   tagline: {
     ...typography.bodySmall,
     color: colors.textSecondary,
-    fontStyle: "italic",
-    marginBottom: spacing.xs,
+    fontStyle: "normal",
+    marginBottom: spacing.md,
   },
   subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
+    ...typography.h3,
+    color: colors.text,
     textAlign: "center",
+    fontWeight: "700",
   },
   inputGroup: {
     marginBottom: spacing.sm,
@@ -590,12 +597,14 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
     ...typography.body,
     color: colors.text,
+    height: Platform.OS === 'android' ? 44 : undefined,
+    textAlignVertical: 'center',
   },
   passwordContainer: {
     flexDirection: 'row',
@@ -604,13 +613,15 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: colors.border,
+    height: Platform.OS === 'android' ? 44 : undefined,
   },
   passwordInput: {
     flex: 1,
-    paddingVertical: spacing.md,
+    paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm,
     paddingHorizontal: spacing.md,
     ...typography.body,
     color: colors.text,
+    textAlignVertical: 'center',
   },
   passwordToggle: {
     paddingHorizontal: spacing.md,
@@ -663,7 +674,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
+    marginTop: spacing.xs,
   },
   rememberMeButton: {
     flexDirection: 'row',
@@ -696,7 +708,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     alignItems: "center",
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
   primaryButtonText: {
     ...typography.button,
@@ -706,11 +718,17 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   switchModeButton: {
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
     alignItems: "center",
   },
   switchModeText: {
     ...typography.bodySmall,
+  },
+  switchModeTextBlack: {
+    color: '#000000',
+  },
+  switchModeTextBold: {
     color: colors.primary,
+    fontWeight: '700',
   },
 });

@@ -93,17 +93,13 @@ export default function VerifyOTPScreen() {
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.content}>
-            <View style={styles.header}>
-              <Text style={styles.emoji}>📧</Text>
-              <Text style={styles.title}>Verify Your Email</Text>
-              <Text style={styles.subtitle}>
-                We&apos;ve sent a 6-digit OTP to
-              </Text>
-              <Text style={styles.email}>{email}</Text>
-            </View>
-
             {!verified ? (
               <>
+                <View style={styles.header}>
+                  <Text style={styles.emoji}>📧</Text>
+                  <Text style={styles.title}>Enter OTP</Text>
+                </View>
+
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Enter OTP</Text>
                   <TextInput
@@ -210,17 +206,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: spacing.sm,
   },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  email: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: '600',
-    marginTop: spacing.xs,
-  },
   inputGroup: {
     marginBottom: spacing.md,
   },
@@ -254,7 +239,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     ...typography.button,
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
   },
   buttonDisabled: {
     opacity: 0.6,

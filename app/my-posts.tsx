@@ -105,11 +105,7 @@ export default function MyPostsScreen() {
     console.log('MyPostsScreen: Closing post', { postId, selectedTab });
     setClosingPostId(postId);
     try {
-      if (selectedTab === 'sublet') {
-        await authenticatedPatch(`/api/sublets/${postId}/close`, {});
-      } else if (selectedTab === 'travel') {
-        await authenticatedPatch(`/api/travel-posts/${postId}/close`, {});
-      } else if (selectedTab === 'community') {
+      if (selectedTab === 'community') {
         // Update status to closed
         await authenticatedPut(`/api/community/topics/${postId}`, { status: 'closed' });
       }
@@ -376,7 +372,58 @@ export default function MyPostsScreen() {
                       </Text>
                     </View>
                     <View style={styles.actionButtons}>
-                      {!isClosed ? (
+                      {selectedTab === 'community' ? (
+                        // Community tab: Show "Close" for active posts, "Delete" for closed posts
+                        !isClosed ? (
+                          <>
+                            <TouchableOpacity
+                              style={styles.editIconButton}
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                handleEditPost(post.id);
+                              }}
+                            >
+                              <IconSymbol
+                                ios_icon_name="pencil"
+                                android_material_icon_name="edit"
+                                size={20}
+                                color={colors.primary}
+                              />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.closeButton, isClosing && styles.closeButtonDisabled]}
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                handleClosePost(post.id);
+                              }}
+                              disabled={isClosing}
+                            >
+                              {isClosing ? (
+                                <ActivityIndicator size="small" color={colors.primary} />
+                              ) : (
+                                <Text style={styles.closeButtonText}>Close</Text>
+                              )}
+                            </TouchableOpacity>
+                          </>
+                        ) : (
+                          <TouchableOpacity
+                            style={[styles.deleteButton, deletingPostId === post.id && styles.deleteButtonDisabled]}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              setPostToDelete(post.id);
+                              setShowDeleteModal(true);
+                            }}
+                            disabled={deletingPostId === post.id}
+                          >
+                            {deletingPostId === post.id ? (
+                              <ActivityIndicator size="small" color="#FF3B30" />
+                            ) : (
+                              <Text style={styles.deleteButtonText}>Delete</Text>
+                            )}
+                          </TouchableOpacity>
+                        )
+                      ) : (
+                        // Sublet/Travel tabs: Show Edit and Delete for all posts
                         <>
                           <TouchableOpacity
                             style={styles.editIconButton}
@@ -408,22 +455,6 @@ export default function MyPostsScreen() {
                             )}
                           </TouchableOpacity>
                         </>
-                      ) : (
-                        <TouchableOpacity
-                          style={[styles.deleteButton, deletingPostId === post.id && styles.deleteButtonDisabled]}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            setPostToDelete(post.id);
-                            setShowDeleteModal(true);
-                          }}
-                          disabled={deletingPostId === post.id}
-                        >
-                          {deletingPostId === post.id ? (
-                            <ActivityIndicator size="small" color="#FF3B30" />
-                          ) : (
-                            <Text style={styles.deleteButtonText}>Delete</Text>
-                          )}
-                        </TouchableOpacity>
                       )}
                     </View>
                   </View>
