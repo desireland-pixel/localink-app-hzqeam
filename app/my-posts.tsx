@@ -9,6 +9,17 @@ import { formatDateToDDMMYYYY } from '@/utils/cities';
 import Modal from '@/components/ui/Modal';
 import { IconSymbol } from '@/components/IconSymbol';
 
+const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
+  'Visa': { background: '#DBEAFE', text: '#1E40AF' },
+  'Insurance': { background: '#FEF3C7', text: '#92400E' },
+  'Housing': { background: '#D1FAE5', text: '#065F46' },
+  'Jobs': { background: '#FCE7F3', text: '#9F1239' },
+  'Healthcare': { background: '#E0E7FF', text: '#3730A3' },
+  'Finance': { background: '#FED7AA', text: '#9A3412' },
+  'Education': { background: '#E9D5FF', text: '#6B21A8' },
+  'General': { background: '#FDE68A', text: '#78350F' },
+};
+
 interface Post {
   id: string;
   title?: string;
@@ -19,10 +30,18 @@ interface Post {
   availableFrom?: string;
   availableTo?: string;
   travelDate?: string;
+  travelDateTo?: string;
   rent?: string;
   type?: string;
   status: string;
   createdAt: string;
+  category?: string;
+  location?: string;
+  canOfferCompanionship?: boolean;
+  canCarryItems?: boolean;
+  companionshipFor?: string;
+  item?: string;
+  incentiveAmount?: number;
 }
 
 export default function MyPostsScreen() {
@@ -239,24 +258,26 @@ export default function MyPostsScreen() {
                         </View>
                       </View>
                       <Text style={styles.postTitle}>{post.title}</Text>
+                      <View style={styles.postInfo}>
+                        <Text style={styles.postInfoText}>{post.city}</Text>
+                        {post.rent && (
+                          <>
+                            <Text style={styles.postInfoText}>•</Text>
+                            <Text style={styles.postInfoText}>€{post.rent}/month</Text>
+                          </>
+                        )}
+                      </View>
+                      {(post.availableFrom || post.availableTo) && (
+                        <View style={styles.dateRow}>
+                          {post.availableFrom && <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.availableFrom)}</Text>}
+                          {post.availableFrom && post.availableTo && <Text style={styles.dateSeparator}>-</Text>}
+                          {post.availableTo && <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.availableTo)}</Text>}
+                        </View>
+                      )}
                       {post.description && (
                         <Text style={styles.postDescription} numberOfLines={2}>
                           {post.description}
                         </Text>
-                      )}
-                      <View style={styles.postInfo}>
-                        <Text style={styles.postInfoText}>{post.city}</Text>
-                        <Text style={styles.postInfoText}>•</Text>
-                        <Text style={styles.postInfoText}>
-                          {post.availableFrom && formatDateToDDMMYYYY(post.availableFrom)}
-                        </Text>
-                        <Text style={styles.postInfoText}>-</Text>
-                        <Text style={styles.postInfoText}>
-                          {post.availableTo && formatDateToDDMMYYYY(post.availableTo)}
-                        </Text>
-                      </View>
-                      {post.rent && (
-                        <Text style={styles.postRent}>€{post.rent}/month</Text>
                       )}
                     </>
                   )}
@@ -264,35 +285,49 @@ export default function MyPostsScreen() {
                   {selectedTab === 'travel' && (
                     <>
                       <View style={styles.postHeader}>
-                        <View style={[styles.typeTag, { backgroundColor: post.type === 'offering' ? '#D1FAE5' : '#DBEAFE' }]}>
-                          <Text style={[styles.typeTagText, { color: post.type === 'offering' ? '#065F46' : '#1E40AF' }]}>
-                            {post.type === 'offering' ? 'Offering' : 'Seeking'}
-                          </Text>
+                        <View style={styles.tagRow}>
+                          <View style={[styles.typeTag, { backgroundColor: post.type === 'offering' ? '#D1FAE5' : post.type === 'seeking' ? '#DBEAFE' : '#FCE7F3' }]}>
+                            <Text style={[styles.typeTagText, { color: post.type === 'offering' ? '#065F46' : post.type === 'seeking' ? '#1E40AF' : '#9F1239' }]}>
+                              {post.type === 'offering' ? 'Offering' : post.type === 'seeking' ? 'Seeking' : 'Seeking Ally'}
+                            </Text>
+                          </View>
+                          {post.type === 'offering' && (() => {
+                            const offeringIconText = post.canOfferCompanionship && post.canCarryItems ? '👥, 📦' : 
+                                                     post.canOfferCompanionship ? '👥' : 
+                                                     post.canCarryItems ? '📦' : '👥, 📦';
+                            return <Text style={styles.iconText}>{offeringIconText}</Text>;
+                          })()}
+                          {post.type === 'seeking' && <Text style={styles.iconText}>👥</Text>}
+                          {post.type === 'seeking-ally' && <Text style={styles.iconText}>📦</Text>}
                         </View>
-                        {(post as any).incentiveAmount && (post as any).incentiveAmount > 0 && (
+                        {post.incentiveAmount && post.incentiveAmount > 0 && (
                           <View style={styles.incentiveTag}>
                             <Text style={styles.incentiveTagText}>Incentive</Text>
                           </View>
                         )}
                       </View>
-                      <Text style={styles.postTitle}>
-                        {post.title || `${post.fromCity} → ${post.toCity}`}
-                      </Text>
-                      <View style={styles.postInfo}>
-                        <Text style={styles.postInfoText}>
-                          {post.travelDate && formatDateToDDMMYYYY(post.travelDate)}
-                        </Text>
+                      <View style={styles.routeContainer}>
+                        <Text style={styles.routeText}>{post.fromCity}</Text>
+                        <Text style={styles.routeArrow}>→</Text>
+                        <Text style={styles.routeText}>{post.toCity}</Text>
                       </View>
-                      {(post as any).item && (
-                        <View style={styles.itemRow}>
-                          <Text style={styles.itemLabel}>Item: </Text>
-                          <Text style={styles.itemValue}>{(post as any).item}</Text>
+                      {(post.travelDate || post.travelDateTo) && (
+                        <View style={styles.travelDateRow}>
+                          {post.travelDate && <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.travelDate)}</Text>}
+                          {post.travelDate && post.travelDateTo && <Text style={styles.dateSeparator}>-</Text>}
+                          {post.travelDateTo && <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.travelDateTo)}</Text>}
                         </View>
                       )}
-                      {(post as any).companionshipFor && (
+                      {post.type === 'seeking-ally' && post.item && (
+                        <View style={styles.itemRow}>
+                          <Text style={styles.itemLabel}>Item: </Text>
+                          <Text style={styles.itemValue}>{post.item}</Text>
+                        </View>
+                      )}
+                      {post.type === 'seeking' && post.companionshipFor && (
                         <View style={styles.itemRow}>
                           <Text style={styles.itemLabel}>For: </Text>
-                          <Text style={styles.itemValue}>{(post as any).companionshipFor}</Text>
+                          <Text style={styles.itemValue}>{post.companionshipFor}</Text>
                         </View>
                       )}
                       {post.description && (
@@ -306,11 +341,19 @@ export default function MyPostsScreen() {
                   {selectedTab === 'community' && (
                     <>
                       <View style={styles.postHeader}>
-                        <View style={[styles.categoryBadge, { backgroundColor: isClosed ? '#E5E7EB' : '#DBEAFE' }]}>
-                          <Text style={[styles.categoryBadgeText, { color: isClosed ? '#6B7280' : '#1E40AF' }]}>
-                            {(post as any).category || 'General'}
-                          </Text>
-                        </View>
+                        {(() => {
+                          const categoryColor = CATEGORY_COLORS[post.category || 'General'] || CATEGORY_COLORS['General'];
+                          const categoryBackgroundColor = isClosed ? '#E5E7EB' : categoryColor.background;
+                          const categoryTextColor = isClosed ? '#6B7280' : categoryColor.text;
+                          
+                          return (
+                            <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
+                              <Text style={[styles.categoryBadgeText, { color: categoryTextColor }]}>
+                                {post.category || 'General'}
+                              </Text>
+                            </View>
+                          );
+                        })()}
                       </View>
                       <Text style={styles.postTitle}>{post.title}</Text>
                       {post.description && (
@@ -510,6 +553,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    flex: 1,
+  },
+  iconText: {
+    fontSize: 16,
   },
   incentiveTag: {
     backgroundColor: '#F3E8FF',
@@ -572,6 +619,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.sm,
     fontSize: 12,
+    lineHeight: 18,
   },
   postInfo: {
     flexDirection: 'row',
@@ -580,6 +628,46 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   postInfoText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
+  routeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  routeText: {
+    ...typography.h3,
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  routeArrow: {
+    ...typography.h3,
+    color: colors.textSecondary,
+    fontSize: 16,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  travelDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: 0,
+    marginBottom: spacing.xs,
+  },
+  dateText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
+  dateSeparator: {
     ...typography.bodySmall,
     color: colors.textSecondary,
     fontSize: 12,
