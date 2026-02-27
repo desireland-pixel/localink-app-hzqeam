@@ -65,7 +65,7 @@ Last updated: February 2025`;
 
 export default function AuthScreen() {
   const router = useRouter();
-  const { user, signInWithEmail, loading: authLoading } = useAuth();
+  const { user, profile, signInWithEmail, loading: authLoading } = useAuth();
 
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
