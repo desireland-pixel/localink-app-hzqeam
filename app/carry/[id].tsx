@@ -67,7 +67,6 @@ export default function CommunityDetailsScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
-  const [unreadReplyIds, setUnreadReplyIds] = useState<Set<string>>(new Set());
   const [showDeleteCommentModal, setShowDeleteCommentModal] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [deletingComment, setDeletingComment] = useState(false);
