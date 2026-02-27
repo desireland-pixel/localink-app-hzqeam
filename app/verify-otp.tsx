@@ -89,7 +89,7 @@ export default function VerifyOTPScreen() {
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.content}>

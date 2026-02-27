@@ -60,19 +60,25 @@ export default function ChatScreen() {
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [deletingMessage, setDeletingMessage] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length, currentUserId: user?.id, insets, keyboardVisible });
+  console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length, currentUserId: user?.id, insets, keyboardHeight });
 
   useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-      console.log('ChatScreen: Keyboard shown');
-      setKeyboardVisible(true);
-    });
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      console.log('ChatScreen: Keyboard hidden');
-      setKeyboardVisible(false);
-    });
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        console.log('ChatScreen: Keyboard shown, height:', e.endCoordinates.height);
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        console.log('ChatScreen: Keyboard hidden');
+        setKeyboardHeight(0);
+      }
+    );
 
     return () => {
       keyboardDidShowListener.remove();
@@ -337,6 +343,8 @@ export default function ChatScreen() {
         }
         return [...prev, messageWithSender];
       });
+      
+      Keyboard.dismiss();
     } catch (error: any) {
       console.error('ChatScreen: Error sending message', error);
       setError(error.message || 'Failed to send message');
@@ -493,7 +501,7 @@ export default function ChatScreen() {
         }}
       />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
@@ -516,14 +524,17 @@ export default function ChatScreen() {
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
           style={styles.messagesContainer}
-          contentContainerStyle={styles.messagesContent}
+          contentContainerStyle={[
+            styles.messagesContent,
+            { paddingBottom: keyboardHeight > 0 ? keyboardHeight - insets.bottom + spacing.md : spacing.md }
+          ]}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />
 
         <View style={[
           styles.inputContainer,
           { 
-            paddingBottom: keyboardVisible 
+            paddingBottom: Platform.OS === 'android' && keyboardHeight > 0 
               ? spacing.sm 
               : Math.max(spacing.md, insets.bottom) 
           }

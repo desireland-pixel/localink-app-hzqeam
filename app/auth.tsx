@@ -17,46 +17,111 @@ import { useRouter } from "expo-router";
 import { colors, typography, spacing, borderRadius } from "@/styles/commonStyles";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Modal from "@/components/ui/Modal";
-import { apiPost } from "@/utils/api";
+import { apiPost, apiGet } from "@/utils/api";
 import { IconSymbol } from "@/components/IconSymbol";
+import { CitySearchInput } from "@/components/CitySearchInput";
 
 type Mode = "signin" | "signup" | "forgot-password";
 
+const DEFAULT_TERMS_CONTENT = `Welcome to LokaLinc!
+
+By creating an account and using our services, you agree to the following terms:
+
+1. Account Registration
+- You must provide accurate and complete information
+- You are responsible for maintaining the security of your account
+- You must be at least 18 years old to use this service
+
+2. User Conduct
+- You agree to use LokaLinc respectfully and lawfully
+- You will not post false, misleading, or harmful content
+- You will not harass, abuse, or harm other users
+
+3. Content
+- You retain ownership of content you post
+- By posting, you grant LokaLinc a license to display and distribute your content
+- LokaLinc reserves the right to remove content that violates these terms
+
+4. Privacy
+- We collect and process your data as described in our Privacy Policy
+- Your personal information will be handled in accordance with GDPR
+
+5. Liability
+- LokaLinc is a platform connecting users
+- We are not responsible for transactions between users
+- Use the service at your own risk
+
+6. Termination
+- We reserve the right to suspend or terminate accounts that violate these terms
+- You may delete your account at any time
+
+7. Changes to Terms
+- We may update these terms from time to time
+- Continued use of the service constitutes acceptance of updated terms
+
+For questions or concerns, please contact us through the app.
+
+Last updated: February 2025`;
+
 export default function AuthScreen() {
   const router = useRouter();
-  const { user, profile, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, loading: authLoading, profileLoading } = useAuth();
+  const { user, signInWithEmail, loading: authLoading } = useAuth();
 
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [city, setCity] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsContent, setTermsContent] = useState<string | null>(null);
+
+  const fetchAndShowTerms = async () => {
+    if (termsContent) {
+      setShowTermsModal(true);
+      return;
+    }
+    try {
+      console.log('[AuthScreen] Fetching Terms & Conditions from backend');
+      const result = await apiGet<any>('/api/terms-and-conditions');
+      let content = '';
+      if (typeof result === 'string') {
+        content = result;
+      } else if (result && typeof result === 'object') {
+        content = result.content || result.terms || result.text || result.html || '';
+        if (!content) content = JSON.stringify(result, null, 2);
+      }
+      setTermsContent(content || DEFAULT_TERMS_CONTENT);
+    } catch (err) {
+      console.error('[AuthScreen] Failed to fetch T&C, using default:', err);
+      setTermsContent(DEFAULT_TERMS_CONTENT);
+    } finally {
+      setShowTermsModal(true);
+    }
+  };
 
   console.log('[AuthScreen] Rendering, mode:', mode, 'user:', user?.id, 'profile:', profile?.name);
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (authLoading || profileLoading) {
-      console.log('[AuthScreen] Auth/profile loading, waiting...');
+    if (authLoading) {
+      console.log('[AuthScreen] Auth loading, waiting...');
       return;
     }
 
     if (user) {
-      // Check if profile is complete (has username and city)
-      if (!profile || !profile.username || !profile.city) {
-        console.log('[AuthScreen] User authenticated but profile incomplete, redirecting to personal details');
-        router.replace('/personal-details');
-      } else {
-        console.log('[AuthScreen] User authenticated with complete profile, redirecting to home (sublet)');
-        router.replace('/(tabs)/sublet');
-      }
+      console.log('[AuthScreen] User authenticated, redirecting to home (sublet)');
+      router.replace('/(tabs)/sublet');
     }
-  }, [user, profile, authLoading, profileLoading, router]);
+  }, [user, authLoading, router]);
 
-  if (authLoading || profileLoading) {
+  if (authLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -73,9 +138,23 @@ export default function AuthScreen() {
       return;
     }
 
-    if (mode === "signup" && !name.trim()) {
-      setError("Please enter your full name");
-      return;
+    if (mode === "signup") {
+      if (!name.trim()) {
+        setError("Please enter your full name");
+        return;
+      }
+      if (!username.trim()) {
+        setError("Please enter a username");
+        return;
+      }
+      if (!city.trim()) {
+        setError("Please select a city");
+        return;
+      }
+      if (!termsAccepted) {
+        setError("Please accept the Terms & Conditions");
+        return;
+      }
     }
 
     setLoading(true);
@@ -109,7 +188,14 @@ export default function AuthScreen() {
       } else {
         console.log('[AuthScreen] Signing up with email');
         // Call backend signup API directly to get OTP flow
-        const result = await apiPost('/api/signup', { email, password, name });
+        const result = await apiPost('/api/signup', { 
+          email, 
+          password, 
+          name,
+          username,
+          city,
+          termsAccepted: true
+        });
         console.log('[AuthScreen] Sign up successful, redirecting to OTP verification');
         router.push({ pathname: '/verify-otp', params: { email } });
       }
@@ -162,37 +248,21 @@ export default function AuthScreen() {
     }
   };
 
-  const handleSocialAuth = async (provider: "google" | "apple") => {
-    console.log('[AuthScreen] Social auth attempt, provider:', provider);
-    setLoading(true);
-    setError(null);
-    
-    try {
-      if (provider === "google") {
-        await signInWithGoogle();
-      } else if (provider === "apple") {
-        await signInWithApple();
-      }
-      console.log('[AuthScreen] Social auth successful');
-      // Navigation will be handled by useEffect
-    } catch (err: any) {
-      console.error('[AuthScreen] Social auth error:', err);
-      setError(err.message || "Authentication failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const isSignUpFormValid = mode === "signup" && name.trim() && email.trim() && password.trim();
+  const isSignUpFormValid = mode === "signup" && name.trim() && email.trim() && password.trim() && username.trim() && city.trim() && termsAccepted;
   const isSignInFormValid = mode === "signin" && email.trim() && password.trim();
 
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : "padding"}
+        keyboardVerticalOffset={Platform.OS === "android" ? 0 : 0}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.content}>
             <View style={styles.header}>
               <Image
@@ -200,7 +270,8 @@ export default function AuthScreen() {
                 style={styles.logo}
                 resizeMode="contain"
               />
-              <Text style={styles.title}>Localink</Text>
+              <Text style={styles.title}>LokaLinc</Text>
+              <Text style={styles.tagline}>Living and Moving together</Text>
               <Text style={styles.subtitle}>
                 {mode === "signin" ? "Welcome back!" : mode === "signup" ? "Create your account" : "Reset your password"}
               </Text>
@@ -246,22 +317,24 @@ export default function AuthScreen() {
             ) : (
               <>
                 {mode === "signup" && (
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Full Name</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter your full name"
-                      placeholderTextColor={colors.textLight}
-                      value={name}
-                      onChangeText={setName}
-                      autoCapitalize="words"
-                      editable={!loading}
-                    />
-                  </View>
+                  <>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Full Name *</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Enter your full name"
+                        placeholderTextColor={colors.textLight}
+                        value={name}
+                        onChangeText={setName}
+                        autoCapitalize="words"
+                        editable={!loading}
+                      />
+                    </View>
+                  </>
                 )}
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Email</Text>
+                  <Text style={styles.label}>{mode === "signup" ? "Email *" : "Email"}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="Enter your email"
@@ -276,7 +349,7 @@ export default function AuthScreen() {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Password</Text>
+                  <Text style={styles.label}>{mode === "signup" ? "Password *" : "Password"}</Text>
                   <View style={styles.passwordContainer}>
                     <TextInput
                       style={styles.passwordInput}
@@ -302,14 +375,89 @@ export default function AuthScreen() {
                   </View>
                 </View>
 
+                {mode === "signup" && (
+                  <>
+                    <Text style={styles.infoText}>The following things can be changed later under Personal details</Text>
+                    
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Username *</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Enter your username"
+                        placeholderTextColor={colors.textLight}
+                        value={username}
+                        onChangeText={setUsername}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        editable={!loading}
+                      />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>City *</Text>
+                      <CitySearchInput
+                        value={city}
+                        onChangeText={setCity}
+                        placeholder="Search city..."
+                      />
+                    </View>
+
+                    <View style={styles.termsContainer}>
+                      <TouchableOpacity
+                        style={styles.radioRow}
+                        onPress={() => setTermsAccepted(!termsAccepted)}
+                        disabled={loading}
+                      >
+                        <View style={styles.radioCircle}>
+                          {termsAccepted && <View style={styles.radioCircleSelected} />}
+                        </View>
+                        <Text style={styles.termsText}>
+                          By creating an account on LokaLinc you hereby agree to our{' '}
+                          <Text 
+                            style={styles.termsLink}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              fetchAndShowTerms();
+                            }}
+                          >
+                            Terms & Conditions
+                          </Text>
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+
                 {mode === "signin" && (
-                  <TouchableOpacity
-                    style={styles.forgotPasswordButton}
-                    onPress={() => setMode("forgot-password")}
-                    disabled={loading}
-                  >
-                    <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-                  </TouchableOpacity>
+                  <>
+                    <View style={styles.rememberMeRow}>
+                      <TouchableOpacity
+                        style={styles.rememberMeButton}
+                        onPress={() => setRememberMe(!rememberMe)}
+                        disabled={loading}
+                      >
+                        <View style={styles.checkbox}>
+                          {rememberMe && (
+                            <IconSymbol
+                              ios_icon_name="checkmark"
+                              android_material_icon_name="check"
+                              size={16}
+                              color={colors.primary}
+                            />
+                          )}
+                        </View>
+                        <Text style={styles.rememberMeText}>Remember me</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.forgotPasswordButton}
+                        onPress={() => setMode("forgot-password")}
+                        disabled={loading}
+                      >
+                        <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
                 )}
 
                 <TouchableOpacity
@@ -340,28 +488,6 @@ export default function AuthScreen() {
                       : "Already have an account? Sign In"}
                   </Text>
                 </TouchableOpacity>
-
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>or</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.socialButton}
-                  onPress={() => handleSocialAuth("google")}
-                  disabled={loading}
-                >
-                  <Text style={styles.socialButtonText}>Continue with Google</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.socialButton}
-                  onPress={() => handleSocialAuth("apple")}
-                  disabled={loading}
-                >
-                  <Text style={styles.socialButtonText}>Continue with Apple</Text>
-                </TouchableOpacity>
               </>
             )}
           </View>
@@ -382,6 +508,14 @@ export default function AuthScreen() {
         title="Success"
         message={success || ''}
         type="success"
+      />
+
+      <Modal
+        visible={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        title="Terms & Conditions"
+        message={termsContent || DEFAULT_TERMS_CONTENT}
+        type="info"
       />
     </SafeAreaView>
   );
@@ -430,6 +564,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: spacing.xs,
   },
+  tagline: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontStyle: "italic",
+    marginBottom: spacing.xs,
+  },
   subtitle: {
     ...typography.body,
     color: colors.textSecondary,
@@ -473,9 +613,76 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
+  infoText: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 11,
+    marginBottom: spacing.sm,
+    fontStyle: "italic",
+  },
+  termsContainer: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  radioRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    backgroundColor: colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  radioCircleSelected: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
+  },
+  termsText: {
+    ...typography.bodySmall,
+    color: colors.text,
+    flex: 1,
+    lineHeight: 18,
+  },
+  termsLink: {
+    color: colors.primary,
+    textDecorationLine: 'underline',
+  },
+  rememberMeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  rememberMeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    backgroundColor: colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rememberMeText: {
+    ...typography.bodySmall,
+    color: colors.text,
+  },
   forgotPasswordButton: {
     alignSelf: "flex-end",
-    marginBottom: spacing.sm,
   },
   forgotPasswordText: {
     ...typography.bodySmall,
@@ -502,34 +709,5 @@ const styles = StyleSheet.create({
   switchModeText: {
     ...typography.bodySmall,
     color: colors.primary,
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: spacing.md,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    marginHorizontal: spacing.md,
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-  },
-  socialButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-    marginBottom: spacing.sm,
-    backgroundColor: colors.card,
-  },
-  socialButtonText: {
-    ...typography.body,
-    color: colors.text,
-    fontWeight: "500",
   },
 });

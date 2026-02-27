@@ -11,8 +11,8 @@ export default function DataPrivacyScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>1. Data Controller</Text>
           <Text style={styles.paragraph}>
-            Localink ("we", "us", "our") is the data controller responsible for your personal data. For any privacy-related inquiries, contact us at{' '}
-            <Text style={styles.contactEmail}>info.localink@gmail.com</Text>
+            LokaLinc ("we", "us", "our") is the data controller responsible for your personal data. For any privacy-related inquiries, contact us at{' '}
+            <Text style={styles.contactEmail}>info.lokalinc@gmail.com</Text>
           </Text>
         </View>
 
@@ -73,7 +73,7 @@ export default function DataPrivacyScreen() {
           <Text style={styles.bulletPoint}>• Right to withdraw consent: Withdraw consent at any time</Text>
           <Text style={styles.paragraph}>
             To exercise these rights, contact us at{' '}
-            <Text style={styles.contactEmail}>info.localink@gmail.com</Text>
+            <Text style={styles.contactEmail}>info.lokalinc@gmail.com</Text>
           </Text>
         </View>
 
@@ -135,7 +135,7 @@ export default function DataPrivacyScreen() {
           <Text style={styles.paragraph}>
             For any questions about this privacy policy or to exercise your rights, contact us at:
           </Text>
-          <Text style={styles.contactEmail}>info.localink@gmail.com</Text>
+          <Text style={styles.contactEmail}>info.lokalinc@gmail.com</Text>
         </View>
 
         <Text style={styles.lastUpdated}>Last updated: February 2026</Text>
