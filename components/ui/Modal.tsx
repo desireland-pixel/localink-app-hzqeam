@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Modal as RNModal,
   TouchableWithoutFeedback,
+  ScrollView,
 } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 
@@ -60,6 +61,9 @@ export default function Modal({
         return 'ℹ️';
     }
   };
+
+  // Check if message is long (for Terms & Conditions)
+  const isLongMessage = message.length > 500;
 
   // If custom actions are provided, use them instead of default buttons
   const renderButtons = () => {
@@ -128,10 +132,16 @@ export default function Modal({
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.modal}>
+            <View style={[styles.modal, isLongMessage && styles.modalLarge]}>
               <Text style={styles.icon}>{getIcon()}</Text>
               {title && <Text style={styles.title}>{title}</Text>}
-              <Text style={styles.message}>{message}</Text>
+              {isLongMessage ? (
+                <ScrollView style={styles.messageScrollView} showsVerticalScrollIndicator={true}>
+                  <Text style={styles.message}>{message}</Text>
+                </ScrollView>
+              ) : (
+                <Text style={styles.message}>{message}</Text>
+              )}
               {renderButtons()}
             </View>
           </TouchableWithoutFeedback>
@@ -152,35 +162,46 @@ const styles = StyleSheet.create({
   modal: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.lg,
-    padding: spacing.xl,
+    padding: spacing.lg,
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 340,
     alignItems: 'center',
   },
+  modalLarge: {
+    maxHeight: '80%',
+  },
   icon: {
-    fontSize: 48,
-    marginBottom: spacing.md,
+    fontSize: 36,
+    marginBottom: spacing.sm,
   },
   title: {
     ...typography.h3,
+    fontSize: 16,
     color: colors.text,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
     textAlign: 'center',
   },
   message: {
     ...typography.body,
+    fontSize: 13,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
+    lineHeight: 18,
+  },
+  messageScrollView: {
+    maxHeight: 300,
+    marginBottom: spacing.md,
+    width: '100%',
   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: spacing.sm,
     width: '100%',
   },
   button: {
     flex: 1,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: borderRadius.md,
     alignItems: 'center',
   },
@@ -191,6 +212,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     ...typography.button,
+    fontSize: 13,
     color: colors.text,
   },
   confirmButton: {
@@ -198,6 +220,7 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     ...typography.button,
+    fontSize: 13,
     color: '#FFFFFF',
   },
   destructiveButton: {
@@ -205,6 +228,7 @@ const styles = StyleSheet.create({
   },
   destructiveButtonText: {
     ...typography.button,
+    fontSize: 13,
     color: '#FFFFFF',
   },
   disabledButton: {

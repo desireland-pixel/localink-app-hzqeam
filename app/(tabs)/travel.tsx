@@ -133,17 +133,41 @@ export default function TravelScreen() {
     }, [fetchPosts, fetchFavorites])
   );
 
+  // Country-to-cities mapping for expanded country filtering
+  const COUNTRY_CITIES: { [country: string]: string[] } = {
+    'India': ['Ahmedabad', 'Bengaluru', 'Chennai', 'Delhi', 'Goa', 'Hyderabad', 'Kochi', 'Kolkata', 'Mumbai', 'Thiruvananthapuram'],
+    'Germany': ['Berlin', 'Cologne', 'Düsseldorf', 'Frankfurt', 'Hamburg', 'Hannover', 'Munich', 'Stuttgart'],
+  };
+
+  // Returns all city names that match the selection (expands country to its cities)
+  const getMatchingCities = (selection: string): string[] => {
+    const countryCities = COUNTRY_CITIES[selection];
+    if (countryCities) {
+      // Include both the country name itself and all its cities
+      return [selection, ...countryCities];
+    }
+    return [selection];
+  };
+
   // Apply from/to filter and sorting on the frontend
   const filteredAndSortedPosts = useMemo(() => {
     console.log('TravelScreen: Applying from/to filter and sorting', { selectedFrom, selectedTo, sortOption });
     
-    // Step 1: Apply from/to filter
+    // Step 1: Apply from/to filter with country expansion
     let filtered = posts;
     if (selectedFrom) {
-      filtered = filtered.filter(p => p.fromCity.toLowerCase() === selectedFrom.toLowerCase());
+      const matchingFromCities = getMatchingCities(selectedFrom);
+      console.log('TravelScreen: Matching fromCity values:', matchingFromCities);
+      filtered = filtered.filter(p =>
+        matchingFromCities.some(city => city.toLowerCase() === p.fromCity.toLowerCase())
+      );
     }
     if (selectedTo) {
-      filtered = filtered.filter(p => p.toCity.toLowerCase() === selectedTo.toLowerCase());
+      const matchingToCities = getMatchingCities(selectedTo);
+      console.log('TravelScreen: Matching toCity values:', matchingToCities);
+      filtered = filtered.filter(p =>
+        matchingToCities.some(city => city.toLowerCase() === p.toCity.toLowerCase())
+      );
     }
     
     // Step 2: Apply search query filter
