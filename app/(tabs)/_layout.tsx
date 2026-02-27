@@ -1,14 +1,22 @@
 
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
+import { Platform, Dimensions } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const { unreadCount, communityUnreadCount } = useAuth();
-  console.log('TabLayout: Rendering tabs', { unreadCount, communityUnreadCount });
+  const insets = useSafeAreaInsets();
+  console.log('TabLayout: Rendering tabs', { unreadCount, communityUnreadCount, insets });
+
+  // Calculate flexible tab bar height based on safe area insets
+  // Standard tab bar content height: ~60px (icon + label + padding)
+  // Add bottom safe area inset for devices with home indicators
+  const tabBarHeight = 60 + insets.bottom;
+  const tabBarPaddingBottom = Math.max(5, insets.bottom);
 
   return (
     <Tabs
@@ -20,9 +28,8 @@ export default function TabLayout() {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          // Android: Move up 1-2mm (approximately 4-6 pixels)
-          height: Platform.OS === 'android' ? 105 : 68,
-          paddingBottom: Platform.OS === 'android' ? 38 : 10,
+          height: tabBarHeight,
+          paddingBottom: tabBarPaddingBottom,
           paddingTop: 10,
         },
         tabBarLabelStyle: {

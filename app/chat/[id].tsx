@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost, authenticatedDelete, BACKEND_URL, getBearerToken } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,6 +45,7 @@ export default function ChatScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user, fetchUnreadCount } = useAuth();
+  const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -60,7 +61,7 @@ export default function ChatScreen() {
   const [deletingMessage, setDeletingMessage] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
 
-  console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length, currentUserId: user?.id });
+  console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length, currentUserId: user?.id, insets });
 
   const markMessagesAsRead = React.useCallback(async () => {
     if (!id) return;
@@ -504,8 +505,7 @@ export default function ChatScreen() {
 
         <View style={[
           styles.inputContainer,
-          Platform.OS === 'android' && styles.inputContainerAndroid,
-          Platform.OS === 'ios' && styles.inputContainerIOS
+          { paddingBottom: Math.max(spacing.sm, insets.bottom) }
         ]}>
           <TextInput
             style={styles.input}
@@ -712,19 +712,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingTop: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.background,
-  },
-  inputContainerAndroid: {
-    // Android: Move up 2-3mm (approximately 8-12 pixels)
-    paddingBottom: spacing.xl,
-    marginBottom: 32,
-  },
-  inputContainerIOS: {
-    // iOS: Move up 4-5mm (approximately 16-20 pixels)
-    marginBottom: 18,
   },
   input: {
     flex: 1,

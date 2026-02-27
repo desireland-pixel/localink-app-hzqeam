@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Platform, FlatList, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost, authenticatedPatch, authenticatedDelete } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,6 +40,7 @@ export default function SubletDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const [sublet, setSublet] = useState<Sublet | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +51,7 @@ export default function SubletDetailsScreen() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
 
-  console.log('SubletDetailsScreen: Rendering', { id, sublet, imageCount: sublet?.imageUrls?.length });
+  console.log('SubletDetailsScreen: Rendering', { id, sublet, imageCount: sublet?.imageUrls?.length, insets });
 
   const fetchSublet = React.useCallback(async () => {
     console.log('SubletDetailsScreen: Fetching sublet', id);
@@ -413,7 +414,7 @@ export default function SubletDetailsScreen() {
       </ScrollView>
 
       {!isOwnPost && (
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
           <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
             <Text style={styles.contactButtonText}>Contact</Text>
           </TouchableOpacity>
