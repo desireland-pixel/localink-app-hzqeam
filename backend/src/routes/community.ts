@@ -672,6 +672,70 @@ export function registerCommunityRoutes(app: App) {
     }
   });
 
+  // Close a discussion topic (owner only) - closes active topics or permanently deletes closed ones
+  app.fastify.post('/api/community/topics/:id/close', {
+    schema: {
+      description: 'Close own discussion topic (if active) or permanently delete (if already closed)',
+      tags: ['community'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+        },
+        required: ['id'],
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            action: { type: 'string', enum: ['closed', 'deleted'] },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    const { id } = request.params as { id: string };
+    app.logger.info({ userId: session.user.id, topicId: id }, 'Closing discussion topic');
+
+    try {
+      const topic = await app.db.query.discussionTopics.findFirst({
+        where: eq(schema.discussionTopics.id, id),
+      });
+
+      if (!topic) {
+        app.logger.warn({ topicId: id }, 'Discussion topic not found');
+        return reply.status(404).send({ error: 'Discussion topic not found' });
+      }
+
+      if (topic.userId !== session.user.id) {
+        app.logger.warn({ userId: session.user.id, topicId: id }, 'Unauthorized topic close attempt');
+        return reply.status(403).send({ error: 'You can only close your own topics' });
+      }
+
+      // If topic is open, close it. If already closed, can be deleted via DELETE endpoint
+      if (topic.status === 'open') {
+        await app.db
+          .update(schema.discussionTopics)
+          .set({ status: 'closed', updatedAt: new Date() })
+          .where(eq(schema.discussionTopics.id, id));
+
+        app.logger.info({ topicId: id, userId: session.user.id }, 'Discussion topic closed successfully');
+        return { success: true, action: 'closed', message: 'Topic closed successfully' };
+      } else {
+        app.logger.warn({ topicId: id, userId: session.user.id }, 'Topic already closed');
+        return reply.status(400).send({ error: 'Topic is already closed. Use DELETE endpoint to permanently delete closed topics.' });
+      }
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id, topicId: id }, 'Failed to close discussion topic');
+      return reply.status(500).send({ error: 'Failed to close discussion topic' });
+    }
+  });
+
   // Delete a discussion topic (owner only, cascades to all replies)
   app.fastify.delete('/api/community/topics/:id', {
     schema: {

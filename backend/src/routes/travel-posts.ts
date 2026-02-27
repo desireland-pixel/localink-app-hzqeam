@@ -2,7 +2,7 @@ import type { App} from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { eq, and, or, gte, lte, between, desc, asc, isNotNull, isNull, ne } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
-import { TRAVEL_CITIES } from '../cities.js';
+import { TRAVEL_CITIES, COUNTRY_CITIES } from '../cities.js';
 import { generateShortId } from '../utils/short-id.js';
 import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '../utils/date-format.js';
 import { formatTravelPostTitle, getTravelPostTypeEmojis } from '../utils/travel-post-formatter.js';
@@ -188,13 +188,37 @@ export function registerTravelPostRoutes(app: App) {
         }
       }
 
-      // Independent from/to city filters
+      // Independent from/to city filters with country expansion
       if (filters.fromCity) {
-        conditions.push(eq(schema.travelPosts.fromCity, filters.fromCity));
+        const countryCities = COUNTRY_CITIES[filters.fromCity];
+        if (countryCities) {
+          // If it's a country, match the country name OR any city in that country
+          conditions.push(
+            or(
+              eq(schema.travelPosts.fromCity, filters.fromCity),
+              ...countryCities.map(city => eq(schema.travelPosts.fromCity, city))
+            )!
+          );
+        } else {
+          // It's a city, match exactly
+          conditions.push(eq(schema.travelPosts.fromCity, filters.fromCity));
+        }
       }
 
       if (filters.toCity) {
-        conditions.push(eq(schema.travelPosts.toCity, filters.toCity));
+        const countryCities = COUNTRY_CITIES[filters.toCity];
+        if (countryCities) {
+          // If it's a country, match the country name OR any city in that country
+          conditions.push(
+            or(
+              eq(schema.travelPosts.toCity, filters.toCity),
+              ...countryCities.map(city => eq(schema.travelPosts.toCity, city))
+            )!
+          );
+        } else {
+          // It's a city, match exactly
+          conditions.push(eq(schema.travelPosts.toCity, filters.toCity));
+        }
       }
 
       if (filters.travelDate) {
