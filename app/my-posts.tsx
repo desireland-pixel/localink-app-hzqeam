@@ -55,7 +55,9 @@ export default function MyPostsScreen() {
   const [closingPostId, setClosingPostId] = useState<string | null>(null);
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showCloseModal, setShowCloseModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const [postToClose, setPostToClose] = useState<string | null>(null);
 
   console.log('MyPostsScreen: Rendering', { selectedTab, postsCount: posts.length });
   
@@ -101,15 +103,18 @@ export default function MyPostsScreen() {
     setRefreshing(false);
   };
 
-  const handleClosePost = async (postId: string) => {
-    console.log('MyPostsScreen: Closing post', { postId, selectedTab });
-    setClosingPostId(postId);
+  const handleClosePost = async () => {
+    if (!postToClose) return;
+    console.log('MyPostsScreen: Closing post', { postId: postToClose, selectedTab });
+    setClosingPostId(postToClose);
     try {
       if (selectedTab === 'community') {
         // Update status to closed
-        await authenticatedPut(`/api/community/topics/${postId}`, { status: 'closed' });
+        await authenticatedPut(`/api/community/topics/${postToClose}`, { status: 'closed' });
       }
       console.log('MyPostsScreen: Post closed successfully');
+      setShowCloseModal(false);
+      setPostToClose(null);
       await fetchPosts();
     } catch (error: any) {
       console.error('MyPostsScreen: Error closing post', error);
@@ -394,12 +399,13 @@ export default function MyPostsScreen() {
                               style={[styles.closeButton, isClosing && styles.closeButtonDisabled]}
                               onPress={(e) => {
                                 e.stopPropagation();
-                                handleClosePost(post.id);
+                                setPostToClose(post.id);
+                                setShowCloseModal(true);
                               }}
                               disabled={isClosing}
                             >
                               {isClosing ? (
-                                <ActivityIndicator size="small" color={colors.primary} />
+                                <ActivityIndicator size="small" color="#FF3B30" />
                               ) : (
                                 <Text style={styles.closeButtonText}>Close</Text>
                               )}
@@ -496,6 +502,33 @@ export default function MyPostsScreen() {
             onPress: handleDeletePost,
             style: 'destructive',
             disabled: !!deletingPostId,
+          },
+        ]}
+      />
+
+      <Modal
+        visible={showCloseModal}
+        title="Close Discussion"
+        message="Are you sure you want to close this discussion? You can still view it, but no new replies will be allowed."
+        onClose={() => {
+          setShowCloseModal(false);
+          setPostToClose(null);
+        }}
+        type="warning"
+        actions={[
+          {
+            text: 'Cancel',
+            onPress: () => {
+              setShowCloseModal(false);
+              setPostToClose(null);
+            },
+            style: 'cancel',
+          },
+          {
+            text: closingPostId ? 'Closing...' : 'Close',
+            onPress: handleClosePost,
+            style: 'destructive',
+            disabled: !!closingPostId,
           },
         ]}
       />
@@ -761,14 +794,14 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: '#FF3B30',
   },
   closeButtonDisabled: {
     opacity: 0.5,
   },
   closeButtonText: {
     ...typography.bodySmall,
-    color: colors.primary,
+    color: '#FF3B30',
     fontWeight: '600',
     fontSize: 12,
   },

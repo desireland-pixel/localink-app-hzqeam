@@ -58,12 +58,13 @@ export default function Modal({
       case 'warning':
         return '⚠️';
       default:
-        return 'ℹ️';
+        return '';
     }
   };
 
   // Check if message is long (for Terms & Conditions)
   const isLongMessage = message.length > 500;
+  const showIcon = type !== 'info' || isLongMessage;
 
   // If custom actions are provided, use them instead of default buttons
   const renderButtons = () => {
@@ -133,7 +134,7 @@ export default function Modal({
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
             <View style={[styles.modal, isLongMessage && styles.modalLarge]}>
-              <Text style={styles.icon}>{getIcon()}</Text>
+              {showIcon && <Text style={styles.icon}>{getIcon()}</Text>}
               {title && <Text style={styles.title}>{title}</Text>}
               {isLongMessage ? (
                 <ScrollView style={styles.messageScrollView} showsVerticalScrollIndicator={true}>
@@ -162,47 +163,48 @@ const styles = StyleSheet.create({
   modal: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.lg,
-    padding: spacing.lg,
+    padding: spacing.md,
     width: '100%',
-    maxWidth: 340,
+    maxWidth: 300,
     alignItems: 'center',
   },
   modalLarge: {
-    maxHeight: '80%',
+    maxHeight: '70%',
+    maxWidth: 320,
   },
   icon: {
-    fontSize: 36,
-    marginBottom: spacing.sm,
+    fontSize: 28,
+    marginBottom: spacing.xs,
   },
   title: {
     ...typography.h3,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.text,
     marginBottom: spacing.xs,
     textAlign: 'center',
   },
   message: {
     ...typography.body,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: spacing.md,
-    lineHeight: 18,
+    marginBottom: spacing.sm,
+    lineHeight: 16,
   },
   messageScrollView: {
-    maxHeight: 300,
-    marginBottom: spacing.md,
+    maxHeight: 250,
+    marginBottom: spacing.sm,
     width: '100%',
   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: spacing.xs,
     width: '100%',
   },
   button: {
     flex: 1,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
     alignItems: 'center',
   },
   cancelButton: {
@@ -212,7 +214,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     ...typography.button,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.text,
   },
   confirmButton: {
@@ -220,7 +222,7 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     ...typography.button,
-    fontSize: 13,
+    fontSize: 12,
     color: '#FFFFFF',
   },
   destructiveButton: {
@@ -228,7 +230,7 @@ const styles = StyleSheet.create({
   },
   destructiveButtonText: {
     ...typography.button,
-    fontSize: 13,
+    fontSize: 12,
     color: '#FFFFFF',
   },
   disabledButton: {

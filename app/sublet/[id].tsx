@@ -164,17 +164,17 @@ export default function SubletDetailsScreen() {
 
   const handleDelete = async () => {
     if (!sublet) return;
-    console.log('SubletDetailsScreen: Close post', id);
+    console.log('SubletDetailsScreen: Delete post', id);
     setDeleting(true);
     
     try {
-      await authenticatedPatch(`/api/sublets/${id}/close`, {});
-      console.log('SubletDetailsScreen: Post closed successfully');
+      await authenticatedDelete(`/api/sublets/${id}`, {});
+      console.log('SubletDetailsScreen: Post deleted successfully');
       setShowDeleteModal(false);
       router.replace('/my-posts');
     } catch (error: any) {
-      console.error('SubletDetailsScreen: Error closing post', error);
-      setError(error.message || 'Failed to close post');
+      console.error('SubletDetailsScreen: Error deleting post', error);
+      setError(error.message || 'Failed to delete post');
     } finally {
       setDeleting(false);
     }
@@ -431,8 +431,8 @@ export default function SubletDetailsScreen() {
 
       <Modal
         visible={showDeleteModal}
-        title="Close Post"
-        message="Are you sure you want to close this post? This action cannot be undone."
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
         onClose={() => setShowDeleteModal(false)}
         type="warning"
         actions={[
@@ -442,7 +442,7 @@ export default function SubletDetailsScreen() {
             style: 'cancel',
           },
           {
-            text: deleting ? 'Closing...' : 'Close Post',
+            text: deleting ? 'Deleting...' : 'Delete',
             onPress: handleDelete,
             style: 'destructive',
             disabled: deleting,
