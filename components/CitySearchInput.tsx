@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: 10,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
