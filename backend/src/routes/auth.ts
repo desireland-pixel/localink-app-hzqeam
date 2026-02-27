@@ -71,7 +71,10 @@ export function registerAuthRoutes(app: App) {
 
       // Proxy the login request to Better Auth's sign-in endpoint
       // This allows Better Auth to handle password verification
-      const baseUrl = `${request.protocol}://${request.hostname}`;
+      const port = request.socket.localPort || 3000;
+      const protocol = request.protocol || 'http';
+      const hostname = request.hostname || 'localhost';
+      const baseUrl = `${protocol}://${hostname}${port !== 80 && port !== 443 ? `:${port}` : ''}`;
       const authResponse = await fetch(`${baseUrl}/api/auth/sign-in/email`, {
         method: 'POST',
         headers: {
