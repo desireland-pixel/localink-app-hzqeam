@@ -104,10 +104,10 @@ export function registerProfileRoutes(app: App) {
         return reply.status(400).send({ error: 'Invalid city. Must be from predefined list.' });
       }
 
-      // Check if username is already taken (if provided and different from current)
+      // Check if username is already taken (if provided and different from current, case-insensitive)
       if (username) {
         const existingUsername = await app.db.query.profiles.findFirst({
-          where: eq(schema.profiles.username, username),
+          where: eq(schema.profiles.username, username.toLowerCase()),
         });
         if (existingUsername && existingUsername.userId !== session.user.id) {
           app.logger.warn({ username }, 'Username already taken');
@@ -124,7 +124,7 @@ export function registerProfileRoutes(app: App) {
         // Update existing profile
         const updateData: any = { updatedAt: new Date() };
         // Name is read-only - never update it
-        if (username !== undefined) updateData.username = username || null;
+        if (username !== undefined) updateData.username = username ? username.toLowerCase() : null;
         if (city !== undefined) updateData.city = city;
         if (photoUrl !== undefined) updateData.photoUrl = photoUrl;
 
@@ -157,7 +157,7 @@ export function registerProfileRoutes(app: App) {
           .values({
             userId: session.user.id,
             name: session.user.name || 'User',
-            username: username || null,
+            username: username ? username.toLowerCase() : null,
             city,
             photoUrl: photoUrl || null,
           })
