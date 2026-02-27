@@ -29,9 +29,9 @@ app.withAuth({
     requireEmailVerification: false,
     sendResetPassword: async ({ user, url }) => {
       resend.emails.send({
-        from: 'Localink <noreply@localink.app>',
+        from: 'LokaLinc <noreply@localink.app>',
         to: user.email,
-        subject: 'Localink - Reset Your Password',
+        subject: 'LokaLinc - Reset Your Password',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>Reset Your Password</h2>
@@ -66,4 +66,4 @@ registerCommunityRoutes(app);
 registerPushTokenRoutes(app);
 
 await app.run();
-app.logger.info('Localink API running');
+app.logger.info('LokaLinc API running');

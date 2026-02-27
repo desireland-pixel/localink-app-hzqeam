@@ -29,6 +29,9 @@ interface SignupBody {
   email: string;
   password: string;
   name: string;
+  username: string;
+  city: string;
+  termsAccepted: boolean;
 }
 
 export function registerAuthRoutes(app: App) {
@@ -86,13 +89,10 @@ export function registerAuthRoutes(app: App) {
       }
 
       const authData = await authResponse.json() as Record<string, any>;
-      app.logger.info({ email, profileCompleted: user.profileCompleted }, 'Login successful');
+      app.logger.info({ email }, 'Login successful');
 
-      // Return auth data with profile_completed flag
-      return {
-        ...authData,
-        profileCompleted: user.profileCompleted,
-      };
+      // Return auth data
+      return authData;
     } catch (error) {
       app.logger.error({ err: error, email }, 'Login error');
       return reply.status(500).send({ error: 'Login failed' });
@@ -102,21 +102,30 @@ export function registerAuthRoutes(app: App) {
   // Custom signup wrapper with OTP generation
   app.fastify.post('/api/signup', {
     schema: {
-      description: 'Sign up with email, password and name (generates OTP for verification)',
+      description: 'Sign up with email, password, name, username, and city (generates OTP for verification)',
       tags: ['auth'],
       body: {
         type: 'object',
-        required: ['email', 'password', 'name'],
+        required: ['email', 'password', 'name', 'username', 'city', 'termsAccepted'],
         properties: {
           email: { type: 'string', format: 'email' },
           password: { type: 'string' },
           name: { type: 'string' },
+          username: { type: 'string' },
+          city: { type: 'string' },
+          termsAccepted: { type: 'boolean' },
         },
       },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const { email, password, name } = request.body as SignupBody;
-    app.logger.info({ email, name }, 'Signup attempt');
+    const { email, password, name, username, city, termsAccepted } = request.body as SignupBody;
+    app.logger.info({ email, name, username, city }, 'Signup attempt');
+
+    // Validate all required fields
+    if (!email || !password || !name || !username || !city || !termsAccepted) {
+      app.logger.warn({ email }, 'Signup failed - missing required fields or terms not accepted');
+      return reply.status(400).send({ error: 'All fields are required and terms must be accepted' });
+    }
 
     try {
       // Check if user already exists
@@ -175,12 +184,12 @@ export function registerAuthRoutes(app: App) {
 
       // Send OTP email (fire and forget)
       resend.emails.send({
-        from: 'Localink <noreply@localink.app>',
+        from: 'LokaLinc <noreply@localink.app>',
         to: email,
-        subject: 'Localink - Verify Your Email',
+        subject: 'LokaLinc - Verify Your Email',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Welcome to Localink!</h2>
+            <h2>Welcome to LokaLinc!</h2>
             <p>Your verification code is:</p>
             <div style="margin: 30px 0; font-size: 32px; font-weight: bold; letter-spacing: 2px; text-align: center;">
               ${otp}
@@ -325,9 +334,9 @@ export function registerAuthRoutes(app: App) {
       // Send OTP email via Resend
       const { resend } = await import('@specific-dev/framework');
       resend.emails.send({
-        from: 'Localink <noreply@localink.app>',
+        from: 'LokaLinc <noreply@localink.app>',
         to: email,
-        subject: 'Localink - Verify Your Email',
+        subject: 'LokaLinc - Verify Your Email',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>Verify Your Email</h2>
@@ -392,12 +401,12 @@ export function registerAuthRoutes(app: App) {
 
       // Send password reset email
       const { resend } = await import('@specific-dev/framework');
-      const resetLink = `${process.env.FRONTEND_URL || 'https://localink.app'}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+      const resetLink = `${process.env.FRONTEND_URL || 'https://lokalinc.app'}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
       resend.emails.send({
-        from: 'Localink <noreply@localink.app>',
+        from: 'LokaLinc <noreply@localink.app>',
         to: email,
-        subject: 'Localink - Reset Your Password',
+        subject: 'LokaLinc - Reset Your Password',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>Reset Your Password</h2>
@@ -423,69 +432,50 @@ export function registerAuthRoutes(app: App) {
     }
   });
 
-  // OAuth sign-in wrapper that returns profile_completed flag
-  app.fastify.post('/api/oauth/callback', {
+  // Terms and Conditions endpoint
+  app.fastify.get('/api/terms-and-conditions', {
     schema: {
-      description: 'OAuth callback handler that returns profile_completed flag',
+      description: 'Get Terms and Conditions content',
       tags: ['auth'],
-      body: {
-        type: 'object',
-        properties: {
-          code: { type: 'string' },
-          provider: { type: 'string', enum: ['google', 'apple', 'github'] },
-        },
-      },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const { code, provider } = request.body as { code?: string; provider?: string };
+    app.logger.info({}, 'Fetching Terms and Conditions');
+    return {
+      content: `
+        <h1>Terms and Conditions</h1>
+        <p>Last updated: ${new Date().toISOString().split('T')[0]}</p>
 
-    app.logger.info({ provider }, 'OAuth callback received');
+        <h2>1. Acceptance of Terms</h2>
+        <p>By accessing and using LokaLinc, you accept and agree to be bound by the terms and provision of this agreement.</p>
 
-    try {
-      // Proxy to Better Auth's social sign-in endpoint
-      const baseUrl = `${request.protocol}://${request.hostname}`;
+        <h2>2. Use License</h2>
+        <p>Permission is granted to temporarily download one copy of the materials (information or software) on LokaLinc for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:</p>
+        <ul>
+          <li>Modifying or copying the materials</li>
+          <li>Using the materials for any commercial purpose or for any public display</li>
+          <li>Attempting to decompile or reverse engineer any software contained on LokaLinc</li>
+          <li>Removing any copyright or other proprietary notations from the materials</li>
+          <li>Transferring the materials to another person or "mirroring" the materials on any other server</li>
+        </ul>
 
-      if (!code || !provider) {
-        app.logger.warn({ provider }, 'Missing code or provider in OAuth callback');
-        return reply.status(400).send({ error: 'Missing code or provider' });
-      }
+        <h2>3. Disclaimer</h2>
+        <p>The materials on LokaLinc are provided on an 'as is' basis. LokaLinc makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.</p>
 
-      const authResponse = await fetch(`${baseUrl}/api/auth/sign-in/social`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          provider,
-          code,
-        }),
-      });
+        <h2>4. Limitations</h2>
+        <p>In no event shall LokaLinc or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on LokaLinc.</p>
 
-      if (!authResponse.ok) {
-        const errorData = await authResponse.json();
-        app.logger.warn({ provider, error: errorData }, 'OAuth authentication failed');
-        return reply.status(401).send({ error: 'OAuth authentication failed' });
-      }
+        <h2>5. Accuracy of Materials</h2>
+        <p>The materials appearing on LokaLinc could include technical, typographical, or photographic errors. LokaLinc does not warrant that any of the materials on LokaLinc are accurate, complete, or current. LokaLinc may make changes to the materials contained on LokaLinc at any time without notice.</p>
 
-      const authData = await authResponse.json() as Record<string, any>;
+        <h2>6. Links</h2>
+        <p>LokaLinc has not reviewed all of the sites linked to its website and is not responsible for the contents of any such linked site. The inclusion of any link does not imply endorsement by LokaLinc of the site. Use of any such linked website is at the user's own risk.</p>
 
-      // Get user to check profile_completed status by email (for both new and existing users)
-      const userEmail = authData.user?.email;
-      const user = userEmail
-        ? await app.db.query.user.findFirst({
-            where: eq(authSchema.user.email, userEmail),
-          })
-        : null;
+        <h2>7. Modifications</h2>
+        <p>LokaLinc may revise these terms of service for its website at any time without notice. By using this website, you are agreeing to be bound by the then current version of these terms of service.</p>
 
-      app.logger.info({ provider, userId: user?.id, email: userEmail, profileCompleted: user?.profileCompleted }, 'OAuth sign-in successful');
-
-      return {
-        ...authData,
-        profileCompleted: user?.profileCompleted ?? false,
-      };
-    } catch (error) {
-      app.logger.error({ err: error, provider }, 'OAuth callback error');
-      return reply.status(500).send({ error: 'OAuth authentication failed' });
-    }
+        <h2>8. Governing Law</h2>
+        <p>These terms and conditions are governed by and construed in accordance with the laws of the jurisdiction in which LokaLinc operates, and you irrevocably submit to the exclusive jurisdiction of the courts in that location.</p>
+      `
+    };
   });
 }
