@@ -242,11 +242,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credentials: 'include',
       });
 
-      const data = await response.json();
-      console.log('[AuthContext] Login response status:', response.status, data);
+      console.log('[AuthContext] Login response status:', response.status);
+
+      // Parse response body
+      let data;
+      try {
+        const text = await response.text();
+        console.log('[AuthContext] Login response body:', text);
+        data = text ? JSON.parse(text) : {};
+      } catch (parseError) {
+        console.error('[AuthContext] Failed to parse response:', parseError);
+        throw new Error('Invalid response from server');
+      }
 
       if (!response.ok) {
-        const errorMsg = data?.error || 'Login failed';
+        // Extract error message from response
+        const errorMsg = data?.error || data?.message || 'Login failed';
+        console.error('[AuthContext] Login failed:', errorMsg);
         throw new Error(errorMsg);
       }
 
@@ -259,8 +271,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await setBearerToken(data.token);
       }
 
+      console.log('[AuthContext] Login successful, fetching user data');
       await fetchUser();
-    } catch (error) {
+    } catch (error: any) {
       console.error("[AuthContext] Email sign in failed:", error);
       throw error;
     }

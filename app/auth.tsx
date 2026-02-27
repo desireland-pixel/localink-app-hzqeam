@@ -179,9 +179,12 @@ export default function AuthScreen() {
             setTimeout(() => {
               router.push({ pathname: '/verify-otp', params: { email } });
             }, 2000);
-          } else {
-            // For any authentication failure (wrong email/password), show generic error message
+          } else if (errorMsg.includes('Invalid') || errorMsg.includes('incorrect') || errorMsg.includes('wrong') || errorMsg.includes('credentials')) {
+            // For authentication failures (wrong email/password)
             setError('Email or Password is incorrect.');
+          } else {
+            // Generic error
+            setError(errorMsg || 'Login failed. Please try again.');
           }
           throw signInErr;
         }
@@ -377,7 +380,7 @@ export default function AuthScreen() {
 
                 {mode === "signup" && (
                   <>
-                    <Text style={styles.infoText}>The following things can be changed later under Personal details</Text>
+                    <Text style={styles.infoText}>The following entries can be changed later under Personal details</Text>
                     
                     <View style={styles.inputGroup}>
                       <Text style={styles.label}>Username *</Text>
