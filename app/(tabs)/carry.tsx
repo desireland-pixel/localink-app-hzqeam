@@ -541,7 +541,7 @@ export default function CommunityScreen() {
                       </View>
                     )}
                     <IconSymbol
-                      ios_icon_name="bubble.left.fill"
+                      ios_icon_name="bubble.right.fill"
                       android_material_icon_name="chat-bubble"
                       size={14}
                       color={colors.textLight}
@@ -814,7 +814,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
   card: {

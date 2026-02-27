@@ -485,7 +485,7 @@ export default function CommunityScreen() {
                       </View>
                       <View style={styles.replyCountContainer}>
                         <IconSymbol
-                          ios_icon_name="bubble.left"
+                          ios_icon_name="bubble.right"
                           android_material_icon_name="chat-bubble-outline"
                           size={16}
                           color={colors.textLight}

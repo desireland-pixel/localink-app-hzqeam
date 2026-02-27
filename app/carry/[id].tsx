@@ -16,7 +16,7 @@ const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } =
   'Housing': { background: '#D1FAE5', text: '#065F46' },
   'Jobs': { background: '#FCE7F3', text: '#9F1239' },
   'Healthcare': { background: '#E0E7FF', text: '#3730A3' },
-  'Banking': { background: '#FED7AA', text: '#9A3412' },
+  'Finance': { background: '#FED7AA', text: '#9A3412' },
   'Education': { background: '#E9D5FF', text: '#6B21A8' },
   'General': { background: '#FDE68A', text: '#78350F' },
 };
@@ -81,6 +81,8 @@ export default function CommunityDetailsScreen() {
       const data = await authenticatedGet<CommunityTopic>(`/api/community/topics/${id}`);
       console.log('[CommunityDetails] Topic fetched:', data);
       
+      const isOwner = data.userId === user?.id;
+      
       if (data.replies && Array.isArray(data.replies)) {
         const sortedReplies = [...data.replies].sort((a, b) => {
           const dateA = new Date(a.createdAt).getTime();
@@ -89,23 +91,24 @@ export default function CommunityDetailsScreen() {
         });
         data.replies = sortedReplies;
         
-        // Check if current user is the post owner
-        const isOwner = data.userId === user?.id;
+        // Check if current user is the post owner - show brand border for unread replies
         if (isOwner) {
-          // Identify unread replies
+          // Identify unread replies (isRead === false)
           const unreadIds = new Set(
             sortedReplies
               .filter(r => r.isRead === false)
               .map(r => r.id)
           );
-          console.log('[CommunityDetails] Found unread replies:', unreadIds.size);
+          console.log('[CommunityDetails] Found unread replies:', unreadIds.size, Array.from(unreadIds));
           setUnreadReplyIds(unreadIds);
           
           // Remove the brand border after 2 seconds
-          setTimeout(() => {
-            console.log('[CommunityDetails] Removing unread borders after 2 seconds');
-            setUnreadReplyIds(new Set());
-          }, 2000);
+          if (unreadIds.size > 0) {
+            setTimeout(() => {
+              console.log('[CommunityDetails] Removing unread borders after 2 seconds');
+              setUnreadReplyIds(new Set());
+            }, 2000);
+          }
         }
       }
       
@@ -114,7 +117,6 @@ export default function CommunityDetailsScreen() {
       const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=community`);
       setIsFavorited(favoriteCheck.isFavorited);
       
-      const isOwner = data.userId === user?.id;
       if (isOwner) {
         try {
           await authenticatedPost(`/api/community/topics/${id}/mark-replies-read`, {});
@@ -570,7 +572,7 @@ export default function CommunityDetailsScreen() {
         )}
         
         {topic.status === 'closed' && (
-          <View style={styles.closedNotice}>
+          <View style={[styles.closedNotice, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
             <Text style={styles.closedNoticeText}>This discussion is closed. No new comments can be added.</Text>
           </View>
         )}
@@ -665,9 +667,9 @@ const styles = StyleSheet.create({
   mainPostCard: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.lg,
-    padding: spacing.lg,
+    padding: spacing.md,
     marginBottom: spacing.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
   },
   headerRow: {
@@ -840,17 +842,17 @@ const styles = StyleSheet.create({
   commentInputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
-    backgroundColor: colors.card,
+    backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     gap: spacing.sm,
   },
   commentInput: {
     flex: 1,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.md,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
@@ -872,10 +874,11 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   closedNotice: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
   },
   closedNoticeText: {
     ...typography.body,
