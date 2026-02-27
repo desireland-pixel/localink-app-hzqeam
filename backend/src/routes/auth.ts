@@ -168,7 +168,25 @@ export function registerAuthRoutes(app: App) {
       }
 
       const signupData = await signupResponse.json();
-      app.logger.info({ email, userId: (signupData as any)?.user?.id }, 'User created successfully');
+      const userId = (signupData as any)?.user?.id;
+      app.logger.info({ email, userId }, 'User created successfully');
+
+      // Create profile with username and city from signup
+      try {
+        await app.db
+          .insert(schema.profiles)
+          .values({
+            userId,
+            name: name,
+            username: username || null,
+            city: city,
+            photoUrl: null,
+          });
+        app.logger.info({ userId, username, city }, 'Profile created during signup');
+      } catch (profileError) {
+        app.logger.error({ err: profileError, userId }, 'Failed to create profile during signup');
+        // Continue with OTP generation even if profile creation fails
+      }
 
       // Generate OTP for email verification
       const otp = generateOtp();
@@ -273,6 +291,16 @@ export function registerAuthRoutes(app: App) {
         .update(authSchema.user)
         .set({ emailVerified: true })
         .where(eq(authSchema.user.email, email));
+
+      // Check if profile already exists
+      const existingProfile = await app.db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, authUser.id),
+      });
+
+      // If profile doesn't exist, create it with name from auth user
+      if (!existingProfile) {
+        app.logger.info({ userId: authUser.id }, 'Profile does not exist after signup, it should have been created');
+      }
 
       // Delete the OTP record after successful verification
       await app.db

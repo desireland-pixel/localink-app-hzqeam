@@ -38,6 +38,12 @@ export const TRAVEL_CITIES = [
   'India', 'Germany'
 ];
 
+// Country to cities mapping for travel post filtering
+export const COUNTRY_CITIES: Record<string, string[]> = {
+  'India': ['Delhi', 'Mumbai', 'Bengaluru', 'Hyderabad', 'Chennai', 'Kochi', 'Kolkata', 'Ahmedabad', 'Goa', 'Thiruvananthapuram'],
+  'Germany': ['Frankfurt', 'Munich', 'Berlin', 'Düsseldorf', 'Hamburg', 'Stuttgart', 'Cologne', 'Hannover'],
+};
+
 // Calculate Levenshtein distance for fuzzy matching
 function levenshteinDistance(str1: string, str2: string): number {
   const len1 = str1.length;
