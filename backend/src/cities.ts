@@ -1,4 +1,4 @@
-// Top 200 cities in Germany for Localink
+// Top 200 cities in Germany for LokaLinc
 export const GERMAN_CITIES = [
   'Berlin', 'Hamburg', 'Munich', 'Cologne', 'Frankfurt', 'Stuttgart', 'Düsseldorf', 'Dortmund',
   'Essen', 'Leipzig', 'Bremen', 'Dresden', 'Hannover', 'Nuremberg', 'Duisburg', 'Bochum',

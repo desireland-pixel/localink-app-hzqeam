@@ -30,9 +30,6 @@ export function registerProfileRoutes(app: App) {
             photoUrl: { type: 'string', nullable: true },
             createdAt: { type: 'string' },
             updatedAt: { type: 'string' },
-            gdprConsentAccepted: { type: 'boolean' },
-            gdprConsentAcceptedAt: { type: 'string', nullable: true },
-            isProfileComplete: { type: 'boolean' },
           },
         },
       },
@@ -54,14 +51,10 @@ export function registerProfileRoutes(app: App) {
 
     app.logger.info({ userId: session.user.id }, 'Profile fetched successfully');
 
-    // Check profile completion: needs username, city, AND gdprConsentAccepted
-    const isProfileComplete = !!(profile.username && profile.city && profile.gdprConsentAccepted);
-
     return {
       ...profile,
       userId: profile.userId,
       email: session.user.email,
-      isProfileComplete,
     };
   });
 
@@ -78,7 +71,6 @@ export function registerProfileRoutes(app: App) {
           username: { type: 'string' },
           city: { type: 'string' },
           photoUrl: { type: 'string' },
-          gdprConsentAccepted: { type: 'boolean' },
         },
       },
       response: {
@@ -93,8 +85,6 @@ export function registerProfileRoutes(app: App) {
             photoUrl: { type: 'string', nullable: true },
             createdAt: { type: 'string' },
             updatedAt: { type: 'string' },
-            gdprConsentAccepted: { type: 'boolean' },
-            gdprConsentAcceptedAt: { type: 'string', nullable: true },
           },
         },
       },
@@ -103,9 +93,9 @@ export function registerProfileRoutes(app: App) {
     const session = await requireAuth(request, reply);
     if (!session) return;
 
-    const { name, username, city, photoUrl, gdprConsentAccepted } = request.body as { name?: string; username?: string; city?: string; photoUrl?: string; gdprConsentAccepted?: boolean };
+    const { name, username, city, photoUrl } = request.body as { name?: string; username?: string; city?: string; photoUrl?: string };
 
-    app.logger.info({ userId: session.user.id, username, city, hasPhoto: !!photoUrl, gdprConsentAccepted }, 'Updating user profile');
+    app.logger.info({ userId: session.user.id, username, city, hasPhoto: !!photoUrl }, 'Updating user profile');
 
     try {
       // Validate city if provided
@@ -137,12 +127,6 @@ export function registerProfileRoutes(app: App) {
         if (username !== undefined) updateData.username = username || null;
         if (city !== undefined) updateData.city = city;
         if (photoUrl !== undefined) updateData.photoUrl = photoUrl;
-        if (gdprConsentAccepted !== undefined) {
-          updateData.gdprConsentAccepted = gdprConsentAccepted;
-          if (gdprConsentAccepted) {
-            updateData.gdprConsentAcceptedAt = new Date();
-          }
-        }
 
         const [updated] = await app.db
           .update(schema.profiles)
@@ -150,22 +134,10 @@ export function registerProfileRoutes(app: App) {
           .where(eq(schema.profiles.userId, session.user.id))
           .returning();
 
-        // Check if profile is now complete (has username, city, AND gdprConsentAccepted)
-        const isProfileComplete = !!(updated.username && updated.city && updated.gdprConsentAccepted);
-
-        // Update profile_completed flag in auth user if profile is now complete
-        if (isProfileComplete) {
-          await app.db
-            .update(authSchema.user)
-            .set({ profileCompleted: true })
-            .where(eq(authSchema.user.id, session.user.id));
-        }
-
-        app.logger.info({ userId: session.user.id, profileComplete: isProfileComplete }, 'Profile updated successfully');
+        app.logger.info({ userId: session.user.id }, 'Profile updated successfully');
         return {
           ...updated,
           email: session.user.email,
-          profileCompleted: isProfileComplete,
         };
       } else {
         // Create new profile - requires city (name comes from auth user)
@@ -188,27 +160,13 @@ export function registerProfileRoutes(app: App) {
             username: username || null,
             city,
             photoUrl: photoUrl || null,
-            gdprConsentAccepted: gdprConsentAccepted || false,
-            gdprConsentAcceptedAt: gdprConsentAccepted ? new Date() : null,
           })
           .returning();
 
-        // Check if profile is complete (has username, city, AND gdprConsentAccepted)
-        const isProfileComplete = !!(newProfile.username && newProfile.city && newProfile.gdprConsentAccepted);
-
-        // Update profile_completed flag in auth user if profile is complete
-        if (isProfileComplete) {
-          await app.db
-            .update(authSchema.user)
-            .set({ profileCompleted: true })
-            .where(eq(authSchema.user.id, session.user.id));
-        }
-
-        app.logger.info({ userId: session.user.id, profileComplete: isProfileComplete }, 'Profile created successfully');
+        app.logger.info({ userId: session.user.id }, 'Profile created successfully');
         return {
           ...newProfile,
           email: session.user.email,
-          profileCompleted: isProfileComplete,
         };
       }
     } catch (error) {
@@ -283,120 +241,4 @@ export function registerProfileRoutes(app: App) {
     }
   });
 
-  // Accept GDPR consent
-  app.fastify.post('/api/profile/gdpr/consent', {
-    schema: {
-      description: 'Accept GDPR consent and privacy terms',
-      tags: ['profile'],
-    },
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireAuth(request, reply);
-    if (!session) return;
-
-    app.logger.info({ userId: session.user.id }, 'Accepting GDPR consent');
-
-    try {
-      const profile = await app.db.query.profiles.findFirst({
-        where: eq(schema.profiles.userId, session.user.id),
-      });
-
-      if (!profile) {
-        app.logger.warn({ userId: session.user.id }, 'Profile not found');
-        return reply.status(404).send({ error: 'Profile not found' });
-      }
-
-      const [updated] = await app.db
-        .update(schema.profiles)
-        .set({
-          gdprConsentAccepted: true,
-          gdprConsentAcceptedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.profiles.userId, session.user.id))
-        .returning();
-
-      app.logger.info({ userId: session.user.id }, 'GDPR consent accepted');
-      return { success: true, message: 'GDPR consent accepted' };
-    } catch (error) {
-      app.logger.error({ err: error, userId: session.user.id }, 'Failed to accept GDPR consent');
-      return reply.status(500).send({ error: 'Failed to accept consent' });
-    }
-  });
-
-  // Request data deletion (GDPR Right to Deletion)
-  app.fastify.post('/api/profile/gdpr/request-deletion', {
-    schema: {
-      description: 'Request account and data deletion (GDPR Right to Deletion)',
-      tags: ['profile'],
-    },
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireAuth(request, reply);
-    if (!session) return;
-
-    app.logger.info({ userId: session.user.id }, 'Data deletion requested');
-
-    try {
-      const profile = await app.db.query.profiles.findFirst({
-        where: eq(schema.profiles.userId, session.user.id),
-      });
-
-      if (!profile) {
-        app.logger.warn({ userId: session.user.id }, 'Profile not found');
-        return reply.status(404).send({ error: 'Profile not found' });
-      }
-
-      const [updated] = await app.db
-        .update(schema.profiles)
-        .set({
-          dataDeleteRequestedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.profiles.userId, session.user.id))
-        .returning();
-
-      app.logger.info({ userId: session.user.id }, 'Data deletion request recorded');
-      return {
-        success: true,
-        message: 'Data deletion request received. Your account will be deleted within 30 days as per GDPR regulations.',
-      };
-    } catch (error) {
-      app.logger.error({ err: error, userId: session.user.id }, 'Failed to process deletion request');
-      return reply.status(500).send({ error: 'Failed to process deletion request' });
-    }
-  });
-
-  // Get privacy/GDPR status
-  app.fastify.get('/api/profile/gdpr/status', {
-    schema: {
-      description: 'Get GDPR consent and data deletion status',
-      tags: ['profile'],
-    },
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireAuth(request, reply);
-    if (!session) return;
-
-    app.logger.info({ userId: session.user.id }, 'Fetching GDPR status');
-
-    try {
-      const profile = await app.db.query.profiles.findFirst({
-        where: eq(schema.profiles.userId, session.user.id),
-      });
-
-      if (!profile) {
-        app.logger.warn({ userId: session.user.id }, 'Profile not found');
-        return reply.status(404).send({ error: 'Profile not found' });
-      }
-
-      return {
-        gdprConsentAccepted: profile.gdprConsentAccepted,
-        gdprConsentAcceptedAt: profile.gdprConsentAcceptedAt,
-        dataDeleteRequested: !!profile.dataDeleteRequestedAt,
-        dataDeleteRequestedAt: profile.dataDeleteRequestedAt,
-        isDeleted: !!profile.dataDeletedAt,
-      };
-    } catch (error) {
-      app.logger.error({ err: error, userId: session.user.id }, 'Failed to fetch GDPR status');
-      return reply.status(500).send({ error: 'Failed to fetch GDPR status' });
-    }
-  });
 }
