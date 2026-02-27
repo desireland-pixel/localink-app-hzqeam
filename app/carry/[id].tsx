@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform, TextInput, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform, TextInput, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -71,9 +71,26 @@ export default function CommunityDetailsScreen() {
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [deletingComment, setDeletingComment] = useState(false);
   const [unreadReplyIds, setUnreadReplyIds] = useState<Set<string>>(new Set());
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const insets = useSafeAreaInsets();
 
-  console.log('CommunityDetailsScreen: Viewing topic', { id, insets });
+  console.log('CommunityDetailsScreen: Viewing topic', { id, insets, keyboardVisible });
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      console.log('CommunityDetailsScreen: Keyboard shown');
+      setKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      console.log('CommunityDetailsScreen: Keyboard hidden');
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   const fetchTopic = React.useCallback(async () => {
     try {
@@ -357,9 +374,9 @@ export default function CommunityDetailsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
         style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 20}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView style={styles.content}>
           <View style={styles.mainPostCard}>
@@ -542,7 +559,14 @@ export default function CommunityDetailsScreen() {
         </ScrollView>
 
         {topic.status === 'open' && (
-          <View style={[styles.commentInputBar, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
+          <View style={[
+            styles.commentInputBar, 
+            { 
+              paddingBottom: keyboardVisible 
+                ? spacing.sm 
+                : Math.max(spacing.md, insets.bottom) 
+            }
+          ]}>
             <TextInput
               style={styles.commentInput}
               placeholder="Write your comment"
@@ -572,7 +596,14 @@ export default function CommunityDetailsScreen() {
         )}
         
         {topic.status === 'closed' && (
-          <View style={[styles.closedNotice, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
+          <View style={[
+            styles.closedNotice, 
+            { 
+              paddingBottom: keyboardVisible 
+                ? spacing.sm 
+                : Math.max(spacing.md, insets.bottom) 
+            }
+          ]}>
             <Text style={styles.closedNoticeText}>This discussion is closed. No new comments can be added.</Text>
           </View>
         )}

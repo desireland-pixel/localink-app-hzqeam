@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Pressable } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Pressable, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -60,8 +60,25 @@ export default function ChatScreen() {
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [deletingMessage, setDeletingMessage] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-  console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length, currentUserId: user?.id, insets });
+  console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length, currentUserId: user?.id, insets, keyboardVisible });
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      console.log('ChatScreen: Keyboard shown');
+      setKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      console.log('ChatScreen: Keyboard hidden');
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   const markMessagesAsRead = React.useCallback(async () => {
     if (!id) return;
@@ -476,9 +493,9 @@ export default function ChatScreen() {
         }}
       />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
         style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 20}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
         {(conversation?.post || isPostDeleted) && (
           <TouchableOpacity 
@@ -505,7 +522,11 @@ export default function ChatScreen() {
 
         <View style={[
           styles.inputContainer,
-          { paddingBottom: Math.max(spacing.md, insets.bottom) }
+          { 
+            paddingBottom: keyboardVisible 
+              ? spacing.sm 
+              : Math.max(spacing.md, insets.bottom) 
+          }
         ]}>
           <TextInput
             style={styles.input}
