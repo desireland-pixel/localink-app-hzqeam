@@ -540,12 +540,34 @@ export default function CommunityScreen() {
                         <Text style={styles.unreadBadgeText}>{topic.unreadRepliesCount}</Text>
                       </View>
                     )}
-                    <IconSymbol
-                      ios_icon_name="bubble.right.fill"
-                      android_material_icon_name="chat-bubble"
-                      size={14}
-                      color={colors.textLight}
-                    />
+                    {Platform.select({
+                      ios: (
+                        <IconSymbol
+                          ios_icon_name="bubble.right"
+                          android_material_icon_name="chat-bubble"
+                          size={14}
+                          color={colors.textLight}
+                        />
+                      ),
+                      android: (
+                        <View style={{ transform: [{ scaleX: -1 }] }}>
+                          <IconSymbol
+                            ios_icon_name="bubble.right"
+                            android_material_icon_name="chat-bubble-outline"
+                            size={14}
+                            color={colors.textLight}
+                          />
+                        </View>
+                      ),
+                      default: (
+                        <IconSymbol
+                          ios_icon_name="bubble.right"
+                          android_material_icon_name="chat-bubble"
+                          size={14}
+                          color={colors.textLight}
+                        />
+                      ),
+                    })}
                     <Text style={styles.replyCountText}>{replyCountValue}</Text>
                   </View>
                 </View>
@@ -814,7 +836,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
   },
   card: {
@@ -824,6 +846,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+    marginHorizontal: 0,
   },
   cardUnread: {
     borderColor: colors.primary,

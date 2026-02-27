@@ -476,12 +476,34 @@ export default function CommunityScreen() {
                       <Text style={styles.locationText}>{locationDisplay}</Text>
                     </View>
                     <View style={styles.replyCountContainer}>
-                      <IconSymbol
-                        ios_icon_name="bubble.right"
-                        android_material_icon_name="chat-bubble-outline"
-                        size={16}
-                        color={colors.textLight}
-                      />
+                      {Platform.select({
+                        ios: (
+                          <IconSymbol
+                            ios_icon_name="bubble.right"
+                            android_material_icon_name="chat-bubble-outline"
+                            size={16}
+                            color={colors.textLight}
+                          />
+                        ),
+                        android: (
+                          <View style={{ transform: [{ scaleX: -1 }] }}>
+                            <IconSymbol
+                              ios_icon_name="bubble.right"
+                              android_material_icon_name="chat-bubble-outline"
+                              size={16}
+                              color={colors.textLight}
+                            />
+                          </View>
+                        ),
+                        default: (
+                          <IconSymbol
+                            ios_icon_name="bubble.right"
+                            android_material_icon_name="chat-bubble-outline"
+                            size={16}
+                            color={colors.textLight}
+                          />
+                        ),
+                      })}
                       <Text style={styles.replyCountText}>{replyCount}</Text>
                       {hasUnreadReplies && (
                         <View style={styles.unreadBadge}>
@@ -747,7 +769,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   loadingContainer: {
     flex: 1,
@@ -780,6 +802,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+    marginHorizontal: 0,
   },
   topicCardUnread: {
     borderColor: colors.primary,
