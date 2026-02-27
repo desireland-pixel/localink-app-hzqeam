@@ -286,9 +286,9 @@ export default function MyPostsScreen() {
                     <>
                       <View style={styles.postHeader}>
                         <View style={styles.tagRow}>
-                          <View style={[styles.typeTag, { backgroundColor: post.type === 'offering' ? '#D1FAE5' : post.type === 'seeking' ? '#DBEAFE' : '#FCE7F3' }]}>
-                            <Text style={[styles.typeTagText, { color: post.type === 'offering' ? '#065F46' : post.type === 'seeking' ? '#1E40AF' : '#9F1239' }]}>
-                              {post.type === 'offering' ? 'Offering' : post.type === 'seeking' ? 'Seeking' : 'Seeking Ally'}
+                          <View style={[styles.typeTag, { backgroundColor: post.type === 'offering' ? '#D1FAE5' : post.type === 'seeking' ? '#DBEAFE' : '#DBEAFE' }]}>
+                            <Text style={[styles.typeTagText, { color: post.type === 'offering' ? '#065F46' : post.type === 'seeking' ? '#1E40AF' : '#1E40AF' }]}>
+                              {post.type === 'offering' ? 'Offering' : 'Seeking'}
                             </Text>
                           </View>
                           {post.type === 'offering' && (() => {

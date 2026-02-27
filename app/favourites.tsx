@@ -434,8 +434,8 @@ export default function FavouritesScreen() {
                         </View>
                         <View style={styles.replyCountContainer}>
                           <IconSymbol
-                            ios_icon_name="message"
-                            android_material_icon_name="message"
+                            ios_icon_name="bubble.right"
+                            android_material_icon_name="chat-bubble-outline"
                             size={16}
                             color={colors.textLight}
                           />

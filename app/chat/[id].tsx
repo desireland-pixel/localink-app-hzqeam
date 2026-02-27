@@ -505,7 +505,7 @@ export default function ChatScreen() {
 
         <View style={[
           styles.inputContainer,
-          { paddingBottom: Math.max(spacing.sm, insets.bottom) }
+          { paddingBottom: Math.max(spacing.md, insets.bottom) }
         ]}>
           <TextInput
             style={styles.input}
@@ -712,10 +712,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.background,
+    gap: spacing.sm,
   },
   input: {
     flex: 1,
@@ -723,7 +724,6 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    marginRight: spacing.sm,
     maxHeight: 100,
     minHeight: 44,
     ...typography.body,

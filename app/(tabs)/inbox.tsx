@@ -341,10 +341,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    paddingHorizontal: spacing.md,
   },
   contentContainer: {
     flexGrow: 1,
-    paddingHorizontal: spacing.lg,
   },
   emptyState: {
     flex: 1,
@@ -372,7 +372,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
-    marginHorizontal: spacing.lg,
     marginTop: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
