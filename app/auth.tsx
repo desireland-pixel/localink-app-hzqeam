@@ -228,7 +228,13 @@ export default function AuthScreen() {
       } else {
         console.log('[AuthScreen] Signing up with email');
         // Call backend signup API directly to get OTP flow
-        const result = await apiPost('/api/signup', { 
+        // Backend now allows re-signup if email_verified = false (unverified accounts)
+        const result = await apiPost<{
+          success: boolean;
+          message?: string;
+          requiresOtpVerification?: boolean;
+          email?: string;
+        }>('/api/signup', { 
           email, 
           password, 
           name,
@@ -236,7 +242,8 @@ export default function AuthScreen() {
           city,
           termsAccepted: true
         });
-        console.log('[AuthScreen] Sign up successful, redirecting to OTP verification');
+        console.log('[AuthScreen] Sign up successful, redirecting to OTP verification', result);
+        // Always redirect to OTP verification on successful signup
         router.push({ pathname: '/verify-otp', params: { email } });
       }
     } catch (err: any) {
@@ -257,7 +264,12 @@ export default function AuthScreen() {
         if (parsedErrorMsg.toLowerCase().includes('username already exists')) {
           // Show username error below the username field instead of a modal
           setUsernameError('Username already exists');
-        } else if (parsedErrorMsg.toLowerCase().includes('email already exists') || parsedErrorMsg.includes('duplicate')) {
+        } else if (
+          parsedErrorMsg.toLowerCase().includes('already exists') ||
+          parsedErrorMsg.toLowerCase().includes('please sign in') ||
+          parsedErrorMsg.includes('duplicate')
+        ) {
+          // Account exists and is verified - direct user to sign in
           setError('An account with this email already exists. Please sign in instead.');
         } else {
           setError(parsedErrorMsg || "Authentication failed. Please try again.");
@@ -385,9 +397,10 @@ export default function AuthScreen() {
                 )}
 
                 <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Email</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder={mode === "signup" ? "Email *" : "Email"}
+                    placeholder="Email *"
                     placeholderTextColor={colors.textLight}
                     value={email}
                     onChangeText={setEmail}
@@ -399,10 +412,11 @@ export default function AuthScreen() {
                 </View>
 
                 <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Password</Text>
                   <View style={styles.passwordContainer}>
                     <TextInput
                       style={styles.passwordInput}
-                      placeholder={mode === "signup" ? "Password *" : "Password"}
+                      placeholder="Password *"
                       placeholderTextColor={colors.textLight}
                       value={password}
                       onChangeText={setPassword}
@@ -431,10 +445,10 @@ export default function AuthScreen() {
                     <View style={styles.inputGroup}>
                       <TextInput
                         style={styles.input}
-                        placeholder="Username *"
+                        placeholder="username *"
                         placeholderTextColor={colors.textLight}
                         value={username}
-                        onChangeText={setUsername}
+                        onChangeText={(text) => setUsername(text.toLowerCase())}
                         autoCapitalize="none"
                         autoCorrect={false}
                         editable={!loading}
@@ -634,6 +648,12 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: spacing.sm,
+  },
+  inputLabel: {
+    ...typography.bodySmall,
+    color: colors.text,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   input: {
     backgroundColor: colors.card,

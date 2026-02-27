@@ -12,8 +12,16 @@ interface FAQ {
 
 const faqs: FAQ[] = [
   {
+    question: 'What is LokaLinc?',
+    answer: 'LokaLinc is a community platform connecting Indian expats in Germany. We help you find temporary accommodation (sublets), travel companions, and people who can carry items between India and Germany.',
+  },
+  {
     question: 'How do I post a sublet?',
-    answer: 'Navigate to the Sublet tab and tap the + icon in the top right. Select whether you are offering or seeking a sublet, fill in the required details, and tap Post.',
+    answer: 'Navigate to the Sublet tab and tap the + icon in the top right. Select whether you are offering or seeking a sublet, fill in the required details (city, dates, rent), and tap Post.',
+  },
+  {
+    question: 'How do I find a travel companion?',
+    answer: 'Go to the Travel tab and browse posts. You can filter by cities, dates, and whether someone is offering or seeking companionship. Tap on any post to see details and contact the person.',
   },
   {
     question: 'How do I contact someone about a post?',
@@ -25,15 +33,19 @@ const faqs: FAQ[] = [
   },
   {
     question: 'How do I close or delete my post?',
-    answer: 'Go to Profile > My Posts, find your post, and tap the Close button. This will mark your post as closed and it will no longer appear in search results.',
+    answer: 'Go to Profile > My Posts, find your post. If it\'s active, tap "Close" to mark it as closed. If it\'s already closed, you can tap "Delete" to permanently remove it.',
   },
   {
     question: 'What is the difference between offering and seeking?',
-    answer: 'Offering means you have something to provide (e.g., a sublet to rent out, travel companionship to offer). Seeking means you are looking for something (e.g., looking for a sublet, seeking a travel companion).',
+    answer: 'Offering means you have something to provide (e.g., a sublet to rent out, travel companionship to offer, or you can carry items). Seeking means you are looking for something (e.g., looking for a sublet, seeking a travel companion, or need someone to carry items).',
   },
   {
     question: 'How do I save posts I like?',
     answer: 'Tap the heart icon on any post to add it to your favorites. You can view all your saved posts in Profile > Favourites.',
+  },
+  {
+    question: 'What is the Community section?',
+    answer: 'The Community section is where you can ask questions and discuss topics related to living in Germany - like visa, insurance, housing, jobs, healthcare, and more. It\'s a place to get help and share knowledge with other expats.',
   },
   {
     question: 'Is my personal information safe?',
@@ -41,7 +53,11 @@ const faqs: FAQ[] = [
   },
   {
     question: 'What should I do if I encounter inappropriate content?',
-    answer: 'Please report any inappropriate content or behavior immediately. We review all reports and take appropriate action to maintain a safe community.',
+    answer: 'Please report any inappropriate content or behavior immediately by contacting us at info.lokalinc@gmail.com. We review all reports and take appropriate action to maintain a safe community.',
+  },
+  {
+    question: 'Can I change my city or username?',
+    answer: 'Yes! Go to Profile > Personal Details to update your name, username, and city at any time.',
   },
 ];
 

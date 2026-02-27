@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, TextInput, ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TextInput, ScrollView, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { apiGet } from '@/utils/api';
 
@@ -123,12 +123,14 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
     ...typography.body,
     color: colors.text,
+    height: 44,
+    textAlignVertical: 'center',
   },
   suggestionsContainer: {
     position: 'absolute',
