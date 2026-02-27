@@ -749,6 +749,7 @@ const styles = StyleSheet.create({
   routeSelectedContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
     paddingHorizontal: spacing.xs,
     paddingVertical: 4,
@@ -762,7 +763,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '500',
     lineHeight: 14,
-    flex: 1,
+    textAlign: 'center',
   },
   routeSuggestionsContainer: {
     position: 'absolute',

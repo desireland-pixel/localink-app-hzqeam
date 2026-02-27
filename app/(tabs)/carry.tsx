@@ -63,6 +63,8 @@ export default function CommunityScreen() {
   const [showSortModal, setShowSortModal] = useState(false);
   const sortButtonRef = useRef<View>(null);
   const [sortButtonLayout, setSortButtonLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [topicLayouts, setTopicLayouts] = useState<{ id: string; y: number; height: number }[]>([]);
 
   // Sync city from params when navigating back from filter page
   React.useEffect(() => {
@@ -183,6 +185,31 @@ export default function CommunityScreen() {
       fetchCommunityUnreadCount();
     }, [fetchTopics, fetchFavorites, fetchCommunityUnreadCount])
   );
+
+  // Auto-scroll to user's post with new comments when topics are loaded
+  useEffect(() => {
+    if (topics.length > 0 && scrollViewRef.current && user?.id && topicLayouts.length > 0) {
+      // Find the first post by the user that has unread replies
+      const unreadPostIndex = topics.findIndex(t => t.userId === user.id && (t.unreadRepliesCount ?? 0) > 0);
+      
+      if (unreadPostIndex !== -1) {
+        const unreadPost = topics[unreadPostIndex];
+        console.log('CommunityScreen: Found unread post at index', unreadPostIndex, 'with ID', unreadPost.id);
+        
+        // Find the layout for this post
+        const targetLayout = topicLayouts.find(layout => layout.id === unreadPost.id);
+        
+        if (targetLayout) {
+          // Delay to ensure layout is complete
+          setTimeout(() => {
+            const scrollY = Math.max(0, targetLayout.y - 50); // 50px offset from top
+            console.log('CommunityScreen: Auto-scrolling to position', scrollY);
+            scrollViewRef.current?.scrollTo({ y: scrollY, animated: true });
+          }, 300);
+        }
+      }
+    }
+  }, [topics, user?.id, topicLayouts]);
 
   const toggleFavorite = async (postId: string) => {
     console.log('CommunityScreen: Toggle favorite', postId);
@@ -425,6 +452,7 @@ export default function CommunityScreen() {
         </View>
       ) : (
         <ScrollView
+          ref={scrollViewRef}
           style={styles.content}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
@@ -453,6 +481,16 @@ export default function CommunityScreen() {
                 onPress={() => {
                   console.log('CommunityScreen: View topic', topic.id);
                   router.push(`/carry/${topic.id}`);
+                }}
+                onLayout={(event) => {
+                  const { y, height } = event.nativeEvent.layout;
+                  setTopicLayouts(prev => {
+                    const existing = prev.find(p => p.id === topic.id);
+                    if (!existing || existing.y !== y || existing.height !== height) {
+                      return [...prev.filter(p => p.id !== topic.id), { id: topic.id, y, height }];
+                    }
+                    return prev;
+                  });
                 }}
               >
                 <View style={styles.cardHeader}>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform, Share } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost, authenticatedPatch, authenticatedDelete } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,6 +43,7 @@ export default function TravelDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [travelPost, setTravelPost] = useState<TravelPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [contacting, setContacting] = useState(false);
@@ -52,7 +53,7 @@ export default function TravelDetailsScreen() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
 
-  console.log('TravelDetailsScreen: Viewing travel', { id });
+  console.log('TravelDetailsScreen: Viewing travel', { id, insets });
 
   const fetchTravelPost = React.useCallback(async () => {
     // Only show full loading spinner on initial load
@@ -426,17 +427,19 @@ export default function TravelDetailsScreen() {
         </View>
 
         {!isOwnPost && (
-          <TouchableOpacity 
-            style={[styles.contactButton, contacting && styles.contactButtonDisabled]} 
-            onPress={handleContact}
-            disabled={contacting}
-          >
-            {contacting ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.contactButtonText}>Contact</Text>
-            )}
-          </TouchableOpacity>
+          <View style={[styles.footer, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
+            <TouchableOpacity 
+              style={[styles.contactButton, contacting && styles.contactButtonDisabled]} 
+              onPress={handleContact}
+              disabled={contacting}
+            >
+              {contacting ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.contactButtonText}>Contact</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         )}
 
         {isOwnPost && (
@@ -665,12 +668,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  footer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
+  },
   contactButton: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
-    marginBottom: spacing.lg,
   },
   contactButtonDisabled: {
     opacity: 0.5,

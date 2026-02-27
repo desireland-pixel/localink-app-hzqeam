@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform, TextInput, KeyboardAvoidingView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -71,8 +71,10 @@ export default function CommunityDetailsScreen() {
   const [showDeleteCommentModal, setShowDeleteCommentModal] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [deletingComment, setDeletingComment] = useState(false);
+  const [unreadReplyIds, setUnreadReplyIds] = useState<Set<string>>(new Set());
+  const insets = useSafeAreaInsets();
 
-  console.log('CommunityDetailsScreen: Viewing topic', { id });
+  console.log('CommunityDetailsScreen: Viewing topic', { id, insets });
 
   const fetchTopic = React.useCallback(async () => {
     try {
@@ -88,16 +90,21 @@ export default function CommunityDetailsScreen() {
         });
         data.replies = sortedReplies;
         
+        // Check if current user is the post owner
         const isOwner = data.userId === user?.id;
         if (isOwner) {
+          // Identify unread replies
           const unreadIds = new Set(
             sortedReplies
               .filter(r => r.isRead === false)
               .map(r => r.id)
           );
+          console.log('[CommunityDetails] Found unread replies:', unreadIds.size);
           setUnreadReplyIds(unreadIds);
           
+          // Remove the brand border after 2 seconds
           setTimeout(() => {
+            console.log('[CommunityDetails] Removing unread borders after 2 seconds');
             setUnreadReplyIds(new Set());
           }, 2000);
         }
@@ -534,7 +541,7 @@ export default function CommunityDetailsScreen() {
         </ScrollView>
 
         {topic.status === 'open' && (
-          <View style={styles.commentInputBar}>
+          <View style={[styles.commentInputBar, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
             <TextInput
               style={styles.commentInput}
               placeholder="Write your comment"
@@ -835,7 +842,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.md,
     backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.border,
