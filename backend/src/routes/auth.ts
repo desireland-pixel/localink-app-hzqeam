@@ -136,66 +136,92 @@ export function registerAuthRoutes(app: App) {
         where: eq(authSchema.user.email, email),
       });
 
+      let userId: string;
+
       if (existingUser) {
-        app.logger.warn({ email }, 'Signup failed - user already exists');
-        return reply.status(400).send({ error: 'User with this email already exists' });
+        // If email exists but is not verified, allow retry
+        if (existingUser.emailVerified) {
+          app.logger.warn({ email }, 'Signup failed - user already exists and email is verified');
+          return reply.status(400).send({ error: 'User with this email already exists' });
+        }
+        // Email exists but not verified - allow retry with same email
+        app.logger.info({ email, userId: existingUser.id }, 'Retrying signup with unverified email');
+        userId = existingUser.id;
+      } else {
+        // Check if username already exists (case-insensitive)
+        const existingUsername = await app.db.query.profiles.findFirst({
+          where: eq(schema.profiles.username, username.toLowerCase()),
+        });
+
+        if (existingUsername) {
+          app.logger.warn({ username }, 'Signup failed - username already exists');
+          return reply.status(400).send({ error: 'Username already exists' });
+        }
+
+        // Proxy the signup request to Better Auth's sign-up endpoint
+        const port = request.socket.localPort || 3000;
+        const protocol = request.protocol || 'http';
+        const hostname = request.hostname || 'localhost';
+        const baseUrl = `${protocol}://${hostname}${port !== 80 && port !== 443 ? `:${port}` : ''}`;
+
+        app.logger.info({ baseUrl }, 'Calling Better Auth signup endpoint');
+
+        const signupResponse = await fetch(`${baseUrl}/api/auth/sign-up/email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            name,
+          }),
+        });
+
+        if (!signupResponse.ok) {
+          const errorText = await signupResponse.text();
+          app.logger.warn({ email, status: signupResponse.status, error: errorText }, 'Signup failed via Better Auth');
+          return reply.status(400).send({ error: 'Failed to create account. Please try again.' });
+        }
+
+        const signupData = await signupResponse.json();
+        userId = (signupData as any)?.user?.id;
+        app.logger.info({ email, userId }, 'User created successfully');
       }
 
-      // Check if username already exists (case-insensitive)
-      const existingUsername = await app.db.query.profiles.findFirst({
-        where: eq(schema.profiles.username, username.toLowerCase()),
-      });
-
-      if (existingUsername) {
-        app.logger.warn({ username }, 'Signup failed - username already exists');
-        return reply.status(400).send({ error: 'Username already exists' });
-      }
-
-      // Proxy the signup request to Better Auth's sign-up endpoint
-      const port = request.socket.localPort || 3000;
-      const protocol = request.protocol || 'http';
-      const hostname = request.hostname || 'localhost';
-      const baseUrl = `${protocol}://${hostname}${port !== 80 && port !== 443 ? `:${port}` : ''}`;
-
-      app.logger.info({ baseUrl }, 'Calling Better Auth signup endpoint');
-
-      const signupResponse = await fetch(`${baseUrl}/api/auth/sign-up/email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          name,
-        }),
-      });
-
-      if (!signupResponse.ok) {
-        const errorText = await signupResponse.text();
-        app.logger.warn({ email, status: signupResponse.status, error: errorText }, 'Signup failed via Better Auth');
-        return reply.status(400).send({ error: 'Failed to create account. Please try again.' });
-      }
-
-      const signupData = await signupResponse.json();
-      const userId = (signupData as any)?.user?.id;
-      app.logger.info({ email, userId }, 'User created successfully');
-
-      // Create profile with username and city from signup
+      // Create or update profile with username and city from signup
       try {
-        await app.db
-          .insert(schema.profiles)
-          .values({
-            userId,
-            name: name,
-            username: username.toLowerCase(),
-            city: city,
-            photoUrl: null,
-          });
-        app.logger.info({ userId, username, city }, 'Profile created during signup');
+        const existingProfile = await app.db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, userId),
+        });
+
+        if (existingProfile) {
+          // Update existing profile
+          await app.db
+            .update(schema.profiles)
+            .set({
+              username: username.toLowerCase(),
+              city: city,
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.profiles.userId, userId));
+          app.logger.info({ userId, username, city }, 'Profile updated during signup retry');
+        } else {
+          // Create new profile
+          await app.db
+            .insert(schema.profiles)
+            .values({
+              userId,
+              name: name,
+              username: username.toLowerCase(),
+              city: city,
+              photoUrl: null,
+            });
+          app.logger.info({ userId, username, city }, 'Profile created during signup');
+        }
       } catch (profileError) {
-        app.logger.error({ err: profileError, userId }, 'Failed to create profile during signup');
-        // Continue with OTP generation even if profile creation fails
+        app.logger.error({ err: profileError, userId }, 'Failed to create/update profile during signup');
+        // Continue with OTP generation even if profile creation/update fails
       }
 
       // Generate OTP for email verification
