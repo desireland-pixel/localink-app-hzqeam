@@ -167,20 +167,20 @@ export default function TravelDetailsScreen() {
 
   const handleDelete = async () => {
     if (!travelPost) return;
-    console.log('TravelDetailsScreen: Close post', id);
+    console.log('TravelDetailsScreen: Delete post', id);
     setDeleting(true);
     
     try {
-      await authenticatedPatch(`/api/travel-posts/${id}/close`, {});
-      console.log('TravelDetailsScreen: Post closed successfully');
+      await authenticatedDelete(`/api/travel-posts/${id}`, {});
+      console.log('TravelDetailsScreen: Post deleted successfully');
       setShowDeleteModal(false);
       router.replace({
         pathname: '/my-posts',
         params: { tab: 'travel' }
       });
     } catch (error: any) {
-      console.error('TravelDetailsScreen: Error closing post', error);
-      setError(error.message || 'Failed to close post');
+      console.error('TravelDetailsScreen: Error deleting post', error);
+      setError(error.message || 'Failed to delete post');
     } finally {
       setDeleting(false);
     }
@@ -459,8 +459,8 @@ export default function TravelDetailsScreen() {
 
       <Modal
         visible={showDeleteModal}
-        title="Close Post"
-        message="Are you sure you want to close this post? This action cannot be undone."
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
         onClose={() => setShowDeleteModal(false)}
         type="warning"
         actions={[
@@ -470,7 +470,7 @@ export default function TravelDetailsScreen() {
             style: 'cancel',
           },
           {
-            text: deleting ? 'Closing...' : 'Close Post',
+            text: deleting ? 'Deleting...' : 'Delete',
             onPress: handleDelete,
             style: 'destructive',
             disabled: deleting,

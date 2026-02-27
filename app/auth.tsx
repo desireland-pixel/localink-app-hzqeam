@@ -81,6 +81,8 @@ export default function AuthScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [termsContent, setTermsContent] = useState<string | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
 
   const fetchAndShowTerms = async () => {
     if (termsContent) {
@@ -105,6 +107,37 @@ export default function AuthScreen() {
       setShowTermsModal(true);
     }
   };
+
+  // Check username availability when user types
+  useEffect(() => {
+    if (mode !== 'signup' || !username.trim()) {
+      setUsernameError(null);
+      return;
+    }
+
+    const checkUsername = async () => {
+      setCheckingUsername(true);
+      try {
+        const result = await apiGet<{ available: boolean; message?: string }>(
+          `/api/check-username?username=${encodeURIComponent(username)}`
+        );
+        if (!result.available) {
+          setUsernameError(result.message || 'Username already exists');
+        } else {
+          setUsernameError(null);
+        }
+      } catch (err) {
+        console.error('[AuthScreen] Error checking username:', err);
+        // Don't show error to user, just clear the error state
+        setUsernameError(null);
+      } finally {
+        setCheckingUsername(false);
+      }
+    };
+
+    const timeoutId = setTimeout(checkUsername, 500);
+    return () => clearTimeout(timeoutId);
+  }, [username, mode]);
 
   console.log('[AuthScreen] Rendering, mode:', mode, 'user:', user?.id, 'profile:', profile?.name);
 
@@ -145,6 +178,10 @@ export default function AuthScreen() {
       }
       if (!username.trim()) {
         setError("Please enter a username");
+        return;
+      }
+      if (usernameError) {
+        setError("Please choose a different username");
         return;
       }
       if (!city.trim()) {
@@ -207,10 +244,23 @@ export default function AuthScreen() {
       // Error already set in signin block, only set if not already set
       if (!error) {
         const errorMsg = err.message || err.toString();
-        if (errorMsg.includes('already exists') || errorMsg.includes('duplicate')) {
+        // Try to extract JSON error message from API error response
+        let parsedErrorMsg = errorMsg;
+        try {
+          const jsonMatch = errorMsg.match(/\{.*\}/s);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            parsedErrorMsg = parsed.error || parsed.message || errorMsg;
+          }
+        } catch (_) {}
+        
+        if (parsedErrorMsg.toLowerCase().includes('username already exists')) {
+          // Show username error below the username field instead of a modal
+          setUsernameError('Username already exists');
+        } else if (parsedErrorMsg.toLowerCase().includes('email already exists') || parsedErrorMsg.includes('duplicate')) {
           setError('An account with this email already exists. Please sign in instead.');
         } else {
-          setError(errorMsg || "Authentication failed. Please try again.");
+          setError(parsedErrorMsg || "Authentication failed. Please try again.");
         }
       }
     } finally {
@@ -251,7 +301,7 @@ export default function AuthScreen() {
     }
   };
 
-  const isSignUpFormValid = mode === "signup" && name.trim() && email.trim() && password.trim() && username.trim() && city.trim() && termsAccepted;
+  const isSignUpFormValid = mode === "signup" && name.trim() && email.trim() && password.trim() && username.trim() && city.trim() && termsAccepted && !usernameError;
   const isSignInFormValid = mode === "signin" && email.trim() && password.trim();
 
   return (
@@ -283,7 +333,6 @@ export default function AuthScreen() {
             {mode === "forgot-password" ? (
               <>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Email</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="Email"
@@ -322,7 +371,6 @@ export default function AuthScreen() {
                 {mode === "signup" && (
                   <>
                     <View style={styles.inputGroup}>
-                      <Text style={styles.label}>Full Name *</Text>
                       <TextInput
                         style={styles.input}
                         placeholder="Full Name *"
@@ -337,7 +385,6 @@ export default function AuthScreen() {
                 )}
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>{mode === "signup" ? "Email *" : "Email"}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder={mode === "signup" ? "Email *" : "Email"}
@@ -352,7 +399,6 @@ export default function AuthScreen() {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>{mode === "signup" ? "Password *" : "Password"}</Text>
                   <View style={styles.passwordContainer}>
                     <TextInput
                       style={styles.passwordInput}
@@ -383,7 +429,6 @@ export default function AuthScreen() {
                     <Text style={styles.infoText}>The following entries can be changed later under Personal details</Text>
                     
                     <View style={styles.inputGroup}>
-                      <Text style={styles.label}>Username *</Text>
                       <TextInput
                         style={styles.input}
                         placeholder="Username *"
@@ -394,10 +439,12 @@ export default function AuthScreen() {
                         autoCorrect={false}
                         editable={!loading}
                       />
+                      {usernameError && (
+                        <Text style={styles.usernameError}>{usernameError}</Text>
+                      )}
                     </View>
 
                     <View style={styles.inputGroup}>
-                      <Text style={styles.label}>City *</Text>
                       <CitySearchInput
                         value={city}
                         onChangeText={setCity}
@@ -556,16 +603,16 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.lg,
     justifyContent: "center",
-    paddingVertical: spacing.md,
+    paddingTop: Platform.OS === 'android' ? spacing.sm : spacing.md,
   },
   header: {
     alignItems: "center",
     marginBottom: spacing.lg,
   },
   logo: {
-    width: 80,
-    height: 80,
-    marginBottom: spacing.sm,
+    width: 70,
+    height: 70,
+    marginBottom: spacing.xs,
   },
   title: {
     ...typography.h1,
@@ -577,7 +624,7 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textSecondary,
     fontStyle: "normal",
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   subtitle: {
     ...typography.h3,
@@ -588,12 +635,6 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: spacing.sm,
   },
-  label: {
-    ...typography.bodySmall,
-    color: colors.text,
-    fontWeight: "600",
-    marginBottom: spacing.xs,
-  },
   input: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
@@ -603,7 +644,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     ...typography.body,
     color: colors.text,
-    height: Platform.OS === 'android' ? 44 : undefined,
+    height: 44,
     textAlignVertical: 'center',
   },
   passwordContainer: {
@@ -613,7 +654,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    height: Platform.OS === 'android' ? 44 : undefined,
+    height: 44,
   },
   passwordInput: {
     flex: 1,
@@ -622,10 +663,13 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
     textAlignVertical: 'center',
+    height: 44,
   },
   passwordToggle: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   infoText: {
     ...typography.bodySmall,
@@ -633,6 +677,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginBottom: spacing.sm,
     fontStyle: "italic",
+  },
+  usernameError: {
+    ...typography.bodySmall,
+    color: '#FF3B30',
+    fontSize: 11,
+    marginTop: spacing.xs,
   },
   termsContainer: {
     marginTop: spacing.sm,

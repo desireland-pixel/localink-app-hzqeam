@@ -85,6 +85,8 @@ export default function VerifyOTPScreen() {
     router.replace('/auth');
   };
 
+  const emailDisplay = email || 'your email ID';
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -97,7 +99,8 @@ export default function VerifyOTPScreen() {
               <>
                 <View style={styles.header}>
                   <Text style={styles.emoji}>📧</Text>
-                  <Text style={styles.title}>Enter OTP</Text>
+                  <Text style={styles.title}>Verify your email</Text>
+                  <Text style={styles.subtitle}>We have sent an OTP to {emailDisplay}</Text>
                 </View>
 
                 <View style={styles.inputGroup}>
@@ -205,6 +208,11 @@ const styles = StyleSheet.create({
     ...typography.h1,
     color: colors.text,
     marginBottom: spacing.sm,
+  },
+  subtitle: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   inputGroup: {
     marginBottom: spacing.md,
