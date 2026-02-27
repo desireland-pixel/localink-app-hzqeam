@@ -263,16 +263,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Store bearer token if returned
+      let token = null;
       if (data?.session?.token) {
-        console.log('[AuthContext] Storing bearer token after email sign in');
-        await setBearerToken(data.session.token);
+        console.log('[AuthContext] Storing bearer token (session.token) after email sign in');
+        token = data.session.token;
+        await setBearerToken(token);
       } else if (data?.token) {
         console.log('[AuthContext] Storing bearer token (token field) after email sign in');
-        await setBearerToken(data.token);
+        token = data.token;
+        await setBearerToken(token);
       }
 
-      console.log('[AuthContext] Login successful, fetching user data');
-      await fetchUser();
+      // Extract user data from response
+      if (data?.user) {
+        console.log('[AuthContext] Setting user from login response:', data.user.id);
+        setUser(data.user as User);
+        
+        // Fetch profile after setting user
+        await fetchProfileInternal();
+      } else {
+        console.log('[AuthContext] No user in response, fetching from session');
+        await fetchUser();
+      }
     } catch (error: any) {
       console.error("[AuthContext] Email sign in failed:", error);
       throw error;

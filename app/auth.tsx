@@ -163,15 +163,15 @@ export default function AuthScreen() {
     
     try {
       if (mode === "signin") {
-        console.log('[AuthScreen] Signing in with email');
+        console.log('[AuthScreen] Signing in with email:', email);
         try {
           await signInWithEmail(email, password);
-          console.log('[AuthScreen] Sign in successful');
+          console.log('[AuthScreen] Sign in successful, user should be logged in');
           // Navigation will be handled by useEffect
         } catch (signInErr: any) {
           // Check for specific error messages from backend
           const errorMsg = signInErr.message || signInErr.toString();
-          console.log('[AuthScreen] Sign in error message:', errorMsg);
+          console.error('[AuthScreen] Sign in error:', errorMsg);
           
           if (errorMsg.includes('not verified') || errorMsg.includes('verify') || errorMsg.includes('OTP')) {
             setError('Email not verified. Please check your email for the verification code.');
