@@ -162,6 +162,7 @@ export function registerCommunityRoutes(app: App) {
           topicId: schema.discussionReplies.topicId,
           userId: schema.discussionReplies.userId,
           content: schema.discussionReplies.content,
+          isRead: schema.discussionReplies.isRead,
           createdAt: schema.discussionReplies.createdAt,
           updatedAt: schema.discussionReplies.updatedAt,
           username: schema.profiles.username,
