@@ -1,14 +1,6 @@
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal as RNModal,
-  TouchableWithoutFeedback,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, Modal as RNModal, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 
 interface ModalAction {
@@ -21,107 +13,76 @@ interface ModalAction {
 interface ModalProps {
   visible: boolean;
   onClose: () => void;
-  title?: string;
+  title: string;
   message: string;
-  confirmText?: string;
-  cancelText?: string;
-  onConfirm?: () => void;
-  type?: 'info' | 'error' | 'success' | 'confirm' | 'warning';
+  type?: 'info' | 'error' | 'success' | 'warning';
   actions?: ModalAction[];
 }
 
-export default function Modal({
-  visible,
-  onClose,
-  title,
-  message,
-  confirmText = 'OK',
-  cancelText = 'Cancel',
-  onConfirm,
-  type = 'info',
-  actions,
-}: ModalProps) {
-  const handleConfirm = () => {
-    if (onConfirm) {
-      onConfirm();
-    }
-    onClose();
-  };
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-  const getIcon = () => {
+export default function Modal({ visible, onClose, title, message, type = 'info', actions }: ModalProps) {
+  const getIconForType = () => {
     switch (type) {
       case 'error':
         return '❌';
       case 'success':
         return '✅';
-      case 'confirm':
       case 'warning':
         return '⚠️';
       default:
-        return '';
+        return 'ℹ️';
     }
   };
 
-  // Check if message is long (for Terms & Conditions)
-  const isLongMessage = message.length > 500;
-  const showIcon = type !== 'info' || isLongMessage;
+  const defaultActions: ModalAction[] = [
+    {
+      text: 'OK',
+      onPress: onClose,
+      style: 'default',
+    },
+  ];
 
-  // If custom actions are provided, use them instead of default buttons
-  const renderButtons = () => {
-    if (actions && actions.length > 0) {
-      return (
-        <View style={styles.buttonContainer}>
-          {actions.map((action, index) => {
-            const isDestructive = action.style === 'destructive';
-            const isCancel = action.style === 'cancel';
-            
-            return (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.button,
-                  isCancel ? styles.cancelButton : styles.confirmButton,
-                  isDestructive && styles.destructiveButton,
-                  action.disabled && styles.disabledButton,
-                ]}
-                onPress={action.onPress}
-                disabled={action.disabled}
-              >
-                <Text
-                  style={[
-                    isCancel ? styles.cancelButtonText : styles.confirmButtonText,
-                    isDestructive && styles.destructiveButtonText,
-                  ]}
-                >
-                  {action.text}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      );
-    }
+  const modalActions = actions || defaultActions;
 
-    // Default buttons
-    return (
-      <View style={styles.buttonContainer}>
-        {(type === 'confirm' || type === 'warning') && (
-          <TouchableOpacity
-            style={[styles.button, styles.cancelButton]}
-            onPress={onClose}
-          >
-            <Text style={styles.cancelButtonText}>{cancelText}</Text>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          style={[styles.button, styles.confirmButton]}
-          onPress={handleConfirm}
-        >
-          <Text style={styles.confirmButtonText}>{confirmText}</Text>
-        </TouchableOpacity>
-      </View>
-    );
+  // Parse message to handle HTML-like tags
+  const parseMessage = (msg: string) => {
+    // Remove HTML tags and format the text
+    let parsed = msg
+      .replace(/<h1>/g, '\n\n')
+      .replace(/<\/h1>/g, '\n')
+      .replace(/<h2>/g, '\n\n')
+      .replace(/<\/h2>/g, '\n')
+      .replace(/<h3>/g, '\n')
+      .replace(/<\/h3>/g, '\n')
+      .replace(/<p>/g, '\n')
+      .replace(/<\/p>/g, '\n')
+      .replace(/<br\s*\/?>/g, '\n')
+      .replace(/<li>/g, '\n• ')
+      .replace(/<\/li>/g, '')
+      .replace(/<ul>/g, '\n')
+      .replace(/<\/ul>/g, '\n')
+      .replace(/<ol>/g, '\n')
+      .replace(/<\/ol>/g, '\n')
+      .replace(/<strong>/g, '')
+      .replace(/<\/strong>/g, '')
+      .replace(/<em>/g, '')
+      .replace(/<\/em>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .trim();
+    
+    // Remove excessive newlines
+    parsed = parsed.replace(/\n{3,}/g, '\n\n');
+    
+    return parsed;
   };
+
+  const formattedMessage = parseMessage(message);
 
   return (
     <RNModal
@@ -130,24 +91,49 @@ export default function Modal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={[styles.modal, isLongMessage && styles.modalLarge]}>
-              {showIcon && <Text style={styles.icon}>{getIcon()}</Text>}
-              {title && <Text style={styles.title}>{title}</Text>}
-              {isLongMessage ? (
-                <ScrollView style={styles.messageScrollView} showsVerticalScrollIndicator={true}>
-                  <Text style={styles.message}>{message}</Text>
-                </ScrollView>
-              ) : (
-                <Text style={styles.message}>{message}</Text>
-              )}
-              {renderButtons()}
-            </View>
-          </TouchableWithoutFeedback>
+      <View style={styles.overlay}>
+        <View style={styles.modalContainer}>
+          <View style={styles.iconContainer}>
+            <Text style={styles.icon}>{getIconForType()}</Text>
+          </View>
+          
+          <Text style={styles.title}>{title}</Text>
+          
+          <ScrollView 
+            style={styles.messageScrollView}
+            contentContainerStyle={styles.messageScrollContent}
+            showsVerticalScrollIndicator={true}
+          >
+            <Text style={styles.message}>{formattedMessage}</Text>
+          </ScrollView>
+
+          <View style={styles.actionsContainer}>
+            {modalActions.map((action, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.actionButton,
+                  action.style === 'cancel' && styles.cancelButton,
+                  action.style === 'destructive' && styles.destructiveButton,
+                  action.disabled && styles.disabledButton,
+                ]}
+                onPress={action.onPress}
+                disabled={action.disabled}
+              >
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    action.style === 'cancel' && styles.cancelButtonText,
+                    action.style === 'destructive' && styles.destructiveButtonText,
+                  ]}
+                >
+                  {action.text}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </RNModal>
   );
 }
@@ -160,80 +146,79 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.lg,
   },
-  modal: {
+  modalContainer: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
+    padding: spacing.lg,
     width: '100%',
-    maxWidth: 300,
-    alignItems: 'center',
+    maxWidth: 400,
+    maxHeight: SCREEN_HEIGHT * 0.7,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  modalLarge: {
-    maxHeight: '70%',
-    maxWidth: 320,
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   icon: {
-    fontSize: 28,
-    marginBottom: spacing.xs,
+    fontSize: 32,
   },
   title: {
     ...typography.h3,
-    fontSize: 15,
     color: colors.text,
-    marginBottom: spacing.xs,
     textAlign: 'center',
+    marginBottom: spacing.md,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  messageScrollView: {
+    maxHeight: SCREEN_HEIGHT * 0.4,
+    marginBottom: spacing.md,
+  },
+  messageScrollContent: {
+    paddingVertical: spacing.xs,
   },
   message: {
     ...typography.body,
-    fontSize: 12,
     color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-    lineHeight: 16,
+    textAlign: 'left',
+    lineHeight: 20,
+    fontSize: 13,
   },
-  messageScrollView: {
-    maxHeight: 250,
-    marginBottom: spacing.sm,
-    width: '100%',
-  },
-  buttonContainer: {
+  actionsContainer: {
     flexDirection: 'row',
-    gap: spacing.xs,
-    width: '100%',
+    gap: spacing.sm,
   },
-  button: {
+  actionButton: {
     flex: 1,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
-  },
-  cancelButtonText: {
-    ...typography.button,
-    fontSize: 12,
-    color: colors.text,
-  },
-  confirmButton: {
-    backgroundColor: colors.primary,
-  },
-  confirmButtonText: {
-    ...typography.button,
-    fontSize: 12,
-    color: '#FFFFFF',
   },
   destructiveButton: {
     backgroundColor: '#FF3B30',
   },
-  destructiveButtonText: {
-    ...typography.button,
-    fontSize: 12,
-    color: '#FFFFFF',
-  },
   disabledButton: {
     opacity: 0.5,
+  },
+  actionButtonText: {
+    ...typography.button,
+    color: '#FFFFFF',
+    fontSize: 14,
+  },
+  cancelButtonText: {
+    color: colors.text,
+  },
+  destructiveButtonText: {
+    color: '#FFFFFF',
   },
 });
