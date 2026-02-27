@@ -141,6 +141,16 @@ export function registerAuthRoutes(app: App) {
         return reply.status(400).send({ error: 'User with this email already exists' });
       }
 
+      // Check if username already exists (case-insensitive)
+      const existingUsername = await app.db.query.profiles.findFirst({
+        where: eq(schema.profiles.username, username.toLowerCase()),
+      });
+
+      if (existingUsername) {
+        app.logger.warn({ username }, 'Signup failed - username already exists');
+        return reply.status(400).send({ error: 'Username already exists' });
+      }
+
       // Proxy the signup request to Better Auth's sign-up endpoint
       const port = request.socket.localPort || 3000;
       const protocol = request.protocol || 'http';
@@ -178,7 +188,7 @@ export function registerAuthRoutes(app: App) {
           .values({
             userId,
             name: name,
-            username: username || null,
+            username: username.toLowerCase(),
             city: city,
             photoUrl: null,
           });
@@ -508,5 +518,55 @@ export function registerAuthRoutes(app: App) {
         <p>These terms and conditions are governed by and construed in accordance with the laws of the jurisdiction in which LokaLinc operates, and you irrevocably submit to the exclusive jurisdiction of the courts in that location.</p>
       `
     };
+  });
+
+  // Check if username is available
+  app.fastify.get('/api/check-username', {
+    schema: {
+      description: 'Check if a username is available',
+      tags: ['auth'],
+      querystring: {
+        type: 'object',
+        required: ['username'],
+        properties: {
+          username: { type: 'string' },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            available: { type: 'boolean' },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { username } = request.query as { username: string };
+    app.logger.info({ username }, 'Checking username availability');
+
+    try {
+      if (!username || username.trim().length === 0) {
+        app.logger.warn({}, 'Username check failed - username is empty');
+        return reply.status(400).send({ error: 'Username is required' });
+      }
+
+      // Check if username already exists (case-insensitive)
+      const existingUsername = await app.db.query.profiles.findFirst({
+        where: eq(schema.profiles.username, username.toLowerCase()),
+      });
+
+      if (existingUsername) {
+        app.logger.info({ username }, 'Username already exists');
+        return { available: false, message: 'Username already exists' };
+      }
+
+      app.logger.info({ username }, 'Username is available');
+      return { available: true };
+    } catch (error) {
+      app.logger.error({ err: error, username }, 'Failed to check username availability');
+      return reply.status(500).send({ error: 'Failed to check username availability' });
+    }
   });
 }

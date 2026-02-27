@@ -6,7 +6,7 @@ import { relations } from 'drizzle-orm';
 export const profiles = pgTable('profiles', {
   userId: text('user_id').primaryKey().references(() => user.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
-  username: text('username').unique(), // Unique username, nullable initially
+  username: text('username'), // Unique username (case-insensitive), nullable initially
   city: text('city').notNull(),
   photoUrl: text('photo_url'), // Profile photo URL
   // GDPR Compliance
@@ -16,7 +16,9 @@ export const profiles = pgTable('profiles', {
   dataDeletedAt: timestamp('data_deleted_at', { withTimezone: true }), // Set when deletion is processed
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
-});
+}, (table) => ({
+  usernameUniqueIndex: uniqueIndex('profiles_username_unique_idx').on(table.username),
+}));
 
 // OTP verifications for email verification
 export const otpVerifications = pgTable('otp_verifications', {
