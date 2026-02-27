@@ -17,11 +17,24 @@ interface ModalProps {
   message: string;
   type?: 'info' | 'error' | 'success' | 'warning';
   actions?: ModalAction[];
+  confirmText?: string;
+  cancelText?: string;
+  onConfirm?: () => void;
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-export default function Modal({ visible, onClose, title, message, type = 'info', actions }: ModalProps) {
+export default function Modal({ 
+  visible, 
+  onClose, 
+  title, 
+  message, 
+  type = 'info', 
+  actions,
+  confirmText,
+  cancelText,
+  onConfirm
+}: ModalProps) {
   const getIconForType = () => {
     switch (type) {
       case 'error':
@@ -35,15 +48,32 @@ export default function Modal({ visible, onClose, title, message, type = 'info',
     }
   };
 
-  const defaultActions: ModalAction[] = [
-    {
-      text: 'OK',
-      onPress: onClose,
-      style: 'default',
-    },
-  ];
-
-  const modalActions = actions || defaultActions;
+  // If confirmText and cancelText are provided, create two-button actions
+  let modalActions: ModalAction[];
+  if (confirmText && cancelText && onConfirm) {
+    modalActions = [
+      {
+        text: cancelText,
+        onPress: onClose,
+        style: 'cancel',
+      },
+      {
+        text: confirmText,
+        onPress: onConfirm,
+        style: type === 'warning' ? 'destructive' : 'default',
+      },
+    ];
+  } else if (actions) {
+    modalActions = actions;
+  } else {
+    modalActions = [
+      {
+        text: 'OK',
+        onPress: onClose,
+        style: 'default',
+      },
+    ];
+  }
 
   // Parse message to handle HTML-like tags
   const parseMessage = (msg: string) => {
@@ -184,7 +214,7 @@ const styles = StyleSheet.create({
   message: {
     ...typography.body,
     color: colors.textSecondary,
-    textAlign: 'left',
+    textAlign: 'center',
     lineHeight: 20,
     fontSize: 13,
   },
