@@ -253,7 +253,7 @@ export default function ProfileScreen() {
         title="Sign Out"
         message="Are you sure you want to sign out?"
         type="warning"
-        confirmText="Sign Out"
+        confirmText="Sign out"
         cancelText="Cancel"
         onConfirm={handleSignOut}
       />

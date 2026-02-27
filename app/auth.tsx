@@ -397,10 +397,10 @@ export default function AuthScreen() {
                 )}
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Email</Text>
+                  {mode === "signin" && <Text style={styles.inputLabel}>Email</Text>}
                   <TextInput
                     style={styles.input}
-                    placeholder="Email *"
+                    placeholder="Email"
                     placeholderTextColor={colors.textLight}
                     value={email}
                     onChangeText={setEmail}
@@ -412,11 +412,11 @@ export default function AuthScreen() {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Password</Text>
+                  {mode === "signin" && <Text style={styles.inputLabel}>Password</Text>}
                   <View style={styles.passwordContainer}>
                     <TextInput
                       style={styles.passwordInput}
-                      placeholder="Password *"
+                      placeholder="Password"
                       placeholderTextColor={colors.textLight}
                       value={password}
                       onChangeText={setPassword}
@@ -448,7 +448,10 @@ export default function AuthScreen() {
                         placeholder="username *"
                         placeholderTextColor={colors.textLight}
                         value={username}
-                        onChangeText={(text) => setUsername(text.toLowerCase())}
+                        onChangeText={(text) => {
+                          const lowercaseText = text.toLowerCase();
+                          setUsername(lowercaseText);
+                        }}
                         autoCapitalize="none"
                         autoCorrect={false}
                         editable={!loading}
