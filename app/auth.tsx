@@ -119,7 +119,7 @@ export default function AuthScreen() {
       setCheckingUsername(true);
       try {
         const result = await apiGet<{ available: boolean; message?: string }>(
-          `/api/check-username?username=${encodeURIComponent(username)}`
+          `/api/check-username?username=${encodeURIComponent(username.toLowerCase())}`
         );
         if (!result.available) {
           setUsernameError(result.message || 'Username already exists');
@@ -229,6 +229,7 @@ export default function AuthScreen() {
         console.log('[AuthScreen] Signing up with email');
         // Call backend signup API directly to get OTP flow
         // Backend now allows re-signup if email_verified = false (unverified accounts)
+        // Convert username to lowercase before sending to backend
         const result = await apiPost<{
           success: boolean;
           message?: string;
@@ -238,7 +239,7 @@ export default function AuthScreen() {
           email, 
           password, 
           name,
-          username,
+          username: username.toLowerCase(),
           city,
           termsAccepted: true
         });
@@ -400,7 +401,7 @@ export default function AuthScreen() {
                   {mode === "signin" && <Text style={styles.inputLabel}>Email</Text>}
                   <TextInput
                     style={styles.input}
-                    placeholder="Email"
+                    placeholder={mode === "signup" ? "Email *" : "Email"}
                     placeholderTextColor={colors.textLight}
                     value={email}
                     onChangeText={setEmail}
@@ -416,7 +417,7 @@ export default function AuthScreen() {
                   <View style={styles.passwordContainer}>
                     <TextInput
                       style={styles.passwordInput}
-                      placeholder="Password"
+                      placeholder={mode === "signup" ? "Password *" : "Password"}
                       placeholderTextColor={colors.textLight}
                       value={password}
                       onChangeText={setPassword}
@@ -448,10 +449,7 @@ export default function AuthScreen() {
                         placeholder="username *"
                         placeholderTextColor={colors.textLight}
                         value={username}
-                        onChangeText={(text) => {
-                          const lowercaseText = text.toLowerCase();
-                          setUsername(lowercaseText);
-                        }}
+                        onChangeText={setUsername}
                         autoCapitalize="none"
                         autoCorrect={false}
                         editable={!loading}
