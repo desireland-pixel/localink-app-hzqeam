@@ -71,20 +71,26 @@ export default function CommunityDetailsScreen() {
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [deletingComment, setDeletingComment] = useState(false);
   const [unreadReplyIds, setUnreadReplyIds] = useState<Set<string>>(new Set());
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const insets = useSafeAreaInsets();
 
-  console.log('CommunityDetailsScreen: Viewing topic', { id, insets, keyboardVisible });
+  console.log('CommunityDetailsScreen: Viewing topic', { id, insets, keyboardHeight });
 
   useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-      console.log('CommunityDetailsScreen: Keyboard shown');
-      setKeyboardVisible(true);
-    });
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      console.log('CommunityDetailsScreen: Keyboard hidden');
-      setKeyboardVisible(false);
-    });
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        console.log('CommunityDetailsScreen: Keyboard shown, height:', e.endCoordinates.height);
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        console.log('CommunityDetailsScreen: Keyboard hidden');
+        setKeyboardHeight(0);
+      }
+    );
 
     return () => {
       keyboardDidShowListener.remove();
@@ -169,6 +175,7 @@ export default function CommunityDetailsScreen() {
       console.log('[CommunityDetails] Reply posted successfully');
       
       setReplyText('');
+      Keyboard.dismiss();
       await fetchTopic();
     } catch (err) {
       console.error('[CommunityDetails] Error posting reply:', err);
@@ -374,11 +381,14 @@ export default function CommunityDetailsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <ScrollView style={styles.content}>
+        <ScrollView 
+          style={styles.content}
+          contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight - insets.bottom + spacing.md : spacing.md }}
+        >
           <View style={styles.mainPostCard}>
             <View style={styles.headerRow}>
               <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
@@ -562,7 +572,7 @@ export default function CommunityDetailsScreen() {
           <View style={[
             styles.commentInputBar, 
             { 
-              paddingBottom: keyboardVisible 
+              paddingBottom: Platform.OS === 'android' && keyboardHeight > 0 
                 ? spacing.sm 
                 : Math.max(spacing.md, insets.bottom) 
             }
@@ -599,7 +609,7 @@ export default function CommunityDetailsScreen() {
           <View style={[
             styles.closedNotice, 
             { 
-              paddingBottom: keyboardVisible 
+              paddingBottom: Platform.OS === 'android' && keyboardHeight > 0 
                 ? spacing.sm 
                 : Math.max(spacing.md, insets.bottom) 
             }

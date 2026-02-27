@@ -8,18 +8,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function IndexScreen() {
   const router = useRouter();
-  const { user, profile, loading, profileLoading } = useAuth();
+  const { user, loading, profileLoading } = useAuth();
 
   useEffect(() => {
     console.log('[IndexScreen] Auth state:', { 
       user: user?.id, 
-      profile: profile?.name, 
       loading, 
       profileLoading,
-      username: profile?.username,
-      city: profile?.city,
-      gdprConsent: profile?.gdprConsentAccepted,
-      profileCompleted: profile?.profileCompleted
     });
     
     if (loading || profileLoading) {
@@ -33,29 +28,14 @@ export default function IndexScreen() {
         console.log('[IndexScreen] No user, redirecting to auth');
         router.replace('/auth');
       } else {
-        // Use isProfileComplete from backend if available, otherwise calculate it
-        // The backend returns isProfileComplete based on: username, city, and gdprConsentAccepted
-        const isProfileComplete = profile?.profileCompleted === true;
-        
-        console.log('[IndexScreen] Profile completion check:', {
-          profileCompleted: profile?.profileCompleted,
-          isProfileComplete
-        });
-        
-        if (isProfileComplete) {
-          // Profile is complete, go to home page
-          console.log('[IndexScreen] User authenticated with complete profile, redirecting to home');
-          router.replace('/(tabs)/sublet');
-        } else {
-          // Profile is incomplete, go to personal details
-          console.log('[IndexScreen] User authenticated but profile incomplete, redirecting to personal-details');
-          router.replace('/personal-details');
-        }
+        // User is authenticated - go directly to home page, no profile completion check
+        console.log('[IndexScreen] User authenticated, redirecting to home');
+        router.replace('/(tabs)/sublet');
       }
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [user, profile, loading, profileLoading, router]);
+  }, [user, loading, profileLoading, router]);
 
   const isLoading = loading || profileLoading;
 
@@ -68,8 +48,8 @@ export default function IndexScreen() {
             style={styles.logoImage}
             resizeMode="contain"
           />
-          <Text style={styles.title}>Localink</Text>
-          <Text style={styles.tagline}>Living and moving together</Text>
+          <Text style={styles.title}>LokaLinc</Text>
+          <Text style={styles.tagline}>Living and Moving together</Text>
         </View>
         {isLoading && (
           <View style={styles.loadingContainer}>

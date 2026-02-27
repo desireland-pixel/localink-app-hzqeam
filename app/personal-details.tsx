@@ -8,7 +8,6 @@ import { authenticatedPut } from '@/utils/api';
 import { CitySearchInput } from '@/components/CitySearchInput';
 import { useRouter } from 'expo-router';
 import Modal from '@/components/ui/Modal';
-import { IconSymbol } from '@/components/IconSymbol';
 
 export default function PersonalDetailsScreen() {
   const router = useRouter();
@@ -19,10 +18,8 @@ export default function PersonalDetailsScreen() {
   const [city, setCity] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [gdprConsent, setGdprConsent] = useState(false);
-  const [gdprConsentDisabled, setGdprConsentDisabled] = useState(false);
 
-  console.log('PersonalDetailsScreen: Rendering', { user: user?.id, profile: profile?.name, gdprConsent, gdprConsentDisabled });
+  console.log('PersonalDetailsScreen: Rendering', { user: user?.id, profile: profile?.name });
 
   useEffect(() => {
     if (user) {
@@ -32,9 +29,6 @@ export default function PersonalDetailsScreen() {
       setName(profile.name || user?.name || '');
       setCity(profile.city || '');
       setUsername(profile.username || '');
-      const consentAccepted = (profile as any).gdprConsentAccepted || false;
-      setGdprConsent(consentAccepted);
-      setGdprConsentDisabled(consentAccepted);
     } else if (user) {
       setName(user.name || '');
     }
@@ -53,11 +47,6 @@ export default function PersonalDetailsScreen() {
       return;
     }
 
-    if (!gdprConsent) {
-      setError('You must accept the GDPR consent to continue');
-      return;
-    }
-
     setLoading(true);
     setError('');
 
@@ -65,21 +54,15 @@ export default function PersonalDetailsScreen() {
       const updateData: any = {
         username: username.trim(),
         city: city.trim(),
-        gdprConsentAccepted: gdprConsent,
       };
       
       const response = await authenticatedPut('/api/profile', updateData);
       console.log('PersonalDetailsScreen: Profile update response:', response);
       
-      // Disable GDPR consent checkbox after successful save
-      if (gdprConsent) {
-        setGdprConsentDisabled(true);
-      }
-      
-      // Refresh profile to get updated isProfileComplete status from backend
+      // Refresh profile to get updated data from backend
       await refreshProfile();
       
-      // Navigate to home page after successful save (no modal, direct redirect)
+      // Navigate to home page after successful save
       console.log('PersonalDetailsScreen: Profile saved, redirecting to home page');
       router.replace('/(tabs)/sublet');
     } catch (err: any) {
@@ -95,15 +78,16 @@ export default function PersonalDetailsScreen() {
     router.push('/edit-password');
   };
 
-  const isFormValid = username.trim() && city.trim() && gdprConsent;
+  const isFormValid = username.trim() && city.trim();
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
         style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === 'android' ? 0 : 0}
       >
-      <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView style={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Text style={styles.label}>Full Name *</Text>
         <TextInput
           style={[styles.input, styles.inputDisabled]}
@@ -150,21 +134,6 @@ export default function PersonalDetailsScreen() {
           placeholder="Search city..."
         />
 
-        <View style={styles.gdprContainer}>
-          <TouchableOpacity
-            style={styles.radioRow}
-            onPress={() => !gdprConsentDisabled && setGdprConsent(!gdprConsent)}
-            disabled={gdprConsentDisabled}
-          >
-            <View style={styles.radioCircle}>
-              {gdprConsent && <View style={styles.radioCircleSelected} />}
-            </View>
-            <Text style={[styles.gdprText, gdprConsentDisabled && styles.gdprTextDisabled]}>
-              I consent to the processing of my personal data in accordance with the GDPR
-            </Text>
-          </TouchableOpacity>
-        </View>
-
         <TouchableOpacity
           style={[styles.button, (!isFormValid || loading) && styles.buttonDisabled]}
           onPress={handleSave}
@@ -207,7 +176,7 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.text,
     fontWeight: '600',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
     marginTop: spacing.md,
   },
   input: {
@@ -238,40 +207,5 @@ const styles = StyleSheet.create({
   buttonText: {
     ...typography.button,
     color: '#FFFFFF',
-  },
-  gdprContainer: {
-    marginTop: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  radioRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  radioCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    backgroundColor: colors.card,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  radioCircleSelected: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.primary,
-  },
-  gdprText: {
-    ...typography.bodySmall,
-    color: colors.text,
-    flex: 1,
-    lineHeight: 20,
-  },
-  gdprTextDisabled: {
-    opacity: 0.6,
   },
 });

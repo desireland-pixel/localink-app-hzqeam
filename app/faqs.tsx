@@ -87,7 +87,7 @@ export default function FAQsScreen() {
         <View style={styles.contactSection}>
           <Text style={styles.contactTitle}>Still have questions?</Text>
           <Text style={styles.contactText}>
-            Contact us at <Text style={styles.contactEmail}>info.localink@gmail.com</Text> and we&apos;ll be happy to help!
+            Contact us at <Text style={styles.contactEmail}>info.lokalinc@gmail.com</Text> and we&apos;ll be happy to help!
           </Text>
         </View>
       </ScrollView>

@@ -20,8 +20,6 @@ interface Profile {
   photoUrl?: string;
   createdAt: string;
   updatedAt: string;
-  profileCompleted?: boolean;
-  gdprConsentAccepted?: boolean;
 }
 
 interface AuthContextType {
@@ -129,22 +127,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log('[AuthContext] Fetching user profile');
       setProfileLoading(true);
-      const response = await authenticatedGet<Profile & { isProfileComplete?: boolean }>('/api/profile');
+      const response = await authenticatedGet<Profile>('/api/profile');
       console.log('[AuthContext] Profile fetched successfully:', response);
       
-      const profileCompleted = response.isProfileComplete === true;
-      
-      console.log('[AuthContext] Profile completed status:', profileCompleted, {
-        username: !!response.username,
-        city: !!response.city,
-        gdprConsentAccepted: !!response.gdprConsentAccepted,
-        isProfileComplete: response.isProfileComplete
-      });
-      
-      setProfile({
-        ...response,
-        profileCompleted
-      });
+      setProfile(response);
     } catch (error: any) {
       console.log('[AuthContext] Profile fetch failed (may not exist yet):', error?.message);
       setProfile(null);
@@ -247,15 +233,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
-      console.log('[AuthContext] Signing in with email');
-      const result = await authClient.signIn.email({ email, password });
-      console.log('[AuthContext] Sign in result:', result);
-      
-      if (result.data?.session?.token) {
-        console.log('[AuthContext] Storing bearer token after email sign in');
-        await setBearerToken(result.data.session.token);
+      console.log('[AuthContext] Signing in with email via /api/login');
+      const { BACKEND_URL } = await import('@/utils/api');
+      const response = await fetch(`${BACKEND_URL}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+      console.log('[AuthContext] Login response status:', response.status, data);
+
+      if (!response.ok) {
+        const errorMsg = data?.error || 'Login failed';
+        throw new Error(errorMsg);
       }
-      
+
+      // Store bearer token if returned
+      if (data?.session?.token) {
+        console.log('[AuthContext] Storing bearer token after email sign in');
+        await setBearerToken(data.session.token);
+      } else if (data?.token) {
+        console.log('[AuthContext] Storing bearer token (token field) after email sign in');
+        await setBearerToken(data.token);
+      }
+
       await fetchUser();
     } catch (error) {
       console.error("[AuthContext] Email sign in failed:", error);

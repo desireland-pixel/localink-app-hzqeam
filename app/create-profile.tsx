@@ -94,7 +94,7 @@ export default function CreateProfileScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
         style={styles.keyboardView}
       >
         <ScrollView 
@@ -103,7 +103,7 @@ export default function CreateProfileScreen() {
         >
           <View style={styles.header}>
             <Text style={styles.emoji}>👋</Text>
-            <Text style={styles.title}>Welcome to Localink!</Text>
+            <Text style={styles.title}>Welcome to LokaLinc!</Text>
             <Text style={styles.subtitle}>Let&apos;s set up your profile</Text>
           </View>
 
