@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   loadingContainer: {
     flex: 1,
@@ -788,6 +788,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+    marginHorizontal: 0,
   },
   topicCardUnread: {
     borderColor: colors.primary,

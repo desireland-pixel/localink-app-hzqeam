@@ -729,8 +729,8 @@ const styles = StyleSheet.create({
   },
   routeButtonContainer: {
     position: 'relative',
-    minWidth: 90,
-    maxWidth: 130,
+    minWidth: Platform.OS === 'android' ? 82 : 90,
+    maxWidth: Platform.OS === 'android' ? 122 : 130,
   },
   routeInput: {
     paddingHorizontal: spacing.sm,

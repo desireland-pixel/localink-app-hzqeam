@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -433,12 +433,34 @@ export default function FavouritesScreen() {
                           )}
                         </View>
                         <View style={styles.replyCountContainer}>
-                          <IconSymbol
-                            ios_icon_name="bubble.right"
-                            android_material_icon_name="chat-bubble-outline"
-                            size={16}
-                            color={colors.textLight}
-                          />
+                          {Platform.select({
+                            ios: (
+                              <IconSymbol
+                                ios_icon_name="bubble.right"
+                                android_material_icon_name="chat-bubble-outline"
+                                size={16}
+                                color={colors.textLight}
+                              />
+                            ),
+                            android: (
+                              <View style={{ transform: [{ scaleX: -1 }] }}>
+                                <IconSymbol
+                                  ios_icon_name="bubble.right"
+                                  android_material_icon_name="chat-bubble-outline"
+                                  size={16}
+                                  color={colors.textLight}
+                                />
+                              </View>
+                            ),
+                            default: (
+                              <IconSymbol
+                                ios_icon_name="bubble.right"
+                                android_material_icon_name="chat-bubble-outline"
+                                size={16}
+                                color={colors.textLight}
+                              />
+                            ),
+                          })}
                           <Text style={styles.replyCountText}>
                             {post.replyCount || post.repliesCount || 0}
                           </Text>
