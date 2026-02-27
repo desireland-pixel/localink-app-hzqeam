@@ -14,7 +14,7 @@ const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } =
   'Housing': { background: '#D1FAE5', text: '#065F46' },
   'Jobs': { background: '#FCE7F3', text: '#9F1239' },
   'Healthcare': { background: '#E0E7FF', text: '#3730A3' },
-  'Banking': { background: '#FED7AA', text: '#9A3412' },
+  'Finance': { background: '#FED7AA', text: '#9A3412' },
   'Education': { background: '#E9D5FF', text: '#6B21A8' },
   'General': { background: '#FDE68A', text: '#78350F' },
 };
@@ -45,6 +45,9 @@ interface FavoritePost {
     incentiveAmount?: number;
     item?: string;
     companionshipFor?: string;
+    location?: string;
+    replyCount?: number;
+    repliesCount?: number | string;
     user?: {
       id: string;
       name: string;
@@ -418,14 +421,27 @@ export default function FavouritesScreen() {
                         </Text>
                       )}
                       <View style={styles.cardFooter}>
-                        <View style={styles.authorDateRow}>
+                        <View style={styles.authorDateLocationRow}>
                           {post.user && (
                             <>
                               <Text style={styles.authorText}>{post.user.username || post.user.name}</Text>
                               <Text style={styles.authorDateSeparator}> • </Text>
-                              <Text style={styles.dateText}>{formatDateToDDMMYYYY(post.createdAt || favorite.createdAt)}</Text>
+                              <Text style={styles.authorText}>{formatDateToDDMMYYYY(post.createdAt || favorite.createdAt)}</Text>
+                              <Text style={styles.authorDateSeparator}> • </Text>
+                              <Text style={styles.authorText}>{post.location || 'Germany'}</Text>
                             </>
                           )}
+                        </View>
+                        <View style={styles.replyCountContainer}>
+                          <IconSymbol
+                            ios_icon_name="message"
+                            android_material_icon_name="message"
+                            size={16}
+                            color={colors.textLight}
+                          />
+                          <Text style={styles.replyCountText}>
+                            {post.replyCount || post.repliesCount || 0}
+                          </Text>
                         </View>
                       </View>
                     </>
@@ -666,6 +682,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.xs,
   },
+  authorDateLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   authorText: {
     ...typography.bodySmall,
     color: colors.textLight,
@@ -680,5 +701,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  replyCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  replyCountText: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 11,
   },
 });
