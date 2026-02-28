@@ -108,6 +108,13 @@ export default function PersonalDetailsScreen() {
           editable={!loading}
         />
 
+        <Text style={styles.label}>City *</Text>
+        <CitySearchInput
+          value={city}
+          onChangeText={setCity}
+          placeholder="Search city..."
+        />
+
         <Text style={styles.label}>Email *</Text>
         <TextInput
           style={[styles.input, styles.inputDisabled]}
