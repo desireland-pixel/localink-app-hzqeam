@@ -17,8 +17,8 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
-    if (value.length > 0) {
-      const filtered = GERMANY_CITIES.filter(city =>
+    if (value && value.length > 0) {
+      const filtered = GERMANY_CITIES.filter((city) =>
         city.toLowerCase().includes(value.toLowerCase())
       );
       setFilteredCities(filtered);

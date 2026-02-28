@@ -667,8 +667,9 @@ const styles = StyleSheet.create({
   contactButton: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
     alignItems: 'center',
+    height: 48,
+    justifyContent: 'center',
   },
   contactButtonText: {
     ...typography.button,

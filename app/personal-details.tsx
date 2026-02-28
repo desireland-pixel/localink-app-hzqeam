@@ -233,7 +233,6 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
     alignItems: 'center',
     height: 48,
     justifyContent: 'center',
