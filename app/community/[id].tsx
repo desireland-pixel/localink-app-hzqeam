@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
+import { AppFooter } from '@/components/AppFooter';
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
@@ -569,14 +570,7 @@ export default function CommunityDetailsScreen() {
         </ScrollView>
 
         {topic.status === 'open' && (
-          <View style={[
-            styles.commentInputBar, 
-            { 
-              paddingBottom: Platform.OS === 'android' && keyboardHeight > 0 
-                ? spacing.sm 
-                : Math.max(spacing.md, insets.bottom) 
-            }
-          ]}>
+          <AppFooter style={styles.commentInputBar}>
             <TextInput
               style={styles.commentInput}
               placeholder="Write your comment"
@@ -602,20 +596,13 @@ export default function CommunityDetailsScreen() {
                 />
               )}
             </TouchableOpacity>
-          </View>
+          </AppFooter>
         )}
         
         {topic.status === 'closed' && (
-          <View style={[
-            styles.closedNotice, 
-            { 
-              paddingBottom: Platform.OS === 'android' && keyboardHeight > 0 
-                ? spacing.sm 
-                : Math.max(spacing.md, insets.bottom) 
-            }
-          ]}>
+          <AppFooter style={styles.closedNotice}>
             <Text style={styles.closedNoticeText}>This discussion is closed. No new comments can be added.</Text>
-          </View>
+          </AppFooter>
         )}
       </KeyboardAvoidingView>
 
@@ -883,12 +870,9 @@ const styles = StyleSheet.create({
   commentInputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
     gap: spacing.sm,
+    paddingHorizontal: 0,
+    paddingTop: 0,
   },
   commentInput: {
     flex: 1,
@@ -915,11 +899,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   closedNotice: {
-    backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
+    paddingHorizontal: 0,
+    paddingTop: 0,
   },
   closedNoticeText: {
     ...typography.body,
