@@ -123,13 +123,13 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm,
+    paddingVertical: Platform.OS === 'ios' ? spacing.sm : spacing.sm,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
     ...typography.body,
     color: colors.text,
-    height: 44,
+    minHeight: 44,
     textAlignVertical: 'center',
   },
   suggestionsContainer: {

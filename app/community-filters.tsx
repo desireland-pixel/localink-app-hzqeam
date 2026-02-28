@@ -74,10 +74,13 @@ export default function CommunityFiltersScreen() {
     const filterString = params.toString();
     console.log('[CommunityFiltersScreen] Filter string:', filterString);
     
-    router.replace({
-      pathname: '/(tabs)/(home)',
-      params: { filters: filterString, city: preservedCity }
-    });
+    // Use router.back() instead of router.replace to preserve the header state
+    router.back();
+    
+    // Pass filters via router.setParams after navigation
+    setTimeout(() => {
+      router.setParams({ filters: filterString, city: preservedCity });
+    }, 100);
   };
 
   const handleReset = () => {
