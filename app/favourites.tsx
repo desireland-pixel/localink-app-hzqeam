@@ -97,24 +97,24 @@ export default function FavouritesScreen() {
       const validFavorites = data.filter(f => {
         if (!f.post) return false;
         
-        // Filter out expired sublet posts (availableTo in the past)
+        // Filter out expired sublet posts (availableTo < today)
         if (f.postType === 'sublet' && f.post.availableTo) {
           const availableTo = new Date(f.post.availableTo);
-          availableTo.setHours(23, 59, 59, 999); // Include the full last day
+          availableTo.setHours(0, 0, 0, 0);
           if (availableTo < now) {
             console.log('FavouritesScreen: Filtering out expired sublet', f.post.id, f.post.availableTo);
             return false;
           }
         }
         
-        // Filter out expired travel posts (travelDate in the past)
+        // Filter out expired travel posts (travelDateTo < today)
         if (f.postType === 'travel' && f.post.travelDate) {
-          const travelDate = f.post.travelDateTo 
-            ? new Date(f.post.travelDateTo) 
-            : new Date(f.post.travelDate);
-          travelDate.setHours(23, 59, 59, 999); // Include the full last day
+          // Use travelDateTo if available, otherwise use travelDate
+          const dateToCheck = f.post.travelDateTo || f.post.travelDate;
+          const travelDate = new Date(dateToCheck);
+          travelDate.setHours(0, 0, 0, 0);
           if (travelDate < now) {
-            console.log('FavouritesScreen: Filtering out expired travel post', f.post.id, f.post.travelDate);
+            console.log('FavouritesScreen: Filtering out expired travel post', f.post.id, dateToCheck);
             return false;
           }
         }
@@ -163,7 +163,7 @@ export default function FavouritesScreen() {
     } else if (postType === 'travel') {
       router.push(`/travel/${postId}`);
     } else if (postType === 'community') {
-      router.push(`/carry/${postId}`);
+      router.push(`/community/${postId}`);
     }
   };
 

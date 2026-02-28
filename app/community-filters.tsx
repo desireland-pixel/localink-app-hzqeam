@@ -16,7 +16,7 @@ const CATEGORIES = [
   'Visa',
 ];
 
-export default function CarryFiltersScreen() {
+export default function CommunityFiltersScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   // Preserve city filter from the community page (city filter is independent)
@@ -25,12 +25,12 @@ export default function CarryFiltersScreen() {
   const [status, setStatus] = useState<'open' | 'closed' | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
-  console.log('[CarryFiltersScreen] Rendering', { category, status, hydrated });
+  console.log('[CommunityFiltersScreen] Rendering', { category, status, hydrated });
 
   // Use useFocusEffect to reinitialize filter state every time screen gains focus
   useFocusEffect(
     useCallback(() => {
-      console.log('[CarryFiltersScreen] Screen focused, hydrating filters from params', params.filters);
+      console.log('[CommunityFiltersScreen] Screen focused, hydrating filters from params', params.filters);
       setHydrated(false);
       
       // Reset all filters first
@@ -43,13 +43,13 @@ export default function CarryFiltersScreen() {
         
         const categoryParam = urlParams.get('category');
         if (categoryParam && CATEGORIES.includes(categoryParam)) {
-          console.log('[CarryFiltersScreen] Setting category:', categoryParam);
+          console.log('[CommunityFiltersScreen] Setting category:', categoryParam);
           setCategory(categoryParam);
         }
         
         const statusParam = urlParams.get('status');
         if (statusParam === 'open' || statusParam === 'closed') {
-          console.log('[CarryFiltersScreen] Setting status:', statusParam);
+          console.log('[CommunityFiltersScreen] Setting status:', statusParam);
           setStatus(statusParam);
         }
       }
@@ -59,7 +59,7 @@ export default function CarryFiltersScreen() {
   );
 
   const handleApply = () => {
-    console.log('[CarryFiltersScreen] Applying filters', { category, status });
+    console.log('[CommunityFiltersScreen] Applying filters', { category, status });
     
     const params = new URLSearchParams();
     
@@ -72,16 +72,16 @@ export default function CarryFiltersScreen() {
     }
     
     const filterString = params.toString();
-    console.log('[CarryFiltersScreen] Filter string:', filterString);
+    console.log('[CommunityFiltersScreen] Filter string:', filterString);
     
     router.replace({
-      pathname: '/(tabs)/carry',
+      pathname: '/(tabs)/(home)',
       params: { filters: filterString, city: preservedCity }
     });
   };
 
   const handleReset = () => {
-    console.log('[CarryFiltersScreen] Resetting filters');
+    console.log('[CommunityFiltersScreen] Resetting filters');
     setCategory(null);
     setStatus(null);
   };

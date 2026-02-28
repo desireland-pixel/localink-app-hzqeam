@@ -399,9 +399,9 @@ export default function CommunityScreen() {
         <TouchableOpacity
           style={[styles.iconButton, (params.filters && params.filters.toString().length > 0) && styles.iconButtonActive]}
           onPress={() => {
-            console.log('CommunityScreen: Navigate to carry filters');
+            console.log('CommunityScreen: Navigate to community filters');
             router.push({
-              pathname: '/carry-filters',
+              pathname: '/community-filters',
               params: { filters: params.filters || '', city: selectedCity }
             });
           }}
@@ -480,7 +480,7 @@ export default function CommunityScreen() {
                 style={[styles.card, hasUnreadReplies && styles.cardUnread]}
                 onPress={() => {
                   console.log('CommunityScreen: View topic', topic.id);
-                  router.push(`/carry/${topic.id}`);
+                  router.push(`/community/${topic.id}`);
                 }}
                 onLayout={(event) => {
                   const { y, height } = event.nativeEvent.layout;
