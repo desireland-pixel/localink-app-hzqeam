@@ -673,8 +673,9 @@ const styles = StyleSheet.create({
   contactButton: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
     alignItems: 'center',
+    height: 48,
+    justifyContent: 'center',
   },
   contactButtonDisabled: {
     opacity: 0.5,
@@ -686,8 +687,9 @@ const styles = StyleSheet.create({
   ownPostNotice: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    padding: spacing.md,
     alignItems: 'center',
+    height: 48,
+    justifyContent: 'center',
   },
   ownPostText: {
     ...typography.body,
