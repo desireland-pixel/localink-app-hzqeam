@@ -1,111 +1,83 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, TextInput, ScrollView, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, ScrollView, Platform, Keyboard } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { apiGet } from '@/utils/api';
+import { GERMANY_CITIES } from '@/utils/cities';
 
 interface CitySearchInputProps {
   value: string;
-  onChangeText: (city: string) => void;
+  onChangeText: (text: string) => void;
   placeholder?: string;
-  style?: any;
-  cityType?: 'all' | 'travel';
+  onFocus?: () => void;
 }
 
-export function CitySearchInput({ value, onChangeText, placeholder = 'Search city...', style, cityType = 'all' }: CitySearchInputProps) {
-  const [query, setQuery] = useState(value);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const selectedFromSuggestion = useRef(false);
+export function CitySearchInput({ value, onChangeText, placeholder = 'Search city...', onFocus }: CitySearchInputProps) {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [filteredCities, setFilteredCities] = useState<string[]>([]);
+  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
-    setQuery(value);
+    if (value.length > 0) {
+      const filtered = GERMANY_CITIES.filter(city =>
+        city.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredCities(filtered);
+      setShowDropdown(true);
+    } else {
+      setFilteredCities([]);
+      setShowDropdown(false);
+    }
   }, [value]);
 
-  const handleQueryChange = async (text: string) => {
-    selectedFromSuggestion.current = false;
-    setQuery(text);
-    
-    if (text.trim().length > 0) {
-      try {
-        const typeParam = cityType !== 'all' ? `&type=${cityType}` : '';
-        const response = await apiGet<{ cities: string[] }>(`/api/cities/search?q=${encodeURIComponent(text)}&limit=8${typeParam}`);
-        setSuggestions(response.cities);
-        setShowSuggestions(response.cities.length > 0);
-      } catch (error) {
-        console.error('[CitySearchInput] Error searching cities:', error);
-        setSuggestions([]);
-        setShowSuggestions(false);
-      }
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
+  const handleSelectCity = (city: string) => {
+    onChangeText(city);
+    setShowDropdown(false);
+    Keyboard.dismiss();
   };
 
-  const handleSelectCity = (city: string) => {
-    console.log('[CitySearchInput] City selected:', city);
-    selectedFromSuggestion.current = true;
-    setQuery(city);
-    onChangeText(city);
-    setShowSuggestions(false);
-    setSuggestions([]);
+  const handleFocus = () => {
+    if (value.length > 0) {
+      setShowDropdown(true);
+    }
+    if (onFocus) {
+      onFocus();
+    }
   };
 
   const handleBlur = () => {
-    // Delay to allow tap on suggestion
+    // Delay hiding dropdown to allow tap on city item
     setTimeout(() => {
-      setShowSuggestions(false);
-      // Only update parent with typed query if user did NOT select from suggestions
-      if (!selectedFromSuggestion.current && query !== value) {
-        onChangeText(query);
-      }
-    }, 300);
-  };
-
-  const handleFocus = async () => {
-    selectedFromSuggestion.current = false;
-    if (query.trim().length > 0) {
-      try {
-        const typeParam = cityType !== 'all' ? `&type=${cityType}` : '';
-        const response = await apiGet<{ cities: string[] }>(`/api/cities/search?q=${encodeURIComponent(query)}&limit=8${typeParam}`);
-        setSuggestions(response.cities);
-        setShowSuggestions(response.cities.length > 0);
-      } catch (error) {
-        console.error('[CitySearchInput] Error searching cities:', error);
-      }
-    }
+      setShowDropdown(false);
+    }, 200);
   };
 
   return (
-    <View style={[styles.container, style]}>
+    <View style={styles.container}>
       <TextInput
+        ref={inputRef}
         style={styles.input}
         placeholder={placeholder}
         placeholderTextColor={colors.textLight}
-        value={query}
-        onChangeText={handleQueryChange}
+        value={value}
+        onChangeText={onChangeText}
         onFocus={handleFocus}
         onBlur={handleBlur}
         autoCapitalize="words"
-        autoCorrect={false}
       />
-      
-      {showSuggestions && suggestions.length > 0 && (
-        <View style={styles.suggestionsContainer}>
+      {showDropdown && filteredCities.length > 0 && (
+        <View style={styles.dropdown}>
           <ScrollView 
-            style={styles.suggestionsList}
-            keyboardShouldPersistTaps="always"
+            style={styles.dropdownScroll}
+            keyboardShouldPersistTaps="handled"
             nestedScrollEnabled={true}
           >
-            {suggestions.map((item, index) => (
+            {filteredCities.map((city, index) => (
               <TouchableOpacity
-                key={`${item}-${index}`}
-                style={styles.suggestionItem}
-                onPress={() => handleSelectCity(item)}
-                activeOpacity={0.7}
+                key={index}
+                style={styles.dropdownItem}
+                onPress={() => handleSelectCity(city)}
               >
-                <Text style={styles.suggestionText}>{item}</Text>
+                <Text style={styles.dropdownItemText}>{city}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -123,43 +95,55 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: Platform.OS === 'ios' ? spacing.sm : spacing.sm,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
     ...typography.body,
     color: colors.text,
-    minHeight: 44,
-    textAlignVertical: 'center',
+    height: 44,
+    ...Platform.select({
+      ios: {
+        paddingVertical: 12,
+      },
+      android: {
+        paddingVertical: spacing.sm,
+      },
+    }),
   },
-  suggestionsContainer: {
+  dropdown: {
     position: 'absolute',
-    top: '100%',
+    top: 48,
     left: 0,
     right: 0,
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    marginTop: 4,
     maxHeight: 200,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
     zIndex: 1001,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
-  suggestionsList: {
+  dropdownScroll: {
     maxHeight: 200,
   },
-  suggestionItem: {
+  dropdownItem: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  suggestionText: {
+  dropdownItemText: {
     ...typography.body,
     color: colors.text,
   },
