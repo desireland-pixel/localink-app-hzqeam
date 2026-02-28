@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -8,20 +8,16 @@ import { authenticatedPut } from '@/utils/api';
 import { CitySearchInput } from '@/components/CitySearchInput';
 import { useRouter } from 'expo-router';
 import Modal from '@/components/ui/Modal';
-import { AppFooter } from '@/components/AppFooter';
 
 export default function PersonalDetailsScreen() {
   const router = useRouter();
   const { user, profile, refreshProfile } = useAuth();
-  const scrollViewRef = useRef<ScrollView>(null);
-  const cityInputRef = useRef<View>(null);
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [city, setCity] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [cityInputLayout, setCityInputLayout] = useState({ y: 0, height: 0 });
 
   console.log('PersonalDetailsScreen: Rendering', { user: user?.id, profile: profile?.name });
 
@@ -37,18 +33,6 @@ export default function PersonalDetailsScreen() {
       setName(user.name || '');
     }
   }, [user, profile]);
-
-  const handleCityInputFocus = () => {
-    // When city input is focused, scroll to make it visible above the keyboard
-    setTimeout(() => {
-      if (cityInputLayout.y > 0) {
-        scrollViewRef.current?.scrollTo({
-          y: cityInputLayout.y - 100, // Scroll with some offset to show dropdown
-          animated: true,
-        });
-      }
-    }, 300);
-  };
 
   const handleSave = async () => {
     console.log('PersonalDetailsScreen: Saving personal details');
@@ -99,17 +83,11 @@ export default function PersonalDetailsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
         style={styles.keyboardView}
         keyboardVerticalOffset={Platform.OS === 'android' ? 0 : 0}
       >
-      <ScrollView 
-        ref={scrollViewRef}
-        style={styles.content} 
-        keyboardShouldPersistTaps="handled" 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView style={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Text style={styles.label}>Full Name *</Text>
         <TextInput
           style={[styles.input, styles.inputDisabled]}
@@ -150,24 +128,12 @@ export default function PersonalDetailsScreen() {
         />
 
         <Text style={styles.label}>City *</Text>
-        <View
-          ref={cityInputRef}
-          onLayout={(event) => {
-            const { y, height } = event.nativeEvent.layout;
-            setCityInputLayout({ y, height });
-          }}
-        >
-          <CitySearchInput
-            value={city}
-            onChangeText={setCity}
-            placeholder="Search city..."
-            onFocus={handleCityInputFocus}
-          />
-        </View>
-      </ScrollView>
-      </KeyboardAvoidingView>
+        <CitySearchInput
+          value={city}
+          onChangeText={setCity}
+          placeholder="Search city..."
+        />
 
-      <AppFooter>
         <TouchableOpacity
           style={[styles.button, (!isFormValid || loading) && styles.buttonDisabled]}
           onPress={handleSave}
@@ -179,7 +145,8 @@ export default function PersonalDetailsScreen() {
             <Text style={styles.buttonText}>Save Changes</Text>
           )}
         </TouchableOpacity>
-      </AppFooter>
+      </ScrollView>
+      </KeyboardAvoidingView>
 
       <Modal
         visible={!!error}
@@ -202,11 +169,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-  },
-  scrollContent: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xl,
   },
   label: {
     ...typography.bodySmall,
@@ -218,13 +182,12 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
     ...typography.body,
     color: colors.text,
-    height: 44,
   },
   inputDisabled: {
     opacity: 0.6,
@@ -233,9 +196,10 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
     alignItems: 'center',
-    height: 48,
-    justifyContent: 'center',
+    marginTop: spacing.xl,
+    marginBottom: spacing.xl,
   },
   buttonDisabled: {
     opacity: 0.6,

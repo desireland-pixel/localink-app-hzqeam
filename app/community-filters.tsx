@@ -4,7 +4,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from '
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { AppFooter } from '@/components/AppFooter';
 
 const CATEGORIES = [
   'General',
@@ -138,14 +137,14 @@ export default function CommunityFiltersScreen() {
         </View>
       </ScrollView>
 
-      <AppFooter style={styles.footer}>
+      <View style={styles.footer}>
         <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
           <Text style={styles.resetButtonText}>Reset</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
           <Text style={styles.applyButtonText}>Apply Filters</Text>
         </TouchableOpacity>
-      </AppFooter>
+      </View>
     </SafeAreaView>
   );
 }
@@ -230,20 +229,25 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
     gap: spacing.md,
-    paddingHorizontal: 0,
-    paddingTop: 0,
+    paddingBottom: Platform.OS === 'ios' ? 9 : 5,
+    marginBottom: Platform.OS === 'ios' ? 2 : -1,
   },
   resetButton: {
     flex: 1,
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
+    height: 40,
     justifyContent: 'center',
-    height: 48,
+    marginTop: Platform.OS === 'ios' ? 4 : 0,
   },
   resetButtonText: {
     ...typography.button,
@@ -253,10 +257,11 @@ const styles = StyleSheet.create({
     flex: 2,
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
+    height: 40,
     justifyContent: 'center',
-    height: 48,
+    marginTop: Platform.OS === 'ios' ? 4 : 0,
   },
   applyButtonText: {
     ...typography.button,

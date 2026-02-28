@@ -8,7 +8,6 @@ import { authenticatedGet, authenticatedPost, authenticatedDelete, BACKEND_URL, 
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { IconSymbol } from '@/components/IconSymbol';
-import { AppFooter } from '@/components/AppFooter';
 
 interface Message {
   id: string;
@@ -532,7 +531,14 @@ export default function ChatScreen() {
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />
 
-        <AppFooter style={styles.inputContainer}>
+        <View style={[
+          styles.inputContainer,
+          { 
+            paddingBottom: Platform.OS === 'android' && keyboardHeight > 0 
+              ? spacing.sm 
+              : Math.max(spacing.md, insets.bottom) 
+          }
+        ]}>
           <TextInput
             style={styles.input}
             placeholder="Type a message..."
@@ -558,7 +564,7 @@ export default function ChatScreen() {
               />
             )}
           </TouchableOpacity>
-        </AppFooter>
+        </View>
       </KeyboardAvoidingView>
 
       <Modal
@@ -737,9 +743,12 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
     gap: spacing.sm,
-    paddingHorizontal: 0,
-    paddingTop: 0,
   },
   input: {
     flex: 1,
