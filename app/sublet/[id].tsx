@@ -3,13 +3,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Platform, FlatList, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost, authenticatedPatch, authenticatedDelete } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
+import { AppFooter } from '@/components/AppFooter';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -40,7 +41,6 @@ export default function SubletDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
-  const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const [sublet, setSublet] = useState<Sublet | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +51,7 @@ export default function SubletDetailsScreen() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
 
-  console.log('SubletDetailsScreen: Rendering', { id, sublet, imageCount: sublet?.imageUrls?.length, insets });
+  console.log('SubletDetailsScreen: Rendering', { id, sublet, imageCount: sublet?.imageUrls?.length });
 
   const fetchSublet = React.useCallback(async () => {
     console.log('SubletDetailsScreen: Fetching sublet', id);
@@ -414,11 +414,11 @@ export default function SubletDetailsScreen() {
       </ScrollView>
 
       {!isOwnPost && (
-        <View style={[styles.footer, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
+        <AppFooter>
           <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
             <Text style={styles.contactButtonText}>Contact</Text>
           </TouchableOpacity>
-        </View>
+        </AppFooter>
       )}
 
       <Modal
@@ -663,12 +663,6 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: '#FFFFFF',
     fontWeight: '600',
-  },
-  footer: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
   },
   contactButton: {
     backgroundColor: colors.primary,

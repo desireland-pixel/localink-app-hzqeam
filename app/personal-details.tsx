@@ -8,6 +8,7 @@ import { authenticatedPut } from '@/utils/api';
 import { CitySearchInput } from '@/components/CitySearchInput';
 import { useRouter } from 'expo-router';
 import Modal from '@/components/ui/Modal';
+import { AppFooter } from '@/components/AppFooter';
 
 export default function PersonalDetailsScreen() {
   const router = useRouter();
@@ -133,7 +134,10 @@ export default function PersonalDetailsScreen() {
           onChangeText={setCity}
           placeholder="Search city..."
         />
+      </ScrollView>
+      </KeyboardAvoidingView>
 
+      <AppFooter>
         <TouchableOpacity
           style={[styles.button, (!isFormValid || loading) && styles.buttonDisabled]}
           onPress={handleSave}
@@ -145,8 +149,7 @@ export default function PersonalDetailsScreen() {
             <Text style={styles.buttonText}>Save Changes</Text>
           )}
         </TouchableOpacity>
-      </ScrollView>
-      </KeyboardAvoidingView>
+      </AppFooter>
 
       <Modal
         visible={!!error}
@@ -182,12 +185,13 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
     ...typography.body,
     color: colors.text,
+    height: 44,
   },
   inputDisabled: {
     opacity: 0.6,
@@ -198,8 +202,6 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
-    marginTop: spacing.xl,
-    marginBottom: spacing.xl,
   },
   buttonDisabled: {
     opacity: 0.6,
