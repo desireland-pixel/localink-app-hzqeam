@@ -382,6 +382,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     justifyContent: 'center',
+    height: 48,
   },
   resetButtonText: {
     ...typography.button,
@@ -394,6 +395,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
+    height: 48,
   },
   applyButtonText: {
     ...typography.button,

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   View,
@@ -8,7 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '@react-navigation/native';
@@ -20,6 +21,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Href } from 'expo-router';
+import { spacing } from '@/styles/commonStyles';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -34,19 +36,18 @@ interface FloatingTabBarProps {
   tabs: TabBarItem[];
   containerWidth?: number;
   borderRadius?: number;
-  bottomMargin?: number;
 }
 
 export default function FloatingTabBar({
   tabs,
   containerWidth = screenWidth / 2.5,
   borderRadius = 35,
-  bottomMargin
 }: FloatingTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const theme = useTheme();
   const animatedValue = useSharedValue(0);
+  const insets = useSafeAreaInsets();
 
   // Improved active tab detection with better path matching
   const activeTabIndex = React.useMemo(() => {
@@ -97,8 +98,6 @@ export default function FloatingTabBar({
   const handleTabPress = (route: Href) => {
     router.push(route);
   };
-
-  // Remove unnecessary tabBarStyle animation to prevent flickering
 
   const tabWidthPercent = ((100 / tabs.length) - 1).toFixed(2);
 
@@ -155,82 +154,75 @@ export default function FloatingTabBar({
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
-      <View style={[
-        styles.container,
-        {
-          width: containerWidth,
-          marginBottom: bottomMargin ?? 20
-        }
-      ]}>
-        <BlurView
-          intensity={80}
-          style={[dynamicStyles.blurContainer, { borderRadius }]}
-        >
-          <View style={dynamicStyles.background} />
-          <Animated.View style={[dynamicStyles.indicator, indicatorStyle]} />
-          <View style={styles.tabsContainer}>
-            {tabs.map((tab, index) => {
-              const isActive = activeTabIndex === index;
+    <View style={[
+      styles.container,
+      {
+        width: containerWidth,
+        paddingBottom: Math.max(spacing.md, insets.bottom),
+      }
+    ]}>
+      <BlurView
+        intensity={80}
+        style={[dynamicStyles.blurContainer, { borderRadius }]}
+      >
+        <View style={dynamicStyles.background} />
+        <Animated.View style={[dynamicStyles.indicator, indicatorStyle]} />
+        <View style={styles.tabsContainer}>
+          {tabs.map((tab, index) => {
+            const isActive = activeTabIndex === index;
 
-              return (
-                <React.Fragment key={index}>
-                <TouchableOpacity
-                  key={index} // Use index as key
-                  style={styles.tab}
-                  onPress={() => handleTabPress(tab.route)}
-                  activeOpacity={0.7}
-                >
-                  <View key={index} style={styles.tabContent}>
-                    <IconSymbol
-                      android_material_icon_name={tab.icon}
-                      ios_icon_name={tab.icon}
-                      size={24}
-                      color={isActive ? theme.colors.primary : (theme.dark ? '#98989D' : '#000000')}
-                    />
-                    <Text
-                      style={[
-                        styles.tabLabel,
-                        { color: theme.dark ? '#98989D' : '#8E8E93' },
-                        isActive && { color: theme.colors.primary, fontWeight: '600' },
-                      ]}
-                    >
-                      {tab.label}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-                </React.Fragment>
-              );
-            })}
-          </View>
-        </BlurView>
-      </View>
-    </SafeAreaView>
+            return (
+              <React.Fragment key={index}>
+              <TouchableOpacity
+                key={index} // Use index as key
+                style={styles.tab}
+                onPress={() => handleTabPress(tab.route)}
+                activeOpacity={0.7}
+              >
+                <View key={index} style={styles.tabContent}>
+                  <IconSymbol
+                    android_material_icon_name={tab.icon}
+                    ios_icon_name={tab.icon}
+                    size={24}
+                    color={isActive ? theme.colors.primary : (theme.dark ? '#98989D' : '#000000')}
+                  />
+                  <Text
+                    style={[
+                      styles.tabLabel,
+                      { color: theme.dark ? '#98989D' : '#8E8E93' },
+                      isActive && { color: theme.colors.primary, fontWeight: '600' },
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              </React.Fragment>
+            );
+          })}
+        </View>
+      </BlurView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     zIndex: 1000,
     alignItems: 'center',
-    paddingVertical: 12, // Base vertical padding for consistent height
-  },
-  container: {
-    marginHorizontal: 20,
-    alignSelf: 'center',
-    // width and marginBottom handled dynamically via props
+    paddingTop: spacing.md, // Base vertical padding matching AppFooter
+    paddingHorizontal: 20,
   },
   blurContainer: {
     overflow: 'hidden',
-    // borderRadius and other styling applied dynamically
+    width: '100%',
   },
   background: {
     ...StyleSheet.absoluteFillObject,
-    // Dynamic styling applied in component
   },
   indicator: {
     position: 'absolute',
@@ -239,7 +231,6 @@ const styles = StyleSheet.create({
     bottom: 4,
     borderRadius: 27,
     width: `${(100 / 2) - 1}%`, // Default for 2 tabs, will be overridden by dynamic styles
-    // Dynamic styling applied in component
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -262,6 +253,5 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '500',
     marginTop: 2,
-    // Dynamic styling applied in component
   },
 });

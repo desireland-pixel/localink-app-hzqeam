@@ -13,6 +13,8 @@ interface AppFooterProps {
  * Standardized footer component for consistent height across all screens.
  * Uses base vertical padding (spacing.md = 16px) + safe area bottom inset.
  * This matches the tab bar height for visual consistency.
+ * 
+ * All buttons inside AppFooter should have height: 48 for consistency.
  */
 export function AppFooter({ children, style }: AppFooterProps) {
   const insets = useSafeAreaInsets();
