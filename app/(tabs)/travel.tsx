@@ -534,7 +534,17 @@ export default function TravelScreen() {
             let tagBackgroundColor = '';
             let tagTextColor = '';
             
+            // Check if post should be disabled based on date
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            let isExpired = false;
+            
             if (post.type === 'offering') {
+              // Offering: disable if travelDate < today
+              const travelDate = new Date(post.travelDate);
+              travelDate.setHours(0, 0, 0, 0);
+              isExpired = travelDate < today;
+              
               label = 'Offering';
               tagBackgroundColor = '#D1FAE5';
               tagTextColor = '#065F46';
@@ -552,16 +562,28 @@ export default function TravelScreen() {
                 iconCompanionship = true;
                 iconAlly = true;
               }
-            } else if (post.type === 'seeking') {
+            } else if (post.type === 'seeking' || post.type === 'seeking-ally') {
+              // Seeking (both companionship and ally): disable if travelDateTo < today
+              // If travelDateTo is not available, then only disable if travelDate < today
+              if (post.travelDateTo) {
+                const travelDateTo = new Date(post.travelDateTo);
+                travelDateTo.setHours(0, 0, 0, 0);
+                isExpired = travelDateTo < today;
+              } else {
+                const travelDate = new Date(post.travelDate);
+                travelDate.setHours(0, 0, 0, 0);
+                isExpired = travelDate < today;
+              }
+              
               label = 'Seeking';
               tagBackgroundColor = '#DBEAFE';
               tagTextColor = '#1E40AF';
-              iconCompanionship = true;
-            } else if (post.type === 'seeking-ally') {
-              label = 'Seeking';
-              tagBackgroundColor = '#DBEAFE';
-              tagTextColor = '#1E40AF';
-              iconAlly = true;
+              
+              if (post.type === 'seeking') {
+                iconCompanionship = true;
+              } else {
+                iconAlly = true;
+              }
             }
             
             const isFavorited = favorites.has(post.id);
@@ -571,8 +593,9 @@ export default function TravelScreen() {
             return (
               <TouchableOpacity
                 key={post.id}
-                style={styles.card}
-                onPress={() => router.push(`/travel/${post.id}`)}
+                style={[styles.card, isExpired && styles.cardDisabled]}
+                onPress={() => !isExpired && router.push(`/travel/${post.id}`)}
+                disabled={isExpired}
               >
                 <View style={styles.cardHeader}>
                   <View style={styles.tagRow}>
@@ -927,6 +950,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  cardDisabled: {
+    opacity: 0.5,
   },
   cardHeader: {
     flexDirection: 'row',

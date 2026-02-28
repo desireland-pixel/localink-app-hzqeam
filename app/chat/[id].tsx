@@ -501,7 +501,7 @@ export default function ChatScreen() {
         }}
       />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
@@ -526,7 +526,7 @@ export default function ChatScreen() {
           style={styles.messagesContainer}
           contentContainerStyle={[
             styles.messagesContent,
-            { paddingBottom: keyboardHeight > 0 ? keyboardHeight - insets.bottom + spacing.md : spacing.md }
+            { paddingBottom: Platform.OS === 'android' && keyboardHeight > 0 ? keyboardHeight + spacing.md : spacing.md }
           ]}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />

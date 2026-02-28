@@ -162,7 +162,7 @@ export default function RootLayout() {
                   }} 
                 />
                 <Stack.Screen 
-                  name="carry/[id]" 
+                  name="community/[id]" 
                   options={{ 
                     headerShown: true,
                     title: 'Community discussion',
@@ -194,14 +194,6 @@ export default function RootLayout() {
                   }} 
                 />
                 <Stack.Screen 
-                  name="post-carry" 
-                  options={{ 
-                    headerShown: true,
-                    title: 'Ally',
-                    headerBackTitle: 'Cancel'
-                  }} 
-                />
-                <Stack.Screen 
                   name="sublet-filters" 
                   options={{ 
                     headerShown: true,
@@ -218,7 +210,7 @@ export default function RootLayout() {
                   }} 
                 />
                 <Stack.Screen 
-                  name="carry-filters" 
+                  name="community-filters" 
                   options={{ 
                     headerShown: true,
                     title: 'Discussion Filters',

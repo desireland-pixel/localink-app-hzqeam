@@ -215,7 +215,7 @@ export default function CommunityDetailsScreen() {
       
       setShowDeleteModal(false);
       
-      router.replace('/(tabs)/carry');
+      router.replace('/(tabs)/(home)');
     } catch (error: any) {
       console.error('CommunityDetailsScreen: Error with topic action', error);
       setError(error.message || `Failed to ${actionText} topic`);
@@ -381,13 +381,13 @@ export default function CommunityDetailsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView 
           style={styles.content}
-          contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight - insets.bottom + spacing.md : spacing.md }}
+          contentContainerStyle={{ paddingBottom: Platform.OS === 'android' && keyboardHeight > 0 ? keyboardHeight + spacing.md : spacing.md }}
         >
           <View style={styles.mainPostCard}>
             <View style={styles.headerRow}>
