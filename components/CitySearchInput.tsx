@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, ScrollView, Platform, Keyboard } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
-import { GERMANY_CITIES } from '@/utils/cities';
+import { GERMAN_CITIES } from '@/utils/cities';
 
 interface CitySearchInputProps {
   value: string;
@@ -18,7 +18,7 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
 
   useEffect(() => {
     if (value && value.length > 0) {
-      const filtered = GERMANY_CITIES.filter((city) =>
+      const filtered = GERMAN_CITIES.filter((city) =>
         city.toLowerCase().includes(value.toLowerCase())
       );
       setFilteredCities(filtered);
