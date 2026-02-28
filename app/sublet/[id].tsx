@@ -414,7 +414,8 @@ export default function SubletDetailsScreen() {
       </ScrollView>
 
       {!isOwnPost && (
-        <View style={[styles.footer, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
+        //<View style={[styles.footer, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
+        <View style={styles.footer}>
           <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
             <Text style={styles.contactButtonText}>Contact</Text>
           </TouchableOpacity>
@@ -666,7 +667,9 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    //paddingVertical: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
