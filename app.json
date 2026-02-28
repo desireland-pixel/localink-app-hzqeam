@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "LocaLink",
-    "slug": "LocaLink",
+    "name": "LokaLinc",
+    "slug": "LokaLinc",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/Logo_LokaLinc_inverse.png",
@@ -36,7 +36,7 @@
       "expo-router",
       "expo-web-browser"
     ],
-    "scheme": "LocaLink",
+    "scheme": "LokaLinc",
     "experiments": {
       "typedRoutes": true
     },
