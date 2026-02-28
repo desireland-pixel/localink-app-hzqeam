@@ -134,13 +134,6 @@ export default function PersonalDetailsScreen() {
           secureTextEntry={true}
         />
 
-        <Text style={styles.label}>City *</Text>
-        <CitySearchInput
-          value={city}
-          onChangeText={setCity}
-          placeholder="Search city..."
-        />
-
         <TouchableOpacity
           style={[styles.button, (!isFormValid || loading) && styles.buttonDisabled]}
           onPress={handleSave}
