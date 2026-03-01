@@ -2,14 +2,12 @@
 // Captures console.log/warn/error and sends to Natively server for AI debugging
 // Declare __DEV__ global (React Native global for development mode detection)
 declare const __DEV__: boolean;
+// Prevent this file from doing anything in production
+export const setupErrorLogging = () => {};
 // Auto-initialize logging when this module is imported
 // Only run in development mode - production apps don't need log forwarding
-if (!__DEV__) {
-  // Prevent this file from doing anything in production
-  export const setupErrorLogging = () => {};
-}
 
-if (__DEV__) {
+if (!__DEV__) {
 
 import { Platform } from "react-native";
 import Constants from "expo-constants";
@@ -365,5 +363,3 @@ export const setupErrorLogging = () => {
     }
   }
 };
-
-}
