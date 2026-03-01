@@ -8,6 +8,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { authenticatedGet, authenticatedPost, authenticatedDelete, apiGet } from '@/utils/api';
 import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY, getCityCode } from '@/utils/cities';
 import { useAuth } from '@/contexts/AuthContext';
+import Modal from '@/components/ui/Modal';
 
 interface TravelPost {
   id: string;
@@ -35,6 +36,16 @@ interface TravelPost {
 
 type SortOption = 'Newest' | 'Earliest departure' | 'Latest departure';
 
+const TRAVEL_DISCLAIMER = `✈️ Travel Coordination Disclaimer
+
+Travel & Item Coordination Notice
+
+LokaLinc provides a digital platform enabling users to connect and coordinate independently.
+
+Users are solely responsible for compliance with all applicable laws, airline policies, and customs regulations. The transport of illegal, restricted, hazardous, or commercially regulated goods is strictly prohibited. Offered/Received incentives do not constitute employment, commercial transport fees, or service engagement by the platform.
+
+No responsibility or liability is assumed for loss, damage, delay, disputes, or legal consequences arising from arrangements made between users.`;
+
 export default function TravelScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -46,6 +57,12 @@ export default function TravelScreen() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [sortOption, setSortOption] = useState<SortOption>('Newest');
   const [showSortModal, setShowSortModal] = useState(false);
+
+  // Disclaimer state
+  const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+  const [disclaimerCheckLoading, setDisclaimerCheckLoading] = useState(true);
+
   const [selectedFrom, setSelectedFrom] = useState<string>(() => {
     // Initialize from city from params if available (preserved from filter page navigation)
     return typeof params.fromCity === 'string' ? params.fromCity : '';
@@ -81,6 +98,48 @@ export default function TravelScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.toCity]);
+
+  // Check if user has accepted travel disclaimer
+  useEffect(() => {
+    const checkDisclaimer = async () => {
+      if (!user) {
+        setDisclaimerCheckLoading(false);
+        return;
+      }
+
+      try {
+        console.log('TravelScreen: Checking disclaimer acceptance');
+        const response = await authenticatedGet<{ subletDisclaimerAccepted: boolean; travelDisclaimerAccepted: boolean }>('/api/profile/disclaimers');
+        console.log('TravelScreen: Disclaimer status:', response);
+
+        if (!response.travelDisclaimerAccepted) {
+          console.log('TravelScreen: Showing travel disclaimer modal');
+          setShowDisclaimerModal(true);
+        }
+        setDisclaimerAccepted(response.travelDisclaimerAccepted);
+      } catch (error) {
+        console.error('TravelScreen: Error checking disclaimer:', error);
+        // If error, assume not accepted and show disclaimer
+        setShowDisclaimerModal(true);
+      } finally {
+        setDisclaimerCheckLoading(false);
+      }
+    };
+
+    checkDisclaimer();
+  }, [user]);
+
+  const handleAcceptTravelDisclaimer = async () => {
+    try {
+      console.log('TravelScreen: Accepting travel disclaimer');
+      await authenticatedPost('/api/profile/disclaimers', { type: 'travel' });
+      console.log('TravelScreen: Travel disclaimer accepted');
+      setDisclaimerAccepted(true);
+      setShowDisclaimerModal(false);
+    } catch (error) {
+      console.error('TravelScreen: Error accepting travel disclaimer:', error);
+    }
+  };
 
   console.log('TravelScreen: Rendering', { postsCount: posts.length, loading, selectedFrom, selectedTo });
 
@@ -333,6 +392,17 @@ export default function TravelScreen() {
   // Get display codes for selected cities
   const fromDisplayCode = selectedFrom ? getCityCode(selectedFrom) : '';
   const toDisplayCode = selectedTo ? getCityCode(selectedTo) : '';
+
+  // Show loading while checking disclaimer
+  if (disclaimerCheckLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -737,6 +807,17 @@ export default function TravelScreen() {
           </View>
         </TouchableOpacity>
       </RNModal>
+
+      {/* Travel Disclaimer Modal */}
+      <Modal
+        visible={showDisclaimerModal}
+        onClose={() => {}}
+        title="Travel Coordination Disclaimer"
+        message={TRAVEL_DISCLAIMER}
+        confirmText="I understand and agree"
+        onConfirm={handleAcceptTravelDisclaimer}
+        type="info"
+      />
     </SafeAreaView>
   );
 }

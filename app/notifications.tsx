@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import { authenticatedPost, authenticatedDelete } from '@/utils/api';
 import Modal from '@/components/ui/Modal';
 
@@ -46,7 +47,14 @@ export default function NotificationsScreen() {
       console.log('[Notifications] Registering for push notifications');
       
       if (!Device.isDevice) {
-        setError('Push notifications are not available on simulators/emulators');
+        setError('Push notifications are only available on physical devices, not simulators or emulators.');
+        return null;
+      }
+
+      // Check if running in Expo Go (which doesn't support FCM-based push tokens without a project ID)
+      const isExpoGo = Constants.appOwnership === 'expo';
+      if (isExpoGo) {
+        setError('Push notifications are not fully supported in Expo Go. Please install the standalone APK build to use push notifications.');
         return null;
       }
 
@@ -59,14 +67,40 @@ export default function NotificationsScreen() {
       }
 
       if (finalStatus !== 'granted') {
-        setError('Permission to receive push notifications was denied');
+        setError('Permission to receive push notifications was denied. Please enable notifications in your device settings.');
         return null;
       }
 
-      const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: 'your-project-id', // This will be auto-configured by Expo
-      });
-      const token = tokenData.data;
+      // Get project ID from multiple possible sources
+      const projectId = 
+        Constants.expoConfig?.extra?.eas?.projectId || 
+        (Constants as any).easConfig?.projectId ||
+        Constants.expoConfig?.extra?.projectId ||
+        undefined;
+
+      console.log('[Notifications] Using project ID:', projectId);
+
+      let token: string;
+      try {
+        const tokenData = await Notifications.getExpoPushTokenAsync(
+          projectId ? { projectId } : {}
+        );
+        token = tokenData.data;
+      } catch (tokenError: any) {
+        console.error('[Notifications] Failed to get push token:', tokenError);
+        if (tokenError.message?.includes('projectId') || tokenError.message?.includes('project')) {
+          setError(
+            'Push notifications require an EAS project ID. To enable this feature:\n\n' +
+            '1. Run: eas init\n' +
+            '2. Add the project ID to app.json under extra.eas.projectId\n' +
+            '3. Rebuild the app'
+          );
+        } else {
+          setError(tokenError.message || 'Failed to obtain push notification token.');
+        }
+        return null;
+      }
+
       console.log('[Notifications] Push token obtained:', token);
 
       // Register token with backend
@@ -75,11 +109,25 @@ export default function NotificationsScreen() {
       console.log('[Notifications] Push token registered with backend');
 
       setPushToken(token);
-      setSuccess('Push notifications enabled successfully');
+      setSuccess('Push notifications enabled successfully! You will now receive notifications for new messages and activity.');
       return token;
     } catch (error: any) {
       console.error('[Notifications] Error registering for push notifications:', error);
-      setError(error.message || 'Failed to enable push notifications');
+      
+      // Provide more helpful error messages
+      let errorMessage = 'Failed to enable push notifications.';
+      
+      if (error.message?.includes('projectId') || error.message?.includes('project')) {
+        errorMessage = 
+          'Push notifications require an EAS project ID configuration. ' +
+          'Please contact the app administrator or rebuild the app with a valid EAS project ID.';
+      } else if (error.message?.includes('EXPO_TOKEN') || error.message?.includes('Expo Go')) {
+        errorMessage = 'Push notifications are not available in Expo Go. Please use the standalone APK build.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
       return null;
     }
   };
@@ -168,14 +216,14 @@ export default function NotificationsScreen() {
         </View>
 
         <Text style={styles.note}>
-          Push notifications will alert you about new messages and community replies. Make sure to allow notifications when prompted.
+          Push notifications alert you about new messages and community replies. Push notifications require a standalone APK/IPA build with a valid EAS project ID — they are not available in Expo Go.
         </Text>
       </ScrollView>
 
       <Modal
         visible={!!error}
         onClose={() => setError(null)}
-        title="Error"
+        title="Notification Error"
         message={error || ''}
         type="error"
       />

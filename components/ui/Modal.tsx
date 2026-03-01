@@ -49,6 +49,7 @@ export default function Modal({
   };
 
   // If confirmText and cancelText are provided, create two-button actions
+  // If only confirmText is provided (no cancelText), create a single confirm button
   let modalActions: ModalAction[];
   if (confirmText && cancelText && onConfirm) {
     modalActions = [
@@ -61,6 +62,15 @@ export default function Modal({
         text: confirmText,
         onPress: onConfirm,
         style: type === 'warning' ? 'destructive' : 'default',
+      },
+    ];
+  } else if (confirmText && onConfirm && !cancelText) {
+    // Single confirm button (e.g. for disclaimer acceptance)
+    modalActions = [
+      {
+        text: confirmText,
+        onPress: onConfirm,
+        style: 'default',
       },
     ];
   } else if (actions) {

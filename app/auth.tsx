@@ -17,9 +17,11 @@ import { useRouter } from "expo-router";
 import { colors, typography, spacing, borderRadius } from "@/styles/commonStyles";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Modal from "@/components/ui/Modal";
-import { apiPost, apiGet } from "@/utils/api";
+import { apiPost, apiGet, BACKEND_URL } from "@/utils/api";
 import { IconSymbol } from "@/components/IconSymbol";
 import { CitySearchInput } from "@/components/CitySearchInput";
+import { setBearerToken } from "@/lib/auth";
+import * as SecureStore from "expo-secure-store";
 
 type Mode = "signin" | "signup" | "forgot-password";
 
@@ -49,9 +51,13 @@ For questions or concerns, please contact us through the app or email.
 
 Last updated: March 2026`;
 
+// Storage keys for Remember Me
+const REMEMBER_ME_EMAIL_KEY = "localink_remember_email";
+const REMEMBER_ME_PASSWORD_KEY = "localink_remember_password";
+
 export default function AuthScreen() {
   const router = useRouter();
-  const { user, profile, signInWithEmail, loading: authLoading } = useAuth();
+  const { user, profile, signInWithEmail, fetchUser, loading: authLoading } = useAuth();
 
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -125,6 +131,37 @@ export default function AuthScreen() {
     return () => clearTimeout(timeoutId);
   }, [username, mode]);
 
+  // Load saved credentials on mount if Remember Me was previously enabled
+  useEffect(() => {
+    const loadSavedCredentials = async () => {
+      try {
+        if (Platform.OS === "web") {
+          const savedEmail = localStorage.getItem(REMEMBER_ME_EMAIL_KEY);
+          const savedPassword = localStorage.getItem(REMEMBER_ME_PASSWORD_KEY);
+          if (savedEmail && savedPassword) {
+            console.log('[AuthScreen] Loading saved credentials from localStorage');
+            setEmail(savedEmail);
+            setPassword(savedPassword);
+            setRememberMe(true);
+          }
+        } else {
+          const savedEmail = await SecureStore.getItemAsync(REMEMBER_ME_EMAIL_KEY);
+          const savedPassword = await SecureStore.getItemAsync(REMEMBER_ME_PASSWORD_KEY);
+          if (savedEmail && savedPassword) {
+            console.log('[AuthScreen] Loading saved credentials from SecureStore');
+            setEmail(savedEmail);
+            setPassword(savedPassword);
+            setRememberMe(true);
+          }
+        }
+      } catch (err) {
+        console.error('[AuthScreen] Error loading saved credentials:', err);
+      }
+    };
+
+    loadSavedCredentials();
+  }, []);
+
   console.log('[AuthScreen] Rendering, mode:', mode, 'user:', user?.id, 'profile:', profile?.name);
 
   // Redirect if already authenticated
@@ -150,7 +187,7 @@ export default function AuthScreen() {
   }
 
   const handleEmailAuth = async () => {
-    console.log('[AuthScreen] Email auth attempt, mode:', mode);
+    console.log('[AuthScreen] Email auth attempt, mode:', mode, 'rememberMe:', rememberMe);
     
     if (!email || !password) {
       setError("Please enter email and password");
@@ -186,15 +223,32 @@ export default function AuthScreen() {
     
     try {
       if (mode === "signin") {
-        console.log('[AuthScreen] Signing in with email:', email);
+        console.log('[AuthScreen] Signing in with email:', email, 'rememberMe:', rememberMe);
+        
+        // Call backend login API with rememberMe parameter
+        const response = await fetch(`${BACKEND_URL}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, rememberMe }),
+          credentials: 'include',
+        });
+
+        console.log('[AuthScreen] Login response status:', response.status);
+
+        // Parse response body
+        let data: any;
         try {
-          await signInWithEmail(email, password);
-          console.log('[AuthScreen] Sign in successful, user should be logged in');
-          // Navigation will be handled by useEffect
-        } catch (signInErr: any) {
-          // Check for specific error messages from backend
-          const errorMsg = signInErr.message || signInErr.toString();
-          console.error('[AuthScreen] Sign in error:', errorMsg);
+          const text = await response.text();
+          console.log('[AuthScreen] Login response body:', text);
+          data = text ? JSON.parse(text) : {};
+        } catch (parseError) {
+          console.error('[AuthScreen] Failed to parse response:', parseError);
+          throw new Error('Invalid response from server');
+        }
+
+        if (!response.ok) {
+          const errorMsg = data?.error || data?.message || 'Login failed';
+          console.error('[AuthScreen] Login failed:', errorMsg);
           
           if (errorMsg.includes('not verified') || errorMsg.includes('verify') || errorMsg.includes('OTP')) {
             setError('Email not verified. Please check your email for the verification code.');
@@ -209,8 +263,42 @@ export default function AuthScreen() {
             // Generic error
             setError(errorMsg || 'Login failed. Please try again.');
           }
-          throw signInErr;
+          throw new Error(errorMsg);
         }
+
+        // Store bearer token if returned
+        if (data?.session?.token) {
+          console.log('[AuthScreen] Storing bearer token after email sign in');
+          await setBearerToken(data.session.token);
+        } else if (data?.token) {
+          console.log('[AuthScreen] Storing bearer token (token field) after email sign in');
+          await setBearerToken(data.token);
+        }
+
+        // Save or clear credentials based on Remember Me
+        if (rememberMe) {
+          console.log('[AuthScreen] Saving credentials for Remember Me');
+          if (Platform.OS === "web") {
+            localStorage.setItem(REMEMBER_ME_EMAIL_KEY, email);
+            localStorage.setItem(REMEMBER_ME_PASSWORD_KEY, password);
+          } else {
+            await SecureStore.setItemAsync(REMEMBER_ME_EMAIL_KEY, email);
+            await SecureStore.setItemAsync(REMEMBER_ME_PASSWORD_KEY, password);
+          }
+        } else {
+          console.log('[AuthScreen] Clearing saved credentials (Remember Me not checked)');
+          if (Platform.OS === "web") {
+            localStorage.removeItem(REMEMBER_ME_EMAIL_KEY);
+            localStorage.removeItem(REMEMBER_ME_PASSWORD_KEY);
+          } else {
+            await SecureStore.deleteItemAsync(REMEMBER_ME_EMAIL_KEY);
+            await SecureStore.deleteItemAsync(REMEMBER_ME_PASSWORD_KEY);
+          }
+        }
+
+        // Trigger auth context refresh - use fetchUser for cross-platform compatibility
+        console.log('[AuthScreen] Sign in successful, triggering auth refresh');
+        await fetchUser();
       } else {
         console.log('[AuthScreen] Signing up with email');
         // Call backend signup API directly to get OTP flow
