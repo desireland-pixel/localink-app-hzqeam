@@ -36,7 +36,7 @@ export default function SettingsScreen() {
 
           <TouchableOpacity 
             style={styles.settingItem}
-            onPress={() => setShow(!showImprint)}
+            onPress={() => setShowImprint(!showImprint)}
           >
             <View style={styles.settingLeft}>
               <IconSymbol 
@@ -52,7 +52,7 @@ export default function SettingsScreen() {
           {showImprint && (
             <View style={styles.imprintContainer}>
               <Text style={styles.imprintText}>
-              'Angaben gemäß §5 TMG:
+                {'Angaben gemäß §5 TMG:
               
               Parth Vishnukumar Patel
               Stömmerstr 26
@@ -62,7 +62,7 @@ export default function SettingsScreen() {
               Email: info.lokalinc@gmail.com
               
               Responsible for content gemäß §18 Abs. 2 MStV:
-              Same as above'
+              Same as above'}
               </Text>
             </View>
           )}
