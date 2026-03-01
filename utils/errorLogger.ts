@@ -8,6 +8,8 @@ export const setupErrorLogging = () => {};
 // Only run in development mode - production apps don't need log forwarding
 
 if (!__DEV__) {
+  return;
+}
 
 import { Platform } from "react-native";
 import Constants from "expo-constants";
