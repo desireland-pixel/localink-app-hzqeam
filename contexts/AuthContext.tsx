@@ -123,72 +123,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * Core session check + refresh logic.
-   *
-   * Strategy:
-   * 1. If we have a stored Bearer token, call /api/auth/refresh-session.
-   *    - On success: update token (if new one returned), set user, fetch profile.
-   *    - On 401: token is expired/invalid → clear tokens, set user null.
-   * 2. If no stored token, fall back to authClient.getSession() (handles
-   *    cookie-based sessions on web and native deep-link flows).
+   * Core session check logic.
+   * Uses Better Auth client to get the current session.
    */
   const fetchUser = React.useCallback(async (): Promise<void> => {
     try {
       console.log('[AuthContext] Fetching user session');
 
-      const token = await getBearerToken();
-
-      if (token) {
-        console.log('[AuthContext] Token found, attempting session refresh via /api/auth/refresh-session');
-        try {
-          const refreshResponse = await fetch(`${BACKEND_URL}/api/auth/refresh-session`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (refreshResponse.ok) {
-            const refreshData = await refreshResponse.json();
-            console.log('[AuthContext] Session refreshed successfully');
-
-            // If the backend issued a new token, persist it
-            if (refreshData?.session?.token && refreshData.session.token !== token) {
-              console.log('[AuthContext] Updating bearer token from refresh response');
-              await setBearerToken(refreshData.session.token);
-            }
-
-            // Set user from refresh response
-            if (refreshData?.user) {
-              console.log('[AuthContext] Setting user from refresh response:', refreshData.user.id);
-              setUserRef.current(refreshData.user as User);
-              await fetchProfileStandalone();
-              return; // ✅ Done
-            }
-          } else if (refreshResponse.status === 401) {
-            // Token is definitively expired/invalid – clear it and fall through
-            console.log('[AuthContext] Refresh returned 401 – clearing stored token');
-            await clearAuthTokens();
-          } else {
-            console.log('[AuthContext] Session refresh failed with status:', refreshResponse.status, '– falling back to authClient');
-          }
-        } catch (refreshError) {
-          console.log('[AuthContext] Session refresh network error:', refreshError, '– falling back to authClient');
-        }
-      }
-
-      // Fallback: use Better Auth client (handles cookie sessions & native flows)
-      console.log('[AuthContext] Falling back to authClient.getSession()');
+      // Use Better Auth client to get session (handles cookies and tokens)
       const session = await authClient.getSession();
 
       if (session?.data?.user) {
-        console.log('[AuthContext] User session found via authClient:', session.data.user.id);
+        console.log('[AuthContext] User session found:', session.data.user.id);
         setUserRef.current(session.data.user as User);
 
-        // Persist the token so future refreshes work
+        // Persist the token if available
         if (session.data.session?.token) {
-          console.log('[AuthContext] Syncing bearer token from authClient session');
+          console.log('[AuthContext] Syncing bearer token from session');
           await setBearerToken(session.data.session.token);
         }
 
