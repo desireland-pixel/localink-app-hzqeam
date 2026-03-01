@@ -9,6 +9,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { authenticatedGet, authenticatedPost, authenticatedDelete, apiGet } from '@/utils/api';
 import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '@/utils/cities';
 import { useAuth } from '@/contexts/AuthContext';
+import Modal from '@/components/ui/Modal';
 
 interface Sublet {
   id: string;
@@ -33,6 +34,14 @@ interface Sublet {
 
 type SortOption = 'Newest' | 'Earliest' | 'Cheapest';
 
+const SUBLET_DISCLAIMER = `🏠 Sublet Disclaimer
+
+LokaLinc operates solely as a communication platform connecting users and is not a party to any rental agreement.
+
+Users are exclusively responsible for ensuring compliance with applicable rental laws, including obtaining any required landlord consent under §§ 540, 553 BGB.
+
+No verification of listings is performed, and no responsibility is assumed for the legality, accuracy, or execution of subletting arrangements.`;
+
 export default function SubletScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -53,6 +62,11 @@ export default function SubletScreen() {
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const sortButtonRef = useRef<View>(null);
   const [sortButtonLayout, setSortButtonLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  
+  // Disclaimer state
+  const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+  const [disclaimerCheckLoading, setDisclaimerCheckLoading] = useState(true);
 
   // Sync city from params when navigating back from filter page
   React.useEffect(() => {
@@ -63,6 +77,48 @@ export default function SubletScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.city]);
+
+  // Check if user has accepted disclaimer
+  useEffect(() => {
+    const checkDisclaimer = async () => {
+      if (!user) {
+        setDisclaimerCheckLoading(false);
+        return;
+      }
+      
+      try {
+        console.log('SubletScreen: Checking disclaimer acceptance');
+        const response = await authenticatedGet<{ subletDisclaimerAccepted: boolean; travelDisclaimerAccepted: boolean }>('/api/profile/disclaimers');
+        console.log('SubletScreen: Disclaimer status:', response);
+        
+        if (!response.subletDisclaimerAccepted) {
+          console.log('SubletScreen: Showing disclaimer modal');
+          setShowDisclaimerModal(true);
+        }
+        setDisclaimerAccepted(response.subletDisclaimerAccepted);
+      } catch (error) {
+        console.error('SubletScreen: Error checking disclaimer:', error);
+        // If error, assume not accepted and show disclaimer
+        setShowDisclaimerModal(true);
+      } finally {
+        setDisclaimerCheckLoading(false);
+      }
+    };
+
+    checkDisclaimer();
+  }, [user]);
+
+  const handleAcceptDisclaimer = async () => {
+    try {
+      console.log('SubletScreen: Accepting disclaimer');
+      await authenticatedPost('/api/profile/disclaimers', { type: 'sublet' });
+      console.log('SubletScreen: Disclaimer accepted');
+      setDisclaimerAccepted(true);
+      setShowDisclaimerModal(false);
+    } catch (error) {
+      console.error('SubletScreen: Error accepting disclaimer:', error);
+    }
+  };
 
   console.log('SubletScreen: Rendering', { subletsCount: sublets.length, loading, filters: params.filters, selectedCity });
 
@@ -252,6 +308,17 @@ export default function SubletScreen() {
   };
   
   const hasActiveFilters = params.filters && params.filters.toString().length > 0;
+
+  // Show loading while checking disclaimer
+  if (disclaimerCheckLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -537,6 +604,17 @@ export default function SubletScreen() {
           </View>
         </TouchableOpacity>
       </RNModal>
+
+      {/* Disclaimer Modal */}
+      <Modal
+        visible={showDisclaimerModal}
+        onClose={() => {}}
+        title="Sublet Disclaimer"
+        message={SUBLET_DISCLAIMER}
+        confirmText="I understand and agree"
+        onConfirm={handleAcceptDisclaimer}
+        type="info"
+      />
     </SafeAreaView>
   );
 }
