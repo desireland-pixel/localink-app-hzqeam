@@ -21,6 +21,7 @@
       }
     },
     "android": {
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/Logo_LokaLinc_inverse.jpg",
         "backgroundColor": "#000000"
