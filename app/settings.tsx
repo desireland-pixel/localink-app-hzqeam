@@ -1,19 +1,21 @@
 
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
 export default function SettingsScreen() {
-  console.log('SettingsScreen: Rendering');
+  const [showImpressum, setShowImpressum] = useState(false);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
+        
+        {/* ABOUT SECTION */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
-          
+
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
               <IconSymbol 
@@ -27,6 +29,45 @@ export default function SettingsScreen() {
             <Text style={styles.settingValue}>1.0.0</Text>
           </View>
         </View>
+
+        {/* LEGAL SECTION */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Legal</Text>
+
+          <TouchableOpacity 
+            style={styles.settingItem}
+            onPress={() => setShowImpressum(!showImpressum)}
+          >
+            <View style={styles.settingLeft}>
+              <IconSymbol 
+                ios_icon_name="doc.text.fill" 
+                android_material_icon_name="description" 
+                size={24} 
+                color={colors.primary} 
+              />
+              <Text style={styles.settingText}>Impressum</Text>
+            </View>
+          </TouchableOpacity>
+
+          {showImpressum && (
+            <View style={styles.impressumContainer}>
+              <Text style={styles.impressumText}>
+              Angaben gemäß §5 TMG:
+              
+              Parth Vishnukumar Patel
+              Stömmerstr 26
+              85055, Ingolstadt
+              Germany
+              
+              Email: info.lokalinc@gmail.com
+              
+              Responsible for content gemäß §18 Abs. 2 MStV:
+              Same as above
+              </Text>
+            </View>
+          )}
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -71,5 +112,15 @@ const styles = StyleSheet.create({
   settingValue: {
     ...typography.bodySmall,
     color: colors.textSecondary,
+  },
+  impressumContainer: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+  },
+  impressumText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
 });
