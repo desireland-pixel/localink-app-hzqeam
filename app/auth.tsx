@@ -57,7 +57,7 @@ const REMEMBER_ME_PASSWORD_KEY = "localink_remember_password";
 
 export default function AuthScreen() {
   const router = useRouter();
-  const { user, profile, signInWithEmail, fetchUser, loading: authLoading } = useAuth();
+  const { user, profile, fetchUser, loading: authLoading } = useAuth();
 
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -296,9 +296,11 @@ export default function AuthScreen() {
           }
         }
 
-        // Trigger auth context refresh - use fetchUser for cross-platform compatibility
+        // Trigger auth context refresh to fetch user and profile
         console.log('[AuthScreen] Sign in successful, triggering auth refresh');
         await fetchUser();
+        
+        // Navigation will happen automatically via the useEffect that watches user state
       } else {
         console.log('[AuthScreen] Signing up with email');
         // Call backend signup API directly to get OTP flow
