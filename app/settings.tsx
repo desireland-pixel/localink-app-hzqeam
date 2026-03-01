@@ -6,7 +6,7 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 import { IconSymbol } from '@/components/IconSymbol';
 
 export default function SettingsScreen() {
-  const [showImpressum, setShowImpressum] = useState(false);
+  const [showImprint, setShowImprint] = useState(false);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -36,7 +36,7 @@ export default function SettingsScreen() {
 
           <TouchableOpacity 
             style={styles.settingItem}
-            onPress={() => setShowImpressum(!showImpressum)}
+            onPress={() => setShow(!showImprint)}
           >
             <View style={styles.settingLeft}>
               <IconSymbol 
@@ -45,14 +45,14 @@ export default function SettingsScreen() {
                 size={24} 
                 color={colors.primary} 
               />
-              <Text style={styles.settingText}>Impressum</Text>
+              <Text style={styles.settingText}>Imprint</Text>
             </View>
           </TouchableOpacity>
 
-          {showImpressum && (
-            <View style={styles.impressumContainer}>
-              <Text style={styles.impressumText}>
-              Angaben gemäß §5 TMG:
+          {showImprint && (
+            <View style={styles.imprintContainer}>
+              <Text style={styles.imprintText}>
+                {'Angaben gemäß §5 TMG:
               
               Parth Vishnukumar Patel
               Stömmerstr 26
@@ -62,7 +62,7 @@ export default function SettingsScreen() {
               Email: info.lokalinc@gmail.com
               
               Responsible for content gemäß §18 Abs. 2 MStV:
-              Same as above
+              Same as above'}
               </Text>
             </View>
           )}
@@ -113,12 +113,12 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textSecondary,
   },
-  impressumContainer: {
+  imprintContainer: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
     padding: spacing.md,
   },
-  impressumText: {
+  imprintText: {
     ...typography.bodySmall,
     color: colors.textSecondary,
     lineHeight: 18,
