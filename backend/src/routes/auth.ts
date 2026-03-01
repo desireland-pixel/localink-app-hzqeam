@@ -510,38 +510,42 @@ export function registerAuthRoutes(app: App) {
     return {
       content: `
         <h1>Terms and Conditions</h1>
-        <p>Last updated: ${new Date().toISOString().split('T')[0]}</p>
+        <p>Last updated: ${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}</p>
 
-        <h2>1. Acceptance of Terms</h2>
-        <p>By accessing and using LokaLinc, you accept and agree to be bound by the terms and provision of this agreement.</p>
-
-        <h2>2. Use License</h2>
-        <p>Permission is granted to temporarily download one copy of the materials (information or software) on LokaLinc for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:</p>
+        <h2>1. Scope</h2>
+        <p>These Terms govern the use of the LokaLinc platform. By registering or using the platform, users agree to these Terms.</p>
+        
+        <h2>2. Platform Nature</h2>
+        <p>LokaLinc is a digital platform enabling users to connect for housing, travel coordination, and community interaction.</p>
+        <p>LokaLinc is not:</p>
         <ul>
-          <li>Modifying or copying the materials</li>
-          <li>Using the materials for any commercial purpose or for any public display</li>
-          <li>Attempting to decompile or reverse engineer any software contained on LokaLinc</li>
-          <li>Removing any copyright or other proprietary notations from the materials</li>
-          <li>Transferring the materials to another person or "mirroring" the materials on any other server</li>
+        <li>A rental provider</li>
+        <li>A logistics company</li>
+        <li>A courier service</li>
+        <li>A payment processor</li>
+        <li>A contracting party to agreements between users</li>
         </ul>
-
-        <h2>3. Disclaimer</h2>
-        <p>The materials on LokaLinc are provided on an 'as is' basis. LokaLinc makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.</p>
-
-        <h2>4. Limitations</h2>
-        <p>In no event shall LokaLinc or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on LokaLinc.</p>
-
-        <h2>5. Accuracy of Materials</h2>
-        <p>The materials appearing on LokaLinc could include technical, typographical, or photographic errors. LokaLinc does not warrant that any of the materials on LokaLinc are accurate, complete, or current. LokaLinc may make changes to the materials contained on LokaLinc at any time without notice.</p>
-
-        <h2>6. Links</h2>
-        <p>LokaLinc has not reviewed all of the sites linked to its website and is not responsible for the contents of any such linked site. The inclusion of any link does not imply endorsement by LokaLinc of the site. Use of any such linked website is at the user's own risk.</p>
-
-        <h2>7. Modifications</h2>
-        <p>LokaLinc may revise these terms of service for its website at any time without notice. By using this website, you are agreeing to be bound by the then current version of these terms of service.</p>
-
+        <p>All agreements are concluded exclusively between users.</p>
+        
+        <h2>3. Sublet Listings</h2>
+        <p>Users are solely responsible for compliance with applicable rental laws, including obtaining any required landlord consent. No responsibility is assumed for legality, accuracy, or fulfillment of subletting arrangements.</p>
+        
+        <h2>4. Travel and Item Transport</h2>
+        <p>Users are solely responsible for compliance with customs laws, airline regulations, and all applicable legal requirements.</p>
+        <p>The transport of illegal, restricted, dangerous, or commercial goods is strictly prohibited.</p>
+        <p>No verification, transport, insurance, or liability is assumed for items exchanged between users.</p>
+        
+        <h2>5. User Content</h2>
+        <p>Users are responsible for the content they publish. Content must not violate applicable law or third-party rights. We reserve the right to remove content or suspend accounts.</p>
+        
+        <h2>6. Liability Limitation</h2>
+        <p>LokaLinc shall only be liable for damages caused by intent or gross negligence, except where mandatory statutory provisions apply. No liability is assumed for agreements concluded between users.</p>
+        
+        <h2>7. Account Termination</h2>
+        <p>Accounts may be suspended or terminated for violations of these Terms. Users may request account deletion at any time.</p>
+        
         <h2>8. Governing Law</h2>
-        <p>These terms and conditions are governed by and construed in accordance with the laws of the jurisdiction in which LokaLinc operates, and you irrevocably submit to the exclusive jurisdiction of the courts in that location.</p>
+        <p>These Terms are governed by the laws of the Federal Republic of Germany.</p>
       `
     };
   });
