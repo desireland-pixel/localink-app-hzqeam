@@ -60,6 +60,14 @@ const faqs: FAQ[] = [
     answer: 'Offering means you have something to provide (e.g., a sublet to rent out, travel companionship to offer, or you can carry items). Seeking means you are looking for something (e.g., looking for a sublet, seeking a travel companion, or seeking an ally to carry items).',
   },
   {
+    question: 'What is the Incentive offer in Travel posts?',
+    answer: 'The Incentive is a voluntary appreciation offered by users who are seeking companionship or ally support. It is not a fee processed or guaranteed by the platform. Any agreement regarding incentives is made directly between users, and the platform does not handle payments or act as an intermediary.',
+  },
+  {
+    question: 'Are incentives considered payment for a service?',
+    answer: 'Incentives are voluntary gestures of appreciation between users. They do not create an employment, transport, or commercial service relationship with the platform. Users are solely responsible for complying with applicable laws, tax regulations, and transport restrictions.',
+  },
+  {
     question: 'What is the Community section?',
     answer: 'The Community section is where you can ask questions and discuss topics related to living in Germany - like visa, insurance, housing, jobs, healthcare, and more. It\'s a place to get help and share knowledge with other expats.',
   },
