@@ -276,12 +276,6 @@ const stringifyArgs = (args: any[]): string => {
   }).join(' ');
 };
 
-export const setupErrorLogging = () => {
-  // Don't initialize in production builds - no need for log forwarding
-  if (!__DEV__) {
-    return;
-  }
-
   // Store original console methods BEFORE any modifications
   const originalConsoleLog = console.log;
   const originalConsoleWarn = console.warn;
@@ -359,5 +353,4 @@ export const setupErrorLogging = () => {
       });
     }
   }
-};
 };
