@@ -127,7 +127,7 @@ export function registerTravelPostRoutes(app: App) {
       // Auto-close expired travel posts
       await autoCloseExpiredTravelPosts(app);
 
-      const conditions: any[] = [eq(schema.travelPosts.status, 'active')];
+      const conditions: any[] = [eq(schema.travelPosts.status, 'active'), isNull(schema.travelPosts.deletedAt)];
 
       // Filter by role (offering/seeking)
       if (filters.role) {
@@ -754,7 +754,7 @@ export function registerTravelPostRoutes(app: App) {
 
       const [closed] = await app.db
         .update(schema.travelPosts)
-        .set({ status: 'closed', updatedAt: new Date() })
+        .set({ status: 'closed', closedAt: new Date(), updatedAt: new Date() })
         .where(eq(schema.travelPosts.id, id))
         .returning();
 
@@ -766,10 +766,10 @@ export function registerTravelPostRoutes(app: App) {
     }
   });
 
-  // Delete travel post permanently
+  // Delete travel post (soft delete)
   app.fastify.delete('/api/travel-posts/:id', {
     schema: {
-      description: 'Permanently delete own travel post',
+      description: 'Delete own travel post (soft delete, will be permanently removed after 30 days)',
       tags: ['travel-posts'],
       params: {
         type: 'object',
@@ -784,7 +784,7 @@ export function registerTravelPostRoutes(app: App) {
     if (!session) return;
 
     const { id } = request.params as { id: string };
-    app.logger.info({ userId: session.user.id, travelPostId: id }, 'Deleting travel post permanently');
+    app.logger.info({ userId: session.user.id, travelPostId: id }, 'Soft deleting travel post');
 
     try {
       // Check ownership
@@ -802,12 +802,17 @@ export function registerTravelPostRoutes(app: App) {
         return reply.status(403).send({ error: 'You can only delete your own travel posts' });
       }
 
-      // Permanently delete the travel post
+      // Soft delete the travel post (mark as deleted with timestamp)
       await app.db
-        .delete(schema.travelPosts)
+        .update(schema.travelPosts)
+        .set({
+          status: 'deleted' as any,
+          deletedAt: new Date(),
+          updatedAt: new Date()
+        })
         .where(eq(schema.travelPosts.id, id));
 
-      app.logger.info({ travelPostId: id, userId: session.user.id }, 'Travel post deleted permanently');
+      app.logger.info({ travelPostId: id, userId: session.user.id }, 'Travel post soft deleted successfully');
       return { success: true };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, travelPostId: id }, 'Failed to delete travel post');
