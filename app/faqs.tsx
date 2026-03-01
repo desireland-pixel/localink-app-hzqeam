@@ -13,51 +13,71 @@ interface FAQ {
 const faqs: FAQ[] = [
   {
     question: 'What is LokaLinc?',
-    answer: 'LokaLinc is a community platform connecting Indian expats in Germany. We help you find temporary accommodation (sublets), travel companions, and people who can carry items between India and Germany.',
+    answer: 'LokaLinc is a community platform connecting expats in Germany. We help you find temporary accommodation (sublets), travel companions, and people who can carry (small/urgent) items between India and Germany.',
   },
   {
     question: 'How do I post a sublet?',
-    answer: 'Navigate to the Sublet tab and tap the + icon in the top right. Select whether you are offering or seeking a sublet, fill in the required details (city, dates, rent), and tap Post.',
+    answer: 'Navigate to the Sublet tab and tap the + icon in the top right. Select whether you are offering or seeking a sublet, fill in the required details (city, dates, rent), and tap Post. Please ensure you have any required landlord consent before subletting.',
   },
   {
-    question: 'How do I find a travel companion?',
-    answer: 'Go to the Travel tab and browse posts. You can filter by cities, dates, and whether someone is offering or seeking companionship. Tap on any post to see details and contact the person.',
+    question: 'How do I post a travel request or offer?',
+    answer: 'Navigate to the Travel tab and tap the + icon in the top right. Select whether you are Offering or Seeking travel companionship or item support. Fill in route, date, and details, then tap Post. Users are responsible for complying with airline and customs regulations.',
+  },
+  {
+    question: 'How do I post in the Community section?',
+    answer: 'Navigate to the Community tab and tap the + icon in the top right. Select a category (e.g., General, Insurance, Jobs, Visa), enter a clear title and description, then tap Post. Your discussion will be visible to other users who can reply and share their knowledge.',
+  },
+  {
+    question: 'How do I find a sublet?',
+    answer: 'Open the Sublet tab to browse available listings. Enter city to filter listings. You can use filters to narrow results by dates, budget/rent, or role (Offering/Seeking). Tap on any post to see more details.',
+  },
+  {
+    question: 'How do I find a travel companion or item support?',
+    answer: 'Open the Travel tab to browse available listings. Enter the city/country of departure and/or destination. You can use filters to narrow down results. Tap on any post to see more details.',
   },
   {
     question: 'How do I contact someone about a post?',
-    answer: 'Open any post and tap the "Contact" or message button. This will start a conversation in your Inbox where you can chat directly with the poster.',
+    answer: 'Open any post and tap the "Contact" button at the bottom. This will start a conversation in your Inbox where you can chat directly with the poster. The platform only facilitates communication. Any agreements are made directly between users.',
   },
   {
-    question: 'Can I edit my post after publishing?',
-    answer: 'Yes! Go to Profile > My Posts, find your post, and tap the Edit button. You can update any details and save your changes.',
+    question: 'How do I edit my post after publishing?',
+    answer: 'Go to Profile > My Posts, find your post, and tap the Edit button. You can update any details and save your changes.',
   },
   {
     question: 'How do I close or delete my post?',
-    answer: 'Go to Profile > My Posts, find your post. If it\'s active, tap "Close" to mark it as closed. If it\'s already closed, you can tap "Delete" to permanently remove it.',
-  },
-  {
-    question: 'What is the difference between offering and seeking?',
-    answer: 'Offering means you have something to provide (e.g., a sublet to rent out, travel companionship to offer, or you can carry items). Seeking means you are looking for something (e.g., looking for a sublet, seeking a travel companion, or need someone to carry items).',
+    answer: 'Go to Profile > My Posts, find your post. In case of Sublet and Travel, you can tap "Delete" to remove it from the listings. In case of Community, if it\'s active, tap "Close" to mark it as closed. and if it\'s already closed, you can tap "Delete" to permanently remove it.',
   },
   {
     question: 'How do I save posts I like?',
     answer: 'Tap the heart icon on any post to add it to your favorites. You can view all your saved posts in Profile > Favourites.',
   },
   {
+    question: 'What is the difference between offering and seeking?',
+    answer: 'Offering means you have something to provide (e.g., a sublet to rent out, travel companionship to offer, or you can carry items). Seeking means you are looking for something (e.g., looking for a sublet, seeking a travel companion, or seeking an ally to carry items).',
+  },
+  {
     question: 'What is the Community section?',
     answer: 'The Community section is where you can ask questions and discuss topics related to living in Germany - like visa, insurance, housing, jobs, healthcare, and more. It\'s a place to get help and share knowledge with other expats.',
+  },
+  {
+    question: 'What should I do if I encounter inappropriate content?',
+    answer: 'Please report any inappropriate content or behavior immediately by contacting us at info.lokalinc@gmail.com. We review all reports and take appropriate action to maintain a safe community. We reserve the right to suspend accounts that violate our Terms.',
+  },
+  {
+    question: 'Can I change my username or city?',
+    answer: 'Yes! Go to Profile > Personal Details to update your username, and city at any time.',
   },
   {
     question: 'Is my personal information safe?',
     answer: 'Yes, we take your privacy seriously. Your address and contact details are never publicly displayed. Only users you choose to message can communicate with you through our secure inbox.',
   },
   {
-    question: 'What should I do if I encounter inappropriate content?',
-    answer: 'Please report any inappropriate content or behavior immediately by contacting us at info.lokalinc@gmail.com. We review all reports and take appropriate action to maintain a safe community.',
+    question: 'How can I delete my account?',
+    answer: 'You can contact us at info.lokalinc@gmail.com via your registered email with deletation request. We will process your request within 7 working days.',
   },
   {
-    question: 'Can I change my city or username?',
-    answer: 'Yes! Go to Profile > Personal Details to update your name, username, and city at any time.',
+    question: 'How can I contact to give feedback?',
+    answer: 'You can contact us at info.lokalinc@gmail.com regarding any feedback you have.',
   },
 ];
 
