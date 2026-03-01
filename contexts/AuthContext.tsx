@@ -124,28 +124,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /**
    * Core session check logic.
-   * Uses Better Auth client to get the current session.
+   * Directly calls the backend /api/auth/get-session endpoint.
    */
   const fetchUser = React.useCallback(async (): Promise<void> => {
     try {
-      console.log('[AuthContext] Fetching user session');
+      console.log('[AuthContext] Fetching user session from /api/auth/get-session');
 
-      // Use Better Auth client to get session (handles cookies and tokens)
-      const session = await authClient.getSession();
+      // Get the bearer token
+      const token = await getBearerToken();
+      
+      if (!token) {
+        console.log('[AuthContext] No bearer token found, user is logged out');
+        setUserRef.current(null);
+        setProfileRef.current(null);
+        return;
+      }
 
-      if (session?.data?.user) {
-        console.log('[AuthContext] User session found:', session.data.user.id);
-        setUserRef.current(session.data.user as User);
+      // Call the backend directly with the bearer token
+      const response = await fetch(`${BACKEND_URL}/api/auth/get-session`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
 
-        // Persist the token if available
-        if (session.data.session?.token) {
-          console.log('[AuthContext] Syncing bearer token from session');
-          await setBearerToken(session.data.session.token);
-        }
+      console.log('[AuthContext] Session response status:', response.status);
 
+      if (!response.ok) {
+        console.log('[AuthContext] Session check failed, clearing auth state');
+        setUserRef.current(null);
+        setProfileRef.current(null);
+        await clearAuthTokens();
+        return;
+      }
+
+      const data = await response.json();
+      console.log('[AuthContext] Session data received:', data);
+
+      // Check if we have user data in the response
+      if (data?.user) {
+        console.log('[AuthContext] User session found:', data.user.id);
+        setUserRef.current(data.user as User);
         await fetchProfileStandalone();
       } else {
-        console.log('[AuthContext] No user session found – user is logged out');
+        console.log('[AuthContext] No user in session response, user is logged out');
         setUserRef.current(null);
         setProfileRef.current(null);
         await clearAuthTokens();
