@@ -1,6 +1,6 @@
 import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, desc, asc, sql, count } from 'drizzle-orm';
+import { eq, and, desc, asc, sql, count, isNull } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { generateShortId } from '../utils/short-id.js';
 import { sendPushNotification } from '../utils/push-notifications.js';
@@ -46,7 +46,7 @@ export function registerCommunityRoutes(app: App) {
     app.logger.info({ filters }, 'Listing discussion topics');
 
     try {
-      const conditions: any[] = [];
+      const conditions: any[] = [isNull(schema.discussionTopics.deletedAt)];
 
       if (filters.category) {
         conditions.push(eq(schema.discussionTopics.category, filters.category));
@@ -736,10 +736,10 @@ export function registerCommunityRoutes(app: App) {
     }
   });
 
-  // Delete a discussion topic (owner only, cascades to all replies)
+  // Delete a discussion topic (owner only, soft delete)
   app.fastify.delete('/api/community/topics/:id', {
     schema: {
-      description: 'Delete own discussion topic and all its replies',
+      description: 'Delete own discussion topic (soft delete, will be permanently removed after 30 days)',
       tags: ['community'],
       params: {
         type: 'object',
@@ -762,7 +762,7 @@ export function registerCommunityRoutes(app: App) {
     if (!session) return;
 
     const { id } = request.params as { id: string };
-    app.logger.info({ userId: session.user.id, topicId: id }, 'Deleting discussion topic');
+    app.logger.info({ userId: session.user.id, topicId: id }, 'Soft deleting discussion topic');
 
     try {
       const topic = await app.db.query.discussionTopics.findFirst({
@@ -779,25 +779,18 @@ export function registerCommunityRoutes(app: App) {
         return reply.status(403).send({ error: 'You can only delete your own topics' });
       }
 
-      // Two-step delete process
-      if (topic.status === 'open') {
-        // First delete: close the topic instead of permanently deleting
-        await app.db
-          .update(schema.discussionTopics)
-          .set({ status: 'closed', updatedAt: new Date() })
-          .where(eq(schema.discussionTopics.id, id));
+      // Soft delete the topic
+      await app.db
+        .update(schema.discussionTopics)
+        .set({
+          status: 'deleted' as any,
+          deletedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(schema.discussionTopics.id, id));
 
-        app.logger.info({ topicId: id, userId: session.user.id }, 'Discussion topic closed successfully');
-        return { success: true, action: 'closed', message: 'Topic closed successfully' };
-      } else {
-        // Second delete: permanently delete the topic and all replies
-        await app.db
-          .delete(schema.discussionTopics)
-          .where(eq(schema.discussionTopics.id, id));
-
-        app.logger.info({ topicId: id, userId: session.user.id }, 'Discussion topic and all replies deleted permanently');
-        return { success: true, action: 'deleted', message: 'Topic deleted successfully' };
-      }
+      app.logger.info({ topicId: id, userId: session.user.id }, 'Discussion topic soft deleted successfully');
+      return { success: true, message: 'Topic deleted successfully' };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, topicId: id }, 'Failed to delete discussion topic');
       return reply.status(500).send({ error: 'Failed to delete discussion topic' });
@@ -1067,7 +1060,7 @@ export function registerCommunityRoutes(app: App) {
     app.logger.info({ filters }, 'Listing community posts');
 
     try {
-      const conditions: any[] = [];
+      const conditions: any[] = [isNull(schema.discussionTopics.deletedAt)];
 
       // Filter by city if provided
       if (filters.city) {

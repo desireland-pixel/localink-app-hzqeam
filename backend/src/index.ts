@@ -13,6 +13,7 @@ import { registerUploadRoutes } from './routes/upload.js';
 import { registerShareRoutes } from './routes/share.js';
 import { registerCommunityRoutes } from './routes/community.js';
 import { registerPushTokenRoutes } from './routes/push-tokens.js';
+import { startCleanupJob } from './utils/cleanup-job.js';
 
 const schema = { ...appSchema, ...authSchema };
 
@@ -64,6 +65,9 @@ registerUploadRoutes(app);
 registerShareRoutes(app);
 registerCommunityRoutes(app);
 registerPushTokenRoutes(app);
+
+// Start cleanup job for soft-deleted posts
+startCleanupJob(app);
 
 await app.run();
 app.logger.info('LokaLinc API running');

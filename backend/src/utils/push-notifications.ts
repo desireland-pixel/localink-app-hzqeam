@@ -35,32 +35,56 @@ export async function sendPushNotification(
     for (const pushToken of pushTokens) {
       try {
         const tokenStr = String(pushToken.token);
+
+        // Build request headers
+        const headers: Record<string, string> = {
+          'Accept': 'application/json',
+          'Accept-Encoding': 'gzip, deflate',
+          'Content-Type': 'application/json',
+        };
+
+        // Add Expo access token if available
+        const expoAccessToken = process.env.EXPO_ACCESS_TOKEN;
+        if (expoAccessToken) {
+          headers['Authorization'] = `Bearer ${expoAccessToken}`;
+        }
+
+        const notificationPayload = {
+          to: tokenStr,
+          sound: 'default',
+          title: payload.title,
+          body: payload.body,
+          data: payload.data || {},
+        };
+
+        app.logger.debug({ token: tokenStr.substring(0, 20) + '...', payload: notificationPayload }, 'Sending push notification to Expo');
+
         const response = await fetch(EXPO_PUSH_ENDPOINT, {
           method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Accept-Encoding': 'gzip, deflate',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            to: tokenStr,
-            title: payload.title,
-            body: payload.body,
-            data: payload.data || {},
-          }),
+          headers,
+          body: JSON.stringify(notificationPayload),
         });
 
+        const responseData = await response.json() as Record<string, any>;
+
         if (!response.ok) {
-          const error = await response.json();
-          app.logger.warn({ token: tokenStr.substring(0, 20) + '...', error }, 'Failed to send push notification');
+          app.logger.warn({
+            token: tokenStr.substring(0, 20) + '...',
+            status: response.status,
+            errors: responseData.errors,
+            response: responseData
+          }, 'Failed to send push notification');
         } else {
-          app.logger.debug({ token: tokenStr.substring(0, 20) + '...' }, 'Push notification sent successfully');
+          app.logger.info({
+            token: tokenStr.substring(0, 20) + '...',
+            ticketId: responseData.id
+          }, 'Push notification sent successfully');
         }
       } catch (error) {
         app.logger.error({ err: error, token: String(pushToken.token).substring(0, 20) + '...' }, 'Error sending push notification');
       }
     }
   } catch (error) {
-    app.logger.error({ err: error, userId: userIdToNotify }, 'Failed to send push notification');
+    app.logger.error({ err: error, userId: userIdToNotify }, 'Failed to retrieve push tokens and send notification');
   }
 }
