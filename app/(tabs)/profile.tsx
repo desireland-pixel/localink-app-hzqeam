@@ -213,7 +213,7 @@ export default function ProfileScreen() {
             style={styles.menuItem}
             onPress={() => router.push('/about-us')}
           >
-            <View style={styles.menuItemLeft}>
+            <View style={styles.menuItemLeft}>About Us</Text>
               <IconSymbol 
                 ios_icon_name="gear" 
                 android_material_icon_name="settings" 
