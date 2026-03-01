@@ -54,15 +54,15 @@ export default function SettingsScreen() {
               <Text style={styles.imprintText}>
               {`Angaben gemäß §5 TMG:
               
-              Parth Vishnukumar Patel
-              Stömmerstr 26
-              85055, Ingolstadt
-              Germany
+Parth Vishnukumar Patel
+Stömmerstr 26
+85055, Ingolstadt
+Germany
               
-              Email: info.lokalinc@gmail.com
+Email: info.lokalinc@gmail.com
               
-              Responsible for content gemäß §18 Abs. 2 MStV:
-              Same as above`}
+Responsible for content gemäß §18 Abs. 2 MStV:
+Same as above`}
               </Text>
             </View>
           )}
