@@ -4,11 +4,11 @@
     "slug": "localink-app-hzqeam",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/Logo_LokaLinc_inverse.png",
+    "icon": "./assets/images/Logo_LokaLinc_inverse.jpg",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/Logo_LokaLinc_inverse.png",
+      "image": "./assets/images/Logo_LokaLinc_inverse.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
@@ -22,7 +22,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Logo_LokaLinc_inverse.png",
+        "foregroundImage": "./assets/images/Logo_LokaLinc_inverse.jpg",
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
