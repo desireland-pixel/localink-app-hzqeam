@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "LokaLinc",
-    "slug": "localink-app-hzqeam",
+    "slug": "LokaLinc",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/Logo_LokaLinc_inverse.png",
@@ -26,7 +26,7 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.Localink.pa",
+      "package": "com.anonymous.Natively",
       "versionCode": 1,
       "permissions": [
         "CAMERA",
