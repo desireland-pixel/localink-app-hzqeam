@@ -211,7 +211,7 @@ export default function ProfileScreen() {
 
           <TouchableOpacity 
             style={styles.menuItem}
-            onPress={() => router.push('/settings')}
+            onPress={() => router.push('/about-us')}
           >
             <View style={styles.menuItemLeft}>
               <IconSymbol 
