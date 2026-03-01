@@ -25,7 +25,7 @@ export default function DataPrivacyScreen() {
             We process the following categories of personal data:
           </Text>
           <Text style={styles.bulletPoint}>• Account data (name, username, email address)</Text>
-          <Text style={styles.bulletPoint}>• Profile information (city of residence)</Text>
+          <Text style={styles.bulletPoint}>• Profile information (city)</Text>
           <Text style={styles.bulletPoint}>• User-generated content (posts, messages, photos)</Text>
           <Text style={styles.bulletPoint}>• Communication data (support requests, inquiries)</Text>
           <Text style={styles.bulletPoint}>• Technical data (IP address, device information, log data, timestamps)</Text>
@@ -52,7 +52,7 @@ export default function DataPrivacyScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>5. Communication Content</Text>
           <Text style={styles.paragraph}>
-            Messages, posts and other user-generated content are stored on our servers. Access by administrators is restricted and may occur only where necessary for security, abuse prevention, technical maintenance, or legal compliance.
+            Messages, posts and other user-generated content are stored on service provider. Access by administrators is restricted and may occur only where necessary for security, abuse prevention, technical maintenance, or legal compliance.
           </Text>
         </View>
 
