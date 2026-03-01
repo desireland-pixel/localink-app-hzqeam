@@ -536,43 +536,41 @@ export function registerAuthRoutes(app: App) {
     app.logger.info({}, 'Fetching Terms and Conditions');
     return {
       content: `
-        <h1>Terms and Conditions</h1>
-        <p>Last updated: ${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}</p>
-
-        <h2>1. Scope</h2>
-        <p>These Terms govern the use of the LokaLinc platform. By registering or using the platform, users agree to these Terms.</p>
+        <strong>Terms and Conditions</strong><br/>
+        Last updated: ${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}<br/><br/>
         
-        <h2>2. Platform Nature</h2>
-        <p>LokaLinc is a digital platform enabling users to connect for housing, travel coordination, and community interaction.</p>
-        <p>LokaLinc is not:</p>
-        <ul>
-        <li>A rental provider</li>
-        <li>A logistics company</li>
-        <li>A courier service</li>
-        <li>A payment processor</li>
-        <li>A contracting party to agreements between users</li>
-        </ul>
-        <p>All agreements are concluded exclusively between users.</p>
+        <strong>1. Scope</strong><br/>
+        These Terms govern the use of the LokaLinc platform. By registering or using the platform, users agree to these Terms.<br/><br/>
         
-        <h2>3. Sublet Listings</h2>
-        <p>Users are solely responsible for compliance with applicable rental laws, including obtaining any required landlord consent. No responsibility is assumed for legality, accuracy, or fulfillment of subletting arrangements.</p>
+        <strong>2. Platform Nature</strong><br/>
+        LokaLinc is a digital platform enabling users to connect for housing sublet, travel coordination, and community interaction.<br/>
+        LokaLinc is not:<br/>
+        • A rental provider<br/>
+        • A logistics company<br/>
+        • A courier service<br/>
+        • A payment processor<br/>
+        • A contracting party to agreements between users<br/>
+        All agreements are concluded exclusively between users.<br/><br/>
         
-        <h2>4. Travel and Item Transport</h2>
-        <p>Users are solely responsible for compliance with customs laws, airline regulations, and all applicable legal requirements.</p>
-        <p>The transport of illegal, restricted, dangerous, or commercial goods is strictly prohibited.</p>
-        <p>No verification, transport, insurance, or liability is assumed for items exchanged between users.</p>
+        <strong>3. Sublet Listings</strong><br/>
+        Users are solely responsible for compliance with applicable rental laws, including obtaining any required landlord consent. No responsibility is assumed for legality, accuracy, or fulfillment of subletting arrangements.<br/><br/>
         
-        <h2>5. User Content</h2>
-        <p>Users are responsible for the content they publish. Content must not violate applicable law or third-party rights. We reserve the right to remove content or suspend accounts.</p>
+        <strong>4. Travel and Item Transport</strong><br/>
+        Users are solely responsible for compliance with customs laws, airline regulations, and all applicable legal requirements.<br/>
+        The transport of illegal, restricted, dangerous, or commercial goods is strictly prohibited.<br/>
+        No verification, transport, insurance, or liability is assumed for items exchanged between users.<br/><br/>
         
-        <h2>6. Liability Limitation</h2>
-        <p>LokaLinc shall only be liable for damages caused by intent or gross negligence, except where mandatory statutory provisions apply. No liability is assumed for agreements concluded between users.</p>
+        <strong>5. User Content</strong><br/>
+        Users are responsible for the content they publish. Content must not violate applicable law or third-party rights. We reserve the right to remove content or suspend accounts.<br/><br/>
         
-        <h2>7. Account Termination</h2>
-        <p>Accounts may be suspended or terminated for violations of these Terms. Users may request account deletion at any time.</p>
+        <strong>6. Liability Limitation</strong><br/>
+        LokaLinc shall only be liable for damages caused by intent or gross negligence, except where mandatory statutory provisions apply. No liability is assumed for agreements concluded between users.<br/><br/>
         
-        <h2>8. Governing Law</h2>
-        <p>These Terms are governed by the laws of the Federal Republic of Germany.</p>
+        <strong>7. Account Termination</strong><br/>
+        Accounts may be suspended or terminated for violations of these Terms. Users may request account deletion at any time.<br/><br/>
+        
+        <strong>8. Governing Law</strong><br/>
+        These Terms are governed by the laws of the Federal Republic of Germany.
       `
     };
   });
