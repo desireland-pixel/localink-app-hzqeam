@@ -28,6 +28,10 @@ const faqs: FAQ[] = [
     answer: 'Navigate to the Community tab and tap the + icon in the top right. Select a category (e.g., General, Insurance, Jobs, Visa), enter a clear title and description, then tap Post. Your discussion will be visible to other users who can reply and share their knowledge.',
   },
   {
+    question: 'Is subletting allowed in Germany?',
+    answer: 'Yes, Subletting is generally permitted under German law, but in most cases landlord consent is required (§§ 540, 553 BGB). Users are solely responsible for ensuring that their subletting arrangement complies with applicable laws and rental agreements. The platform does not provide legal advice or verify compliance.',
+  },
+  {
     question: 'How do I find a sublet?',
     answer: 'Open the Sublet tab to browse available listings. Enter city to filter listings. You can use filters to narrow results by dates, budget/rent, or role (Offering/Seeking). Tap on any post to see more details.',
   },
