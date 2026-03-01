@@ -27,41 +27,27 @@ const DEFAULT_TERMS_CONTENT = `Welcome to LokaLinc!
 
 By creating an account and using our services, you agree to the following terms:
 
-1. Account Registration
-- You must provide accurate and complete information
-- You are responsible for maintaining the security of your account
-- You must be at least 18 years old to use this service
+1. Platform Nature
+- LokaLinc is a digital platform that enables users to connect for housing, travel coordination, and community interaction. LokaLinc is not a rental provider, logistics company, courier service, payment processor, or contracting party to agreements between users.
 
-2. User Conduct
-- You agree to use LokaLinc respectfully and lawfully
-- You will not post false, misleading, or harmful content
-- You will not harass, abuse, or harm other users
+2. Subletting
+- Users are solely responsible for compliance with applicable rental laws, including obtaining any required landlord consent. LokaLinc assumes no responsibility for legality or fulfillment of subletting arrangements.
 
-3. Content
-- You retain ownership of content you post
-- By posting, you grant LokaLinc a license to display and distribute your content
-- LokaLinc reserves the right to remove content that violates these terms
+3. Travel & Item Coordination
+- Users are solely responsible for compliance with customs laws, airline regulations, and all applicable legal requirements. The transport of illegal, restricted, or hazardous goods is strictly prohibited. LokaLinc assumes no liability for arrangements between users.
 
-4. Privacy
-- We collect and process your data as described in our Privacy Policy
-- Your personal information will be handled in accordance with GDPR
+4. User Content
+- Users are responsible for content they publish. We reserve the right to remove content or suspend accounts.
 
 5. Liability
-- LokaLinc is a platform connecting users
-- We are not responsible for transactions between users
-- Use the service at your own risk
+- LokaLinc shall only be liable in cases of intent or gross negligence, except where mandatory statutory provisions apply.
 
 6. Termination
-- We reserve the right to suspend or terminate accounts that violate these terms
-- You may delete your account at any time
+- Accounts may be suspended for violations. Users may request deletion at any time.
 
-7. Changes to Terms
-- We may update these terms from time to time
-- Continued use of the service constitutes acceptance of updated terms
+For questions or concerns, please contact us through the app or email.
 
-For questions or concerns, please contact us through the app.
-
-Last updated: February 2025`;
+Last updated: March 2026`;
 
 export default function AuthScreen() {
   const router = useRouter();
