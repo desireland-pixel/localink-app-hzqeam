@@ -23,6 +23,7 @@ function generateOtp(): string {
 interface LoginBody {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 interface SignupBody {
@@ -38,7 +39,7 @@ export function registerAuthRoutes(app: App) {
   // Custom login wrapper with better error messages and email verification check
   app.fastify.post('/api/login', {
     schema: {
-      description: 'Login with email and password (email must be verified)',
+      description: 'Login with email and password (email must be verified). Optional rememberMe to extend session to 90 days.',
       tags: ['auth'],
       body: {
         type: 'object',
@@ -46,11 +47,12 @@ export function registerAuthRoutes(app: App) {
         properties: {
           email: { type: 'string', format: 'email' },
           password: { type: 'string' },
+          rememberMe: { type: 'boolean' },
         },
       },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const { email, password } = request.body as LoginBody;
+    const { email, password, rememberMe } = request.body as LoginBody;
     app.logger.info({ email }, 'Login attempt');
 
     try {
@@ -92,7 +94,32 @@ export function registerAuthRoutes(app: App) {
       }
 
       const authData = await authResponse.json() as Record<string, any>;
-      app.logger.info({ email }, 'Login successful');
+      app.logger.info({ email, rememberMe }, 'Login successful');
+
+      // If rememberMe is true, set extended session cookie (90 days)
+      if (rememberMe) {
+        const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
+        const expiresAt = new Date(Date.now() + ninetyDaysMs);
+
+        // Copy Set-Cookie headers from auth response and extend expiry for remember me
+        const setCookieHeaders = authResponse.headers.getSetCookie?.() || [];
+        for (const setCookieHeader of setCookieHeaders) {
+          if (setCookieHeader.includes('session')) {
+            // Update the cookie string with new max-age for 90 days
+            const updatedCookie = setCookieHeader.replace(/Max-Age=[^;]+/, `Max-Age=${ninetyDaysMs / 1000}`);
+            reply.header('Set-Cookie', updatedCookie);
+            app.logger.info({ email }, 'Extended session cookie set for 90 days');
+          } else {
+            reply.header('Set-Cookie', setCookieHeader);
+          }
+        }
+      } else {
+        // Copy original Set-Cookie headers
+        const setCookieHeaders = authResponse.headers.getSetCookie?.() || [];
+        for (const setCookieHeader of setCookieHeaders) {
+          reply.header('Set-Cookie', setCookieHeader);
+        }
+      }
 
       // Return auth data
       return authData;

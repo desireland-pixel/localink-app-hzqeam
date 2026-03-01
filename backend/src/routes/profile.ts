@@ -241,4 +241,110 @@ export function registerProfileRoutes(app: App) {
     }
   });
 
+  // Get disclaimer acceptance status
+  app.fastify.get('/api/profile/disclaimers', {
+    schema: {
+      description: 'Get disclaimer acceptance status for current user',
+      tags: ['profile'],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            subletDisclaimerAccepted: { type: 'boolean' },
+            travelDisclaimerAccepted: { type: 'boolean' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    app.logger.info({ userId: session.user.id }, 'Fetching disclaimer acceptance status');
+
+    try {
+      const profile = await app.db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, session.user.id),
+      });
+
+      if (!profile) {
+        app.logger.warn({ userId: session.user.id }, 'Profile not found for disclaimer check');
+        return reply.status(404).send({ error: 'Profile not found' });
+      }
+
+      app.logger.info({ userId: session.user.id }, 'Disclaimer status fetched successfully');
+      return {
+        subletDisclaimerAccepted: profile.subletDisclaimerAccepted,
+        travelDisclaimerAccepted: profile.travelDisclaimerAccepted,
+      };
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id }, 'Failed to fetch disclaimer status');
+      return reply.status(500).send({ error: 'Failed to fetch disclaimer status' });
+    }
+  });
+
+  // Mark disclaimer as accepted
+  app.fastify.post('/api/profile/disclaimers', {
+    schema: {
+      description: 'Mark a disclaimer as accepted for current user',
+      tags: ['profile'],
+      body: {
+        type: 'object',
+        required: ['type'],
+        properties: {
+          type: { type: 'string', enum: ['sublet', 'travel'] },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    const { type } = request.body as { type: 'sublet' | 'travel' };
+    app.logger.info({ userId: session.user.id, disclaimerType: type }, 'Marking disclaimer as accepted');
+
+    try {
+      if (type !== 'sublet' && type !== 'travel') {
+        app.logger.warn({ userId: session.user.id, type }, 'Invalid disclaimer type');
+        return reply.status(400).send({ error: 'Invalid disclaimer type. Must be "sublet" or "travel".' });
+      }
+
+      const profile = await app.db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, session.user.id),
+      });
+
+      if (!profile) {
+        app.logger.warn({ userId: session.user.id }, 'Profile not found for disclaimer acceptance');
+        return reply.status(404).send({ error: 'Profile not found' });
+      }
+
+      const updateData: any = { updatedAt: new Date() };
+      if (type === 'sublet') {
+        updateData.subletDisclaimerAccepted = true;
+      } else if (type === 'travel') {
+        updateData.travelDisclaimerAccepted = true;
+      }
+
+      await app.db
+        .update(schema.profiles)
+        .set(updateData)
+        .where(eq(schema.profiles.userId, session.user.id));
+
+      app.logger.info({ userId: session.user.id, disclaimerType: type }, 'Disclaimer marked as accepted successfully');
+      return { success: true, message: `${type} disclaimer accepted` };
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id, disclaimerType: type }, 'Failed to mark disclaimer as accepted');
+      return reply.status(500).send({ error: 'Failed to accept disclaimer' });
+    }
+  });
+
 }

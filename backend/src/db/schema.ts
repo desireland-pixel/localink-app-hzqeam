@@ -9,6 +9,9 @@ export const profiles = pgTable('profiles', {
   username: text('username'), // Unique username (case-insensitive), nullable initially
   city: text('city').notNull(),
   photoUrl: text('photo_url'), // Profile photo URL
+  // Disclaimer acceptance tracking
+  subletDisclaimerAccepted: boolean('sublet_disclaimer_accepted').default(false).notNull(),
+  travelDisclaimerAccepted: boolean('travel_disclaimer_accepted').default(false).notNull(),
   // GDPR Compliance
   gdprConsentAccepted: boolean('gdpr_consent_accepted').default(false).notNull(),
   gdprConsentAcceptedAt: timestamp('gdpr_consent_accepted_at', { withTimezone: true }),
@@ -58,7 +61,9 @@ export const sublets = pgTable('sublets', {
   deposit: text('deposit'),
   // Consent field for independent arrangement acknowledgment
   independentArrangementConsent: boolean('independent_arrangement_consent').default(false).notNull(),
-  status: text('status', { enum: ['active', 'closed'] }).default('active').notNull(),
+  status: text('status', { enum: ['active', 'closed', 'deleted'] }).default('active').notNull(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }), // Soft delete timestamp
+  closedAt: timestamp('closed_at', { withTimezone: true }), // Closure timestamp
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 });
@@ -86,7 +91,9 @@ export const travelPosts = pgTable('travel_posts', {
   companionshipConsent: boolean('companionship_consent').default(false).notNull(), // For offering companionship
   allyConsent: boolean('ally_consent').default(false).notNull(), // For seeking ally
   seekingConsent: boolean('seeking_consent').default(false).notNull(), // For seeking companionship
-  status: text('status', { enum: ['active', 'closed'] }).default('active').notNull(),
+  status: text('status', { enum: ['active', 'closed', 'deleted'] }).default('active').notNull(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }), // Soft delete timestamp
+  closedAt: timestamp('closed_at', { withTimezone: true }), // Closure timestamp
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 });
@@ -185,9 +192,10 @@ export const discussionTopics = pgTable('discussion_topics', {
   location: text('location').default('Germany').notNull(), // City/location, defaults to Germany
   title: text('title').notNull(),
   description: text('description'),
-  status: text('status', { enum: ['open', 'closed'] }).default('open').notNull(),
+  status: text('status', { enum: ['open', 'closed', 'deleted'] }).default('open').notNull(),
   repliesCount: numeric('replies_count').default('0').notNull(),
   unreadRepliesCount: numeric('unread_replies_count').default('0').notNull(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }), // Soft delete timestamp
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 });
