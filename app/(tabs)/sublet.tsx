@@ -34,9 +34,7 @@ interface Sublet {
 
 type SortOption = 'Newest' | 'Earliest' | 'Cheapest';
 
-const SUBLET_DISCLAIMER = `🏠 Sublet Disclaimer
-
-LokaLinc operates solely as a communication platform connecting users and is not a party to any rental agreement.
+const SUBLET_DISCLAIMER = `LokaLinc operates solely as a communication platform connecting users and is not a party to any rental agreement.
 
 Users are exclusively responsible for ensuring compliance with applicable rental laws, including obtaining any required landlord consent under §§ 540, 553 BGB.
 
