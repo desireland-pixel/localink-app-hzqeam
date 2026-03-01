@@ -36,11 +36,7 @@ interface TravelPost {
 
 type SortOption = 'Newest' | 'Earliest departure' | 'Latest departure';
 
-const TRAVEL_DISCLAIMER = `✈️ Travel Coordination Disclaimer
-
-Travel & Item Coordination Notice
-
-LokaLinc provides a digital platform enabling users to connect and coordinate independently.
+const TRAVEL_DISCLAIMER = `LokaLinc provides a digital platform enabling users to connect and coordinate independently.
 
 Users are solely responsible for compliance with all applicable laws, airline policies, and customs regulations. The transport of illegal, restricted, hazardous, or commercially regulated goods is strictly prohibited. Offered/Received incentives do not constitute employment, commercial transport fees, or service engagement by the platform.
 
