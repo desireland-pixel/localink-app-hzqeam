@@ -72,14 +72,6 @@
           }
         }
       ],
-      [
-        "react-native-edge-to-edge",
-        {
-          "android": {
-            "parentTheme": "Theme.Material3.DayNight.NoActionBar"
-          }
-        }
-      ]
     ],
     "scheme": "lokalinc",
     "experiments": {
