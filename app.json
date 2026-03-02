@@ -62,10 +62,22 @@
         }
       ],
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0",
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ],
+      [
         "react-native-edge-to-edge",
         {
           "android": {
-            "parentTheme": "Theme.EdgeToEdge"
+            "parentTheme": "Theme.Material3.DayNight.NoActionBar"
           }
         }
       ]
