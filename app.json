@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "LokaLinc",
@@ -71,7 +72,7 @@
             "enableShrinkResourcesInReleaseBuilds": true
           }
         }
-      ],
+      ]
     ],
     "scheme": "lokalinc",
     "experiments": {
