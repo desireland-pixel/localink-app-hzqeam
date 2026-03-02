@@ -1,7 +1,8 @@
+
 {
   "expo": {
     "name": "LokaLinc",
-    "slug": "LokaLinc",
+    "slug": "localink-app-hzqeam",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/Logo_LokaLinc_inverse.jpg",
@@ -26,8 +27,7 @@
         "foregroundImage": "./assets/images/Logo_LokaLinc_inverse.jpg",
         "backgroundColor": "#000000"
       },
-      "edgeToEdgeEnabled": true,
-      "package": "com.Localink.pa",
+      "package": "com.LokaLinc.pa",
       "versionCode": 1,
       "permissions": [
         "CAMERA",
@@ -60,9 +60,17 @@
           "color": "#000000",
           "sounds": []
         }
+      ],
+      [
+        "react-native-edge-to-edge",
+        {
+          "android": {
+            "parentTheme": "Theme.EdgeToEdge"
+          }
+        }
       ]
     ],
-    "scheme": "LokaLinc",
+    "scheme": "lokalinc",
     "experiments": {
       "typedRoutes": true
     },
