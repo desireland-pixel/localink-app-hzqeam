@@ -1,4 +1,3 @@
-
 {
   "expo": {
     "name": "LokaLinc",
@@ -27,7 +26,7 @@
         "foregroundImage": "./assets/images/Logo_LokaLinc_inverse.jpg",
         "backgroundColor": "#000000"
       },
-      "package": "com.LokaLinc.pa",
+      "package": "com.localink.pa",
       "versionCode": 1,
       "permissions": [
         "CAMERA",
