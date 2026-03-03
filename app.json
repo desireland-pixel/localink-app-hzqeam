@@ -1,7 +1,8 @@
+
 {
   "expo": {
     "name": "LokaLinc",
-    "slug": "LokaLinc",
+    "slug": "localink-app-hzqeam",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/Logo_LokaLinc_inverse.jpg",
@@ -73,7 +74,7 @@
         }
       ]
     ],
-    "scheme": "LokaLinc",
+    "scheme": "lokalinc",
     "experiments": {
       "typedRoutes": true
     },
