@@ -73,7 +73,7 @@
         }
       ]
     ],
-    "scheme": "LokaLinc",
+    "scheme": "lokalinc",
     "experiments": {
       "typedRoutes": true
     },
