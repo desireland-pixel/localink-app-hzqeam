@@ -59,18 +59,6 @@
           "color": "#000000",
           "sounds": []
         }
-      ],
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
-            "buildToolsVersion": "35.0.0",
-            "enableProguardInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": true
-          }
-        }
       ]
     ],
     "scheme": "lokalinc",
