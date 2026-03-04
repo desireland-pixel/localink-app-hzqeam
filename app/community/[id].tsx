@@ -71,32 +71,9 @@ export default function CommunityDetailsScreen() {
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [deletingComment, setDeletingComment] = useState(false);
   const [unreadReplyIds, setUnreadReplyIds] = useState<Set<string>>(new Set());
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const insets = useSafeAreaInsets();
 
-  console.log('CommunityDetailsScreen: Viewing topic', { id, insets, keyboardHeight });
-
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => {
-        console.log('CommunityDetailsScreen: Keyboard shown, height:', e.endCoordinates.height);
-        setKeyboardHeight(e.endCoordinates.height);
-      }
-    );
-    const keyboardDidHideListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => {
-        console.log('CommunityDetailsScreen: Keyboard hidden');
-        setKeyboardHeight(0);
-      }
-    );
-
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-    };
-  }, []);
+  console.log('CommunityDetailsScreen: Viewing topic', { id, insets });
 
   const fetchTopic = React.useCallback(async () => {
     try {
@@ -114,9 +91,7 @@ export default function CommunityDetailsScreen() {
         });
         data.replies = sortedReplies;
         
-        // Check if current user is the post owner - show brand border for unread replies
         if (isOwner) {
-          // Identify unread replies (isRead === false)
           const unreadIds = new Set(
             sortedReplies
               .filter(r => r.isRead === false)
@@ -125,7 +100,6 @@ export default function CommunityDetailsScreen() {
           console.log('[CommunityDetails] Found unread replies:', unreadIds.size, Array.from(unreadIds));
           setUnreadReplyIds(unreadIds);
           
-          // Remove the brand border after 2 seconds
           if (unreadIds.size > 0) {
             setTimeout(() => {
               console.log('[CommunityDetails] Removing unread borders after 2 seconds');
@@ -257,7 +231,6 @@ export default function CommunityDetailsScreen() {
     
     const newLikeCount = wasLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
     
-    // Optimistic update - update state immediately before API call
     const updatedReplies = topic.replies.map(reply => {
       if (reply.id === replyId) {
         return {
@@ -274,7 +247,6 @@ export default function CommunityDetailsScreen() {
     try {
       const result = await authenticatedPost<{ liked: boolean; likeCount: number }>(`/api/community/replies/${replyId}/like`, {});
       console.log('CommunityDetailsScreen: Like toggled, server response:', result);
-      // Update with server-confirmed values to ensure accuracy
       setTopic(prev => {
         if (!prev || !prev.replies) return prev;
         return {
@@ -293,7 +265,6 @@ export default function CommunityDetailsScreen() {
       });
     } catch (error) {
       console.error('CommunityDetailsScreen: Error toggling reply like', error);
-      // Revert optimistic update on error
       setTopic(prev => {
         if (!prev || !prev.replies) return prev;
         return {
@@ -322,7 +293,6 @@ export default function CommunityDetailsScreen() {
       console.log('[CommunityDetails] Comment deleted successfully');
       setShowDeleteCommentModal(false);
       setCommentToDelete(null);
-      // Remove the deleted reply from local state immediately
       setTopic(prev => {
         if (!prev || !prev.replies) return prev;
         return {
@@ -381,13 +351,13 @@ export default function CommunityDetailsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView 
           style={styles.content}
-          contentContainerStyle={{ paddingBottom: Platform.OS === 'android' && keyboardHeight > 0 ? keyboardHeight + spacing.md : spacing.md }}
+          contentContainerStyle={{ paddingBottom: spacing.md }}
         >
           <View style={styles.mainPostCard}>
             <View style={styles.headerRow}>
@@ -569,14 +539,7 @@ export default function CommunityDetailsScreen() {
         </ScrollView>
 
         {topic.status === 'open' && (
-          <View style={[
-            styles.commentInputBar, 
-            { 
-              paddingBottom: Platform.OS === 'android' && keyboardHeight > 0 
-                ? spacing.sm 
-                : Math.max(spacing.md, insets.bottom) 
-            }
-          ]}>
+          <View style={styles.commentInputBar}>
             <TextInput
               style={styles.commentInput}
               placeholder="Write your comment"
@@ -606,14 +569,7 @@ export default function CommunityDetailsScreen() {
         )}
         
         {topic.status === 'closed' && (
-          <View style={[
-            styles.closedNotice, 
-            { 
-              paddingBottom: Platform.OS === 'android' && keyboardHeight > 0 
-                ? spacing.sm 
-                : Math.max(spacing.md, insets.bottom) 
-            }
-          ]}>
+          <View style={styles.closedNotice}>
             <Text style={styles.closedNoticeText}>This discussion is closed. No new comments can be added.</Text>
           </View>
         )}
@@ -885,6 +841,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
+    paddingBottom: spacing.md,
     backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.border,
@@ -920,6 +877,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
+    paddingBottom: spacing.md,
   },
   closedNoticeText: {
     ...typography.body,

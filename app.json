@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "LokaLinc",
-    "slug": "lokalinc-app-hzqeam",
+    "slug": "lokalinc",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/Logo_LokaLinc_inverse.jpg",
