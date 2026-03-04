@@ -60,31 +60,8 @@ export default function ChatScreen() {
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [deletingMessage, setDeletingMessage] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length, currentUserId: user?.id, insets, keyboardHeight });
-
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => {
-        console.log('ChatScreen: Keyboard shown, height:', e.endCoordinates.height);
-        setKeyboardHeight(e.endCoordinates.height);
-      }
-    );
-    const keyboardDidHideListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => {
-        console.log('ChatScreen: Keyboard hidden');
-        setKeyboardHeight(0);
-      }
-    );
-
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-    };
-  }, []);
+  console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length, currentUserId: user?.id, insets });
 
   const markMessagesAsRead = React.useCallback(async () => {
     if (!id) return;
@@ -99,7 +76,6 @@ export default function ChatScreen() {
   }, [id, fetchUnreadCount]);
 
   const startPolling = React.useCallback(() => {
-    // Poll for new messages every 3 seconds as a fallback
     pollingIntervalRef.current = setInterval(async () => {
       try {
         console.log('[ChatScreen] Polling for new messages');
@@ -110,7 +86,6 @@ export default function ChatScreen() {
             return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           });
           
-          // Only update if there are new messages
           setMessages(prev => {
             if (prev.length !== sortedMessages.length) {
               console.log('[ChatScreen] New messages detected via polling');
@@ -143,7 +118,6 @@ export default function ChatScreen() {
         ? BACKEND_URL.replace(/^https:/, 'wss:')
         : BACKEND_URL.replace(/^http:/, 'ws:');
 
-      // Pass token as query param since WebSocket headers aren't supported in all environments
       const ws = new WebSocket(`${wsUrl}/ws/messages?token=${encodeURIComponent(token)}`);
 
       ws.onopen = () => {
@@ -183,7 +157,6 @@ export default function ChatScreen() {
       };
 
       ws.onerror = (error) => {
-        // Silently log - polling handles message sync as fallback
         console.log('ChatScreen: WebSocket unavailable, using polling fallback');
       };
 
@@ -193,14 +166,11 @@ export default function ChatScreen() {
 
       wsRef.current = ws;
     } catch (error) {
-      // Silently handle - polling will handle message sync
       console.log('ChatScreen: WebSocket setup skipped, using polling fallback');
     }
   }, [id, markMessagesAsRead]);
 
   const fetchConversation = React.useCallback(async () => {
-    // Conversation details are fetched via the messages endpoint which works
-    // regardless of hasSentMessages status (so new/empty chats still load correctly)
     console.log('ChatScreen: Conversation details will be loaded via fetchMessages', id);
   }, [id]);
 
@@ -295,7 +265,6 @@ export default function ChatScreen() {
       setShowDeleteMessageModal(false);
       setMessageToDelete(null);
       setSelectedMessageId(null);
-      // Remove the deleted message from local state immediately
       setMessages(prev => prev.filter(m => m.id !== messageToDelete));
     } catch (err: any) {
       console.error('[ChatScreen] Error deleting message:', err);
@@ -361,7 +330,6 @@ export default function ChatScreen() {
       post: conversation?.post 
     });
     
-    // If post is deleted (null), show a message instead of navigating
     if (!conversation?.post) {
       console.log('ChatScreen: Post has been deleted, showing notification');
       setShowDeletedPostModal(true);
@@ -501,9 +469,9 @@ export default function ChatScreen() {
         }}
       />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {(conversation?.post || isPostDeleted) && (
           <TouchableOpacity 
@@ -524,21 +492,11 @@ export default function ChatScreen() {
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
           style={styles.messagesContainer}
-          contentContainerStyle={[
-            styles.messagesContent,
-            { paddingBottom: Platform.OS === 'android' && keyboardHeight > 0 ? keyboardHeight + spacing.md : spacing.md }
-          ]}
+          contentContainerStyle={styles.messagesContent}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />
 
-        <View style={[
-          styles.inputContainer,
-          { 
-            paddingBottom: Platform.OS === 'android' && keyboardHeight > 0 
-              ? spacing.sm 
-              : Math.max(spacing.md, insets.bottom) 
-          }
-        ]}>
+        <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             placeholder="Type a message..."
@@ -745,6 +703,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
+    paddingBottom: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.background,
