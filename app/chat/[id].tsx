@@ -250,7 +250,7 @@ export default function ChatScreen() {
     if (messages.length > 0 && flatListRef.current) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: false });
-      }, 200);
+      }, 100);
     }
   }, [messages]);
   
@@ -507,7 +507,11 @@ export default function ChatScreen() {
           contentContainerStyle={styles.messagesContent}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          onContentSizeChange={() => {
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: false });
+            }, 50);
+          }}
         />
 
         <View style={styles.inputContainer}>
