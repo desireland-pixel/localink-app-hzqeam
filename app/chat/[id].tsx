@@ -253,6 +253,18 @@ export default function ChatScreen() {
       }, 100);
     }
   }, [messages]);
+  
+  useEffect(() => {
+  const keyboardShow = Keyboard.addListener('keyboardDidShow', () => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  });
+
+  return () => {
+    keyboardShow.remove();
+  };
+}, []);
 
   const handleDeleteMessage = async () => {
     if (!messageToDelete || !id) return;
