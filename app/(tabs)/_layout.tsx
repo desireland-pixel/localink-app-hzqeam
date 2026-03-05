@@ -24,7 +24,7 @@ export default function TabLayout() {
           borderTopWidth: 1,
           paddingBottom: Platform.OS === 'android' ? 6 : insets.bottom,
           paddingTop: 10,
-          // height removed to allow adjustResize on Android
+          height: 60,
         },
         tabBarLabelStyle: {
           fontSize: 12,
