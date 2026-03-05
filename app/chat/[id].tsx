@@ -246,26 +246,6 @@ export default function ChatScreen() {
     };
   }, [id, fetchConversation, fetchMessages, setupWebSocket, startPolling]);
 
-  useEffect(() => {
-    if (messages.length > 0 && flatListRef.current) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
-      }, 100);
-    }
-  }, [messages]);
-  
-  useEffect(() => {
-  const keyboardShow = Keyboard.addListener('keyboardDidShow', () => {
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 50);
-  });
-
-  return () => {
-    keyboardShow.remove();
-  };
-}, []);
-
   const handleDeleteMessage = async () => {
     if (!messageToDelete || !id) return;
     console.log('[ChatScreen] Deleting message:', messageToDelete);
@@ -325,7 +305,6 @@ export default function ChatScreen() {
         return [...prev, messageWithSender];
       });
       
-      flatListRef.current?.scrollToEnd({ animated: true });
     } catch (error: any) {
       console.error('ChatScreen: Error sending message', error);
       setError(error.message || 'Failed to send message');
@@ -499,6 +478,7 @@ export default function ChatScreen() {
         )}
 
         <FlatList
+          inverted
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
