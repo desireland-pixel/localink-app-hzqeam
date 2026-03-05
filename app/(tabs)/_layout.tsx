@@ -22,7 +22,7 @@ export default function TabLayout() {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          paddingBottom: insets.bottom, // <-- FIXED: only safe area inset
+          paddingBottom: Platform.OS === 'android' ? 6 : insets.bottom
           paddingTop: 10,
           // height removed to allow adjustResize on Android
         },
