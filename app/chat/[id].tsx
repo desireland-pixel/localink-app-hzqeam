@@ -250,7 +250,7 @@ export default function ChatScreen() {
     if (messages.length > 0 && flatListRef.current) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: false });
-      }, 100);
+      }, 200);
     }
   }, [messages]);
   
@@ -325,7 +325,6 @@ export default function ChatScreen() {
         return [...prev, messageWithSender];
       });
       
-      Keyboard.dismiss();
       flatListRef.current?.scrollToEnd({ animated: true });
     } catch (error: any) {
       console.error('ChatScreen: Error sending message', error);
