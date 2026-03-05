@@ -83,7 +83,7 @@ export default function ChatScreen() {
         
         if (data && data.messages && Array.isArray(data.messages)) {
           const sortedMessages = [...data.messages].sort((a, b) => {
-            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
           });
           
           setMessages(prev => {
@@ -194,7 +194,7 @@ export default function ChatScreen() {
       }
       
       const sortedMessages = [...messagesArray].sort((a, b) => {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
       
       console.log('ChatScreen: Sorted messages', { 
