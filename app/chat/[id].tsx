@@ -83,7 +83,7 @@ export default function ChatScreen() {
         
         if (data && data.messages && Array.isArray(data.messages)) {
           const sortedMessages = [...data.messages].sort((a, b) => {
-            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
           });
           
           setMessages(prev => {
@@ -194,7 +194,7 @@ export default function ChatScreen() {
       }
       
       const sortedMessages = [...messagesArray].sort((a, b) => {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
       
       console.log('ChatScreen: Sorted messages', { 
@@ -245,26 +245,6 @@ export default function ChatScreen() {
       }
     };
   }, [id, fetchConversation, fetchMessages, setupWebSocket, startPolling]);
-
-  useEffect(() => {
-    if (messages.length > 0 && flatListRef.current) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
-      }, 100);
-    }
-  }, [messages]);
-  
-  useEffect(() => {
-  const keyboardShow = Keyboard.addListener('keyboardDidShow', () => {
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 50);
-  });
-
-  return () => {
-    keyboardShow.remove();
-  };
-}, []);
 
   const handleDeleteMessage = async () => {
     if (!messageToDelete || !id) return;
@@ -322,10 +302,9 @@ export default function ChatScreen() {
         if (prev.some(m => m.id === messageWithSender.id)) {
           return prev;
         }
-        return [...prev, messageWithSender];
+        return [messageWithSender, ...prev];
       });
       
-      flatListRef.current?.scrollToEnd({ animated: true });
     } catch (error: any) {
       console.error('ChatScreen: Error sending message', error);
       setError(error.message || 'Failed to send message');
@@ -499,6 +478,7 @@ export default function ChatScreen() {
         )}
 
         <FlatList
+          inverted
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
@@ -507,11 +487,6 @@ export default function ChatScreen() {
           contentContainerStyle={styles.messagesContent}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          onContentSizeChange={() => {
-            setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: false });
-            }, 50);
-          }}
         />
 
         <View style={styles.inputContainer}>
