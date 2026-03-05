@@ -302,7 +302,7 @@ export default function ChatScreen() {
         if (prev.some(m => m.id === messageWithSender.id)) {
           return prev;
         }
-        return [messageWithSender, ...prev];
+        return [...prev, messageWithSender];
       });
       
     } catch (error: any) {
