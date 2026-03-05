@@ -314,6 +314,7 @@ export default function ChatScreen() {
       });
       
       Keyboard.dismiss();
+      flatListRef.current?.scrollToEnd({ animated: true });
     } catch (error: any) {
       console.error('ChatScreen: Error sending message', error);
       setError(error.message || 'Failed to send message');
@@ -494,6 +495,7 @@ export default function ChatScreen() {
           style={styles.messagesContainer}
           contentContainerStyle={[styles.messagesContent, { paddingBottom: 120 }]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />
 
