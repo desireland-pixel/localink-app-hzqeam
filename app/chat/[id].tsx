@@ -487,11 +487,6 @@ export default function ChatScreen() {
           contentContainerStyle={styles.messagesContent}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          onContentSizeChange={() => {
-            setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: false });
-            }, 50);
-          }}
         />
 
         <View style={styles.inputContainer}>
