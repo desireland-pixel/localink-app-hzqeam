@@ -484,7 +484,7 @@ export default function ChatScreen() {
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
           style={styles.messagesContainer}
-          contentContainerStyle={styles.messagesContent}
+          contentContainerStyle= {{ ...styles.messagesContent, flexGrow: 1, justifyContent: 'flex-end' }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         />
