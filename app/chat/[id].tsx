@@ -493,7 +493,7 @@ export default function ChatScreen() {
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
           style={styles.messagesContainer}
-          contentContainerStyle={[styles.messagesContent, { paddingBottom: 120 }]}
+          contentContainerStyle={styles.messagesContent}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
