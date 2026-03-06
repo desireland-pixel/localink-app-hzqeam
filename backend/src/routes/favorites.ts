@@ -67,6 +67,7 @@ export function registerFavoriteRoutes(app: App) {
         .returning();
 
       app.logger.info({ favoriteId: favorite.id, userId: session.user.id }, 'Favorite created successfully');
+      reply.status(201);
       return {
         success: true,
         favorite,

@@ -587,6 +587,7 @@ export function registerTravelPostRoutes(app: App) {
 
       app.logger.info({ travelPostId: post.id, userId: session.user.id }, 'Travel post created successfully');
 
+      reply.status(201);
       return {
         travelPostId: post.id,
       };

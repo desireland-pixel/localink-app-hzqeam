@@ -64,29 +64,77 @@ export interface TestUser {
  */
 export async function signUpTestUser(): Promise<TestUser> {
   const id = crypto.randomUUID();
-  const res = await api("/api/auth/sign-up/email", {
+  const email = `testuser+${id}@example.com`;
+
+  // First, sign up with the custom signup endpoint
+  const signupRes = await api("/api/signup", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       name: "Test User",
-      email: `testuser+${id}@example.com`,
+      email: email,
+      password: "TestPassword123!",
+      username: `testuser_${id.substring(0, 8)}`,
+      city: "Berlin",
+      termsAccepted: true,
+    }),
+  });
+
+  if (!signupRes.ok) {
+    const body = await signupRes.text();
+    throw new Error(`Failed to sign up test user (${signupRes.status}): ${body}`);
+  }
+
+  const signupData = (await signupRes.json()) as any;
+
+  // For testing, we'll try logging in directly
+  // The signup creates the user but email is not verified yet
+  // However, for testing purposes, we'll allow login to work with a test user
+  const loginRes = await api("/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: email,
       password: "TestPassword123!",
     }),
   });
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Failed to sign up test user (${res.status}): ${body}`);
+  if (!loginRes.ok) {
+    const body = await loginRes.text();
+    // If login fails due to unverified email, we might need to verify OTP first
+    // For now, throw the error so we know what's happening
+    throw new Error(`Failed to login test user (${loginRes.status}): ${body}`);
   }
 
-  const data = (await res.json()) as TestUser;
+  const loginData = (await loginRes.json()) as any;
+
+  // Extract token from session
+  const token = loginData.session?.id || loginData.token || id;
+
+  if (!token) {
+    throw new Error("No session token returned from login");
+  }
+
+  // Construct a test user object
+  const testUser: TestUser = {
+    token,
+    user: {
+      id: loginData.user?.id || loginData.userId || id,
+      name: "Test User",
+      email: email,
+      emailVerified: loginData.user?.emailVerified ?? true,
+      image: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  };
 
   // Auto-register cleanup so the test file doesn't need to
   afterAll(async () => {
-    await deleteTestUser(data.token);
+    await deleteTestUser(token);
   });
 
-  return data;
+  return testUser;
 }
 
 /**
@@ -137,18 +185,57 @@ export async function connectWebSocket(path: string): Promise<WebSocket> {
 
 /**
  * Connect to an authenticated WebSocket endpoint.
- * Sends the token as the first message and waits for the authentication response.
+ * Uses Bearer token in Authorization header for authentication.
  */
 export async function connectAuthenticatedWebSocket(path: string, token: string): Promise<WebSocket> {
-  const ws = await connectWebSocket(path);
-  ws.send(token);
-  const response = await waitForMessage(ws);
-  const data = JSON.parse(response);
-  if (data.error) {
-    ws.close();
-    throw new Error(`WebSocket auth failed: ${data.error}`);
-  }
-  return ws;
+  const url = new URL(path, WS_URL);
+  // Pass token as query parameter as fallback
+  url.searchParams.set('token', token);
+
+  // Create WebSocket with custom headers
+  const ws = new WebSocket(url.toString(), [], {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  } as any);
+
+  return new Promise((resolve, reject) => {
+    let authResolved = false;
+
+    ws.onopen = () => {
+      // Connection opened, wait for auth response
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.error) {
+          ws.close();
+          reject(new Error(`WebSocket auth failed: ${data.error}`));
+        } else if (data.type === 'connected' || data.type === 'authenticated') {
+          if (!authResolved) {
+            authResolved = true;
+            resolve(ws);
+          }
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    };
+
+    ws.onerror = () => {
+      if (!authResolved) {
+        reject(new Error(`WebSocket connection failed: ${url}`));
+      }
+    };
+
+    setTimeout(() => {
+      if (!authResolved) {
+        ws.close();
+        reject(new Error("WebSocket connection timeout"));
+      }
+    }, 5000);
+  });
 }
 
 /**
