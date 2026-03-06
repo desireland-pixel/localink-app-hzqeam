@@ -462,7 +462,7 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 65}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 65}
       >
         {(conversation?.post || isPostDeleted) && (
           <TouchableOpacity 
