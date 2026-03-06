@@ -489,7 +489,7 @@ export default function ChatScreen() {
           keyboardDismissMode="on-drag"
         />
 
-        <View style={[styles.inputContainer, { paddingBottom: Platform.OS === 'android' ? 10 : 5 }]}>
+        <View style={[styles.inputContainer, { paddingBottom: Platform.OS === 'android' ? 10 : 0 }]}>
           <TextInput
             style={styles.input}
             placeholder="Type a message..."
