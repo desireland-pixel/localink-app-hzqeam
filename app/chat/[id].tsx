@@ -462,7 +462,7 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 65}
       >
         {(conversation?.post || isPostDeleted) && (
           <TouchableOpacity 
@@ -489,7 +489,7 @@ export default function ChatScreen() {
           keyboardDismissMode="on-drag"
         />
 
-        <View style={[styles.inputContainer, { paddingBottom: Platform.OS === 'android' ? 10 : 0 }]}>
+        <View style={[styles.inputContainer, { paddingBottom: Platform.OS === 'android' ? 10 : 5 }]}>
           <TextInput
             style={styles.input}
             placeholder="Type a message..."
