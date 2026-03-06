@@ -109,7 +109,7 @@ export function registerCommunityRoutes(app: App) {
   // Get discussion topic by ID with replies
   app.fastify.get('/api/community/topics/:id', {
     schema: {
-      description: 'Get discussion topic details with replies',
+      description: 'Get discussion topic details with replies (public endpoint)',
       tags: ['community'],
       params: {
         type: 'object',
@@ -120,11 +120,11 @@ export function registerCommunityRoutes(app: App) {
       },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireAuth(request, reply);
-    if (!session) return;
-
     const { id } = request.params as { id: string };
-    const currentUserId = session.user.id;
+
+    // Endpoint is public - currentUserId is null for unauthenticated users
+    // This is only used for isOwner flag and isLikedByMe field, which gracefully degrade
+    let currentUserId: string | null = null;
     app.logger.info({ topicId: id, userId: currentUserId }, 'Fetching discussion topic details');
 
     try {
@@ -167,7 +167,7 @@ export function registerCommunityRoutes(app: App) {
           updatedAt: schema.discussionReplies.updatedAt,
           username: schema.profiles.username,
           likes: sql<number>`(SELECT COUNT(*) FROM ${schema.replyLikes} WHERE ${schema.replyLikes.replyId} = ${schema.discussionReplies.id})`,
-          isLikedByMe: sql<boolean>`EXISTS(SELECT 1 FROM ${schema.replyLikes} WHERE ${schema.replyLikes.replyId} = ${schema.discussionReplies.id} AND ${schema.replyLikes.userId} = ${currentUserId})`,
+          isLikedByMe: sql<boolean>`${currentUserId ? sql`EXISTS(SELECT 1 FROM ${schema.replyLikes} WHERE ${schema.replyLikes.replyId} = ${schema.discussionReplies.id} AND ${schema.replyLikes.userId} = ${currentUserId})` : sql`false`}`,
         })
         .from(schema.discussionReplies)
         .leftJoin(schema.profiles, eq(schema.discussionReplies.userId, schema.profiles.userId))
