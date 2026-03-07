@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 
 interface ShareParams {
-  postType: 'sublet' | 'travel';
+  postType: 'sublet' | 'travel' | 'community';
   id: string;
 }
 
@@ -16,7 +16,7 @@ export function registerShareRoutes(app: App) {
       params: {
         type: 'object',
         properties: {
-          postType: { type: 'string', enum: ['sublet', 'travel'] },
+          postType: { type: 'string', enum: ['sublet', 'travel', 'community'] },
           id: { type: 'string', format: 'uuid' },
         },
         required: ['postType', 'id'],
@@ -52,6 +52,7 @@ export function registerShareRoutes(app: App) {
 
         title = sublet.title;
         description = sublet.description || `Sublet in ${sublet.city}`;
+        
       } else if (postType === 'travel') {
         const post = await app.db.query.travelPosts.findFirst({
           where: eq(schema.travelPosts.id, id),
@@ -64,13 +65,28 @@ export function registerShareRoutes(app: App) {
 
         title = `Travel ${post.type} - ${post.fromCity} to ${post.toCity}`;
         description = post.description || `Travel companion ${post.type}`;
+        
+      } else if (postType === 'community') {
+
+        const topic = await app.db.query.communityTopics.findFirst({
+          where: eq(schema.communityTopics.id, id),
+        });
+      
+        if (!topic) {
+          app.logger.warn({ postType, postId: id }, 'Post not found');
+          return reply.status(404).send({ error: 'Post not found' });
+        }
+      
+        title = topic.title;
+        description = topic.description || `Community discussion`;
+      
       }
 
       // Construct share URL (would be frontend URL in production)
       const baseUrl = process.env.APP_URL || 'https://localink.app';
-      const shareUrl = `${baseUrl}/posts/${postType}/${id}`;
+      const shareUrl = `${baseUrl}/${postType}/${id}`;
 
-      app.logger.info({ postType, postId: id }, 'Share info retrieved successfully');
+      app.logger.info({ postType, postId: id, shareUrl }, 'Share info retrieved successfully');
       return {
         shareUrl,
         title,
