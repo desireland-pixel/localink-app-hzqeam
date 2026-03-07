@@ -181,7 +181,7 @@ export default function CommunityDetailsScreen() {
         shareUrl: string;
         title: string;
         description: string;
-      }>(`/api/posts/community/${id}/share`);
+      }>(`/api/posts/communityTopic/${id}/share`);
   
       await Share.share({
         message: `${shareData.title}\n\n${shareData.description}\n\n${shareData.shareUrl}`,
