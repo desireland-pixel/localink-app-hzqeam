@@ -123,7 +123,7 @@ export const GERMAN_CITIES = [
   'Worms',
   'Wuppertal',
   'Würzburg',
-  'Zwickau'
+  'Zwickau',
 ];
 
 // City/Country code mapping for travel page
