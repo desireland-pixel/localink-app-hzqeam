@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform, TextInput, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Platform, TextInput, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -169,6 +169,35 @@ export default function CommunityDetailsScreen() {
         editData: JSON.stringify(topic),
       },
     });
+  };
+
+  const handleShare = async () => {
+    if (!topic) return;
+  
+    console.log('CommunityDetailsScreen: Share topic', id);
+  
+    try {
+      const shareData = await authenticatedGet<{
+        shareUrl: string;
+        title: string;
+        description: string;
+      }>(`/api/posts/community/${id}/share`);
+  
+      await Share.share({
+        message: `${shareData.title}\n\n${shareData.description}\n\n${shareData.shareUrl}`,
+        title: shareData.title,
+        url: shareData.shareUrl,
+      });
+    } catch (error) {
+      console.error('CommunityDetailsScreen: Error sharing', error);
+  
+      const fallbackMessage = `Check out this discussion: ${topic.title}`;
+  
+      await Share.share({
+        message: fallbackMessage,
+        title: topic.title,
+      });
+    }
   };
 
   const handleDelete = async () => {
@@ -378,7 +407,7 @@ export default function CommunityDetailsScreen() {
                       </TouchableOpacity>
                     </View>
                     <View style={styles.iconButtonBox}>
-                      <TouchableOpacity style={styles.iconButton} onPress={() => {}}>
+                      <TouchableOpacity style={styles.iconButton} onPress={handleShare}
                         <IconSymbol
                           ios_icon_name="square.and.arrow.up"
                           android_material_icon_name="share"
@@ -401,7 +430,7 @@ export default function CommunityDetailsScreen() {
                       </TouchableOpacity>
                     </View>
                     <View style={styles.iconButtonBox}>
-                      <TouchableOpacity style={styles.iconButton} onPress={() => {}}>
+                      <TouchableOpacity style={styles.iconButton} onPress={handleShare}
                         <IconSymbol
                           ios_icon_name="square.and.arrow.up"
                           android_material_icon_name="share"
