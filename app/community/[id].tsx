@@ -407,7 +407,7 @@ export default function CommunityDetailsScreen() {
                       </TouchableOpacity>
                     </View>
                     <View style={styles.iconButtonBox}>
-                      <TouchableOpacity style={styles.iconButton} onPress={handleShare}
+                      <TouchableOpacity style={styles.iconButton} onPress={handleShare}>
                         <IconSymbol
                           ios_icon_name="square.and.arrow.up"
                           android_material_icon_name="share"
@@ -430,7 +430,7 @@ export default function CommunityDetailsScreen() {
                       </TouchableOpacity>
                     </View>
                     <View style={styles.iconButtonBox}>
-                      <TouchableOpacity style={styles.iconButton} onPress={handleShare}
+                      <TouchableOpacity style={styles.iconButton} onPress={handleShare}>
                         <IconSymbol
                           ios_icon_name="square.and.arrow.up"
                           android_material_icon_name="share"
