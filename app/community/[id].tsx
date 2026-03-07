@@ -188,8 +188,11 @@ export default function CommunityDetailsScreen() {
         title: shareData.title,
         url: shareData.shareUrl,
       });
-    } catch (error) {
-      console.error('CommunityDetailsScreen: Error sharing', error);
+    } 
+    //catch (error) {
+    //console.error('CommunityDetailsScreen: Error sharing', error);
+      catch (error: any) {
+      console.log('SHARE ERROR:', error?.response?.data || error);
   
       const fallbackMessage = `Check out this discussion: ${topic.title}`;
   
