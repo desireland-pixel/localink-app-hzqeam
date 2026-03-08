@@ -68,8 +68,8 @@ export function registerShareRoutes(app: App) {
         
       } else if (postType === 'community') {
 
-        const topic = await app.db.query.communityTopics.findFirst({
-          where: eq(schema.communityTopics.id, id),
+        const topic = await app.db.query.discussionTopics.findFirst({
+          where: eq(schema.discussionTopics.id, id),
         });
       
         if (!topic) {
