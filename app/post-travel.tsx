@@ -773,7 +773,7 @@ export default function PostTravelScreen() {
                 placeholderTextColor={colors.textLight}
                 value={item}
                 onChangeText={setItem}
-                maxLength={20}
+                maxLength={30}
               />
 
               <Text style={styles.label}>Description</Text>
