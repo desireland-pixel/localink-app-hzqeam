@@ -385,7 +385,7 @@ export default function CommunityDetailsScreen() {
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 65}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 75}
       >
         <ScrollView 
           style={styles.content}
