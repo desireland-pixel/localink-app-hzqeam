@@ -98,7 +98,7 @@ export default function VerifyOTPScreen() {
             {!verified ? (
               <>
                 <View style={styles.header}>
-                  <Text style={styles.emoji}>📧</Text>
+                  <Text style={styles.emoji}>📤</Text>
                   <Text style={styles.title}>Verify your email</Text>
                   <Text style={styles.subtitle}>We have sent an OTP to {emailDisplay}</Text>
                 </View>
