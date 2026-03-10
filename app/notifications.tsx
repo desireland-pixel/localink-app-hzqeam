@@ -216,7 +216,7 @@ export default function NotificationsScreen() {
         </View>
 
         <Text style={styles.note}>
-          Push notifications alert you about new messages and community replies. Push notifications require a standalone APK/IPA build with a valid EAS project ID — they are not available in Expo Go.
+          Push notifications alert you about new messages and community replies.
         </Text>
       </ScrollView>
 
