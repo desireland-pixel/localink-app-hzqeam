@@ -82,7 +82,9 @@ export default function MyPostsScreen() {
       }
       console.log('MyPostsScreen: Fetched posts', data);
       // Sort by createdAt descending (newest first)
-      const sortedData = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const filtered = data.filter(p => p.status !== 'deleted');
+      
+      const sortedData = filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setPosts(sortedData);
     } catch (error: any) {
       console.error('MyPostsScreen: Error fetching posts', error);
