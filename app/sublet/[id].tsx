@@ -171,7 +171,7 @@ export default function SubletDetailsScreen() {
       await authenticatedDelete(`/api/sublets/${id}`, {});
       console.log('SubletDetailsScreen: Post deleted successfully');
       setShowDeleteModal(false);
-      router.replace('/my-posts');
+      router.replace('/sublet');
     } catch (error: any) {
       console.error('SubletDetailsScreen: Error deleting post', error);
       setError(error.message || 'Failed to delete post');
