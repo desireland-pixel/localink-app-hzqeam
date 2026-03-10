@@ -213,10 +213,16 @@ export default function CommunityDetailsScreen() {
     setDeleting(true);
     
     try {
-      const response = await authenticatedDelete<{ success: boolean; action: string; message: string }>(
-        `/api/community/topics/${id}`,
-        {}
-      );
+      const response =
+        topic.status === 'closed'
+          ? await authenticatedDelete<{ success: boolean; action: string; message: string }>(
+              `/api/community/topics/${id}`,
+              {}
+            )
+          : await authenticatedPut<{ success: boolean; action: string; message: string }>(
+              `/api/community/topics/${id}`,
+              { status: 'closed' }
+            );
       console.log('CommunityDetailsScreen: Topic action completed', response);
       
       setShowDeleteModal(false);
