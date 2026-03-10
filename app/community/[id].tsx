@@ -221,7 +221,7 @@ export default function CommunityDetailsScreen() {
       
       setShowDeleteModal(false);
       
-      router.replace('/(tabs)/(home)');
+      router.replace('/carry');
     } catch (error: any) {
       console.error('CommunityDetailsScreen: Error with topic action', error);
       setError(error.message || `Failed to ${actionText} topic`);
