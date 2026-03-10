@@ -59,7 +59,7 @@ Stömmerstr 26
 85055, Ingolstadt
 Germany
               
-Email: info.lokalinc@gmail.com
+Email: hello@lokalinc.de
               
 Responsible for content gemäß §18 Abs. 2 MStV:
 Same as above`}
