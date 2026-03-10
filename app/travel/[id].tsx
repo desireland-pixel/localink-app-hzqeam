@@ -174,10 +174,7 @@ export default function TravelDetailsScreen() {
       await authenticatedDelete(`/api/travel-posts/${id}`, {});
       console.log('TravelDetailsScreen: Post deleted successfully');
       setShowDeleteModal(false);
-      router.replace({
-        pathname: '/my-posts',
-        params: { tab: 'travel' }
-      });
+      router.replace('/travel');
     } catch (error: any) {
       console.error('TravelDetailsScreen: Error deleting post', error);
       setError(error.message || 'Failed to delete post');
