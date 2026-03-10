@@ -271,7 +271,7 @@ export function registerAuthRoutes(app: App) {
 
       // Send OTP email (fire and forget)
       resend.emails.send({
-        from: 'LokaLinc <noreply@localink.app>',
+        from: 'LokaLinc <noreply@lokalinc.de>',
         to: email,
         subject: 'LokaLinc - Verify Your Email',
         html: `
@@ -431,7 +431,7 @@ export function registerAuthRoutes(app: App) {
       // Send OTP email via Resend
       const { resend } = await import('@specific-dev/framework');
       resend.emails.send({
-        from: 'LokaLinc <noreply@localink.app>',
+        from: 'LokaLinc <noreply@lokalinc.de>',
         to: email,
         subject: 'LokaLinc - Verify Your Email',
         html: `
@@ -498,10 +498,10 @@ export function registerAuthRoutes(app: App) {
 
       // Send password reset email
       const { resend } = await import('@specific-dev/framework');
-      const resetLink = `${process.env.FRONTEND_URL || 'https://lokalinc.app'}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+      const resetLink = `${process.env.FRONTEND_URL || 'https://lokalinc.de'}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
       resend.emails.send({
-        from: 'LokaLinc <noreply@localink.app>',
+        from: 'LokaLinc <noreply@lokalinc.de>',
         to: email,
         subject: 'LokaLinc - Reset Your Password',
         html: `
@@ -515,7 +515,7 @@ export function registerAuthRoutes(app: App) {
             </div>
             <p style="color: #6B7280; margin-top: 20px;">Or copy and paste this link into your browser:</p>
             <p style="color: #4F46E5; word-break: break-all;">${resetLink}</p>
-            <p style="color: #6B7280;">This link will expire in 1 hour.</p>
+            <p style="color: #6B7280;">This link will expire in 10 minutes.</p>
             <p style="color: #6B7280;">If you didn't request this, please ignore this email.</p>
           </div>
         `,
