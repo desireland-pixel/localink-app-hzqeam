@@ -139,9 +139,10 @@ export default function TravelDetailsScreen() {
       console.log('TravelDetailsScreen: Share data fetched', shareData);
       
       await Share.share({
-        message: `${shareData.title}\n\n${shareData.description}\n\n${shareData.shareUrl}`,
-        title: shareData.title,
-        url: shareData.shareUrl,
+		  message: `Check out this post: ${travelPost.fromCity} ✈️ ${travelPost.toCity}
+        
+Shared via Lokalinc - a community platform
+${shareData.shareUrl}`,
       });
     } catch (error: any) {
       console.error('TravelDetailsScreen: Error sharing', error);
