@@ -15,7 +15,7 @@ export default function DataPrivacyScreen() {
           </Text>
           <Text style={styles.paragraph}>
             Contact:{' '}
-            <Text style={styles.contactEmail}>info.lokalinc@gmail.com</Text>
+            <Text style={styles.contactEmail}>privacy@lokalinc.de</Text>
           </Text>
         </View>
 
@@ -87,7 +87,7 @@ export default function DataPrivacyScreen() {
           </Text>
           <Text style={styles.paragraph}>
             Requests may be directed to:{' '}
-            <Text style={styles.contactEmail}>info.lokalinc@gmail.com</Text>
+            <Text style={styles.contactEmail}>privacy@lokalinc.de</Text>
           </Text>
         </View>
 
