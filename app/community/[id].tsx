@@ -184,11 +184,12 @@ export default function CommunityDetailsScreen() {
       }>(`/api/posts/community/${id}/share`);
   
       await Share.share({
-        message: `Check out this discussion: ${shareData.title}      
+        message: `Check out this discussion: ${shareData.title}
+        
         Shared via Lokalinc - a community platform
         ${shareData.shareUrl}`,
-          title: shareData.title,
-        });
+        title: shareData.title,
+      });
     } 
     //catch (error) {
     //console.error('CommunityDetailsScreen: Error sharing', error);
