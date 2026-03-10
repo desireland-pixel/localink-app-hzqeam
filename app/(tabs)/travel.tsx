@@ -607,7 +607,7 @@ export default function TravelScreen() {
             
             if (post.type === 'offering') {
               // Offering: disable if travelDate < today
-              const travelDate = new Date(post.travelDate);
+              const travelDate = new Date(parseDateFromDDMMYYYY(post.travelDate));
               travelDate.setHours(0, 0, 0, 0);
               isExpired = travelDate < today;
               
@@ -632,11 +632,11 @@ export default function TravelScreen() {
               // Seeking (both companionship and ally): disable if travelDateTo < today
               // If travelDateTo is not available, then only disable if travelDate < today
               if (post.travelDateTo) {
-                const travelDateTo = new Date(post.travelDateTo);
+                const travelDateTo = new Date(parseDateFromDDMMYYYY(post.travelDateTo));
                 travelDateTo.setHours(0, 0, 0, 0);
                 isExpired = travelDateTo < today;
               } else {
-                const travelDate = new Date(post.travelDate);
+                const travelDate = new Date(parseDateFromDDMMYYYY(post.travelDate));
                 travelDate.setHours(0, 0, 0, 0);
                 isExpired = travelDate < today;
               }
