@@ -73,7 +73,7 @@ const faqs: FAQ[] = [
   },
   {
     question: 'What should I do if I encounter inappropriate content?',
-    answer: 'Please report any inappropriate content or behavior immediately by contacting us at info.lokalinc@gmail.com. We review all reports and take appropriate action to maintain a safe community. We reserve the right to suspend accounts that violate our Terms.',
+    answer: 'Please report any inappropriate content or behavior immediately by contacting us at info@lokalinc.de. We review all reports and take appropriate action to maintain a safe community. We reserve the right to suspend accounts that violate our Terms.',
   },
   {
     question: 'Can I change my username or city?',
@@ -85,11 +85,11 @@ const faqs: FAQ[] = [
   },
   {
     question: 'How can I delete my account?',
-    answer: 'You can contact us at info.lokalinc@gmail.com via your registered email with deletation request. We will process your request within 7 working days.',
+    answer: 'You can contact us at info@lokalinc.de via your registered email with deletation request. We will process your request within 7 working days.',
   },
   {
     question: 'How can I contact to give feedback?',
-    answer: 'You can contact us at info.lokalinc@gmail.com regarding any feedback you have.',
+    answer: 'You can contact us at info@lokalinc.de regarding any feedback you have.',
   },
 ];
 
@@ -135,7 +135,7 @@ export default function FAQsScreen() {
         <View style={styles.contactSection}>
           <Text style={styles.contactTitle}>Still have questions?</Text>
           <Text style={styles.contactText}>
-            Contact us at <Text style={styles.contactEmail}>info.lokalinc@gmail.com</Text> and we&apos;ll be happy to help!
+            Contact us at <Text style={styles.contactEmail}>info@lokalinc.de</Text> and we&apos;ll be happy to help!
           </Text>
         </View>
       </ScrollView>
