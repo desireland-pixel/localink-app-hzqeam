@@ -136,9 +136,11 @@ export default function SubletDetailsScreen() {
       console.log('SubletDetailsScreen: Share data fetched', shareData);
       
       await Share.share({
-        message: `${shareData.title}\n\n${shareData.description}\n\n${shareData.shareUrl}`,
-        title: shareData.title,
-        url: shareData.shareUrl,
+        message: `Check out this post 🏠: ${shareData.title}
+        
+Shared via Lokalinc - a community platform
+${shareData.shareUrl}`,
+      title: shareData.title,
       });
     } catch (error: any) {
       console.error('SubletDetailsScreen: Error sharing', error);
