@@ -184,7 +184,7 @@ export default function CommunityDetailsScreen() {
       }>(`/api/posts/community/${id}/share`);
   
       await Share.share({
-        message: `Check out this discussion: ${shareData.title}
+        message: `Check out this discussion 💬: ${shareData.title}
         
 Shared via Lokalinc - a community platform
 ${shareData.shareUrl}`,
