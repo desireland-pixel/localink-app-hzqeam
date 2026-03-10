@@ -186,9 +186,9 @@ export default function CommunityDetailsScreen() {
       await Share.share({
         message: `Check out this discussion: ${shareData.title}
         
-  Shared via Lokalinc - a community platform
-  ${shareData.shareUrl}`,
-  title: shareData.title,
+Shared via Lokalinc - a community platform
+${shareData.shareUrl}`,
+title: shareData.title,
       });
     } 
     //catch (error) {
