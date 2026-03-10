@@ -7,7 +7,7 @@ export const GERMAN_CITIES = [
   'Emden', 'Erfurt', 'Erlangen', 'Eschweiler', 'Esslingen am Neckar', 'Essen', 'Euskirchen', 'Flensburg', 'Frankfurt am Main',
   'Frankfurt (Oder)', 'Frechen', 'Freiburg im Breisgau', 'Friedrichshafen', 'Fulda', 'Fürth', 'Garbsen', 'Gelsenkirchen', 'Gera', 'Gießen',
   'Gladbeck', 'Görlitz', 'Gotha', 'Göttingen', 'Greifswald', 'Grevenbroich', 'Gronau', 'Gummersbach', 'Gütersloh', 'Hagen',
-  'Halle (Saale)', 'Hameln', 'Hamburg', 'Hamm', 'Hanau', 'Hannover', 'Hattingen', 'Heidelberg', 'Heidenheim', 'Heilbronn', 'Herford',
+  'Halle (Saale)', 'Hameln', 'Hamm', 'Hanau', 'Hannover', 'Hattingen', 'Heidelberg', 'Heidenheim', 'Heilbronn', 'Herford',
   'Herne', 'Herten', 'Hildesheim', 'Hof', 'Holzkirchen', 'Hürth', 'Ingolstadt', 'Iserlohn', 'Jena', 'Kaiserslautern',
   'Karlsruhe', 'Kassel', 'Kaufbeuren', 'Kempten (Allgäu)', 'Kerpen', 'Kiel', 'Kleve', 'Koblenz', 'Konstanz', 'Krefeld',
   'Landshut', 'Langenfeld', 'Langenhagen', 'Leipzig', 'Leverkusen', 'Lingen', 'Lippstadt', 'Lörrach', 'Lübeck', 'Ludwigsburg',
