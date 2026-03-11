@@ -53,7 +53,9 @@ export const apiCall = async <T = any>(
   }
 
   const url = `${BACKEND_URL}${endpoint}`;
-  console.log("[API] Calling:", url, options?.method || "GET");
+  
+  const method = options?.method || "GET";
+  console.log(`API → ${method} ${endpoint}`);
 
   try {
     const fetchOptions: RequestInit = {
@@ -63,8 +65,6 @@ export const apiCall = async <T = any>(
         ...options?.headers,
       },
     };
-
-    console.log("[API] Fetch options:", fetchOptions);
 
     // Always send the token if we have it (needed for cross-domain/iframe support)
     const token = await getBearerToken();
@@ -79,13 +79,22 @@ export const apiCall = async <T = any>(
 
     if (!response.ok) {
       const text = await response.text();
-      console.error("[API] Error response:", response.status, text);
+      console.error(`API ← ${response.status} ERROR`, text);
       throw new Error(`API error: ${response.status} - ${text}`);
     }
 
+    const startTime = Date.now();
     const data = await response.json();
-    console.log("[API] Success:", data);
+    const duration = Date.now() - startTime;
+    
+    if (Array.isArray(data)) {
+      console.log(`API ← ${response.status} (${data.length} items, ${duration}ms)`);
+    } else {
+      console.log(`API ← ${response.status} (${duration}ms)`);
+    }
+    
     return data;
+    
   } catch (error) {
     console.error("[API] Request failed:", error);
     throw error;
