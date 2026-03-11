@@ -76,10 +76,8 @@ export default function CommunityScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.city]);
 
-  console.log('CommunityScreen: Rendering', { topicsCount: topics.length, loading, selectedCity, sortOption });
-
   const fetchTopics = React.useCallback(async () => {
-    console.log('CommunityScreen: Fetching community topics', { selectedCity, sortOption, filters: params.filters });
+    console.log('CommunityScreen: Fetching community topics');
     if (topics.length === 0) {
       setLoading(true);
     }
@@ -99,8 +97,8 @@ export default function CommunityScreen() {
         queryParams.append('sort', 'oldest');
       }
       const data = await authenticatedGet<CommunityTopic[]>(`/api/community-posts?${queryParams.toString()}`);
-      console.log('CommunityScreen: Fetched community topics', data);
       const dataArray = Array.isArray(data) ? data : [];
+      console.log('CommunityScreen: Fetched community topics', dataArray.length);
 
       // Fetch unread reply counts for own topics
       const ownTopics = dataArray.filter(t => t.userId === user?.id);
@@ -194,7 +192,6 @@ export default function CommunityScreen() {
       
       if (unreadPostIndex !== -1) {
         const unreadPost = topics[unreadPostIndex];
-        console.log('CommunityScreen: Found unread post at index', unreadPostIndex, 'with ID', unreadPost.id);
         
         // Find the layout for this post
         const targetLayout = topicLayouts.find(layout => layout.id === unreadPost.id);
@@ -203,7 +200,6 @@ export default function CommunityScreen() {
           // Delay to ensure layout is complete
           setTimeout(() => {
             const scrollY = Math.max(0, targetLayout.y - 50); // 50px offset from top
-            console.log('CommunityScreen: Auto-scrolling to position', scrollY);
             scrollViewRef.current?.scrollTo({ y: scrollY, animated: true });
           }, 300);
         }
@@ -272,7 +268,6 @@ export default function CommunityScreen() {
   };
 
   const handleCitySelect = (city: string) => {
-    console.log('CommunityScreen: City selected:', city);
     setSelectedCity(city);
     setCityInputValue('');
     setShowCitySuggestions(false);
@@ -280,7 +275,6 @@ export default function CommunityScreen() {
   };
 
   const handleClearCity = () => {
-    console.log('CommunityScreen: Clear city selection');
     setSelectedCity('');
     setCityInputValue('');
     setShowCitySuggestions(false);
@@ -399,7 +393,6 @@ export default function CommunityScreen() {
         <TouchableOpacity
           style={[styles.iconButton, (params.filters && params.filters.toString().length > 0) && styles.iconButtonActive]}
           onPress={() => {
-            console.log('CommunityScreen: Navigate to community filters');
             router.push({
               pathname: '/community-filters',
               params: { filters: params.filters || '', city: selectedCity }
@@ -416,7 +409,6 @@ export default function CommunityScreen() {
         <TouchableOpacity
           style={styles.iconButton}
           onPress={() => {
-            console.log('CommunityScreen: Navigate to post community topic');
             router.push('/post-community-topic');
           }}
         >
@@ -443,7 +435,6 @@ export default function CommunityScreen() {
           <TouchableOpacity
             style={styles.requestButton}
             onPress={() => {
-              console.log('CommunityScreen: Navigate to post community topic');
               router.push('/post-community-topic');
             }}
           >
@@ -479,7 +470,6 @@ export default function CommunityScreen() {
                 key={topic.id}
                 style={[styles.card, hasUnreadReplies && styles.cardUnread]}
                 onPress={() => {
-                  console.log('CommunityScreen: View topic', topic.id);
                   router.push(`/community/${topic.id}`);
                 }}
                 onLayout={(event) => {
@@ -507,7 +497,6 @@ export default function CommunityScreen() {
                       <TouchableOpacity
                         onPress={(e) => {
                           e.stopPropagation();
-                          console.log('CommunityScreen: Heart button pressed for', topic.id);
                           toggleFavorite(topic.id);
                         }}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
