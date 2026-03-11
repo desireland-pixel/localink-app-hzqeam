@@ -607,24 +607,33 @@ export default function TravelScreen() {
             let iconAlly = false;
             let tagBackgroundColor = '';
             let tagTextColor = '';
-            
+          
             // Check if post should be disabled based on date
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            let isExpired = false;
             
-            if (post.type === 'offering') {
-              // Offering: disable if travelDate < today
-              const travelDate = new Date(parseDateFromDDMMYYYY(post.travelDate));
-              travelDate.setHours(0, 0, 0, 0);
-              isExpired = travelDate < today;
+            let isExpired = false;
+
+            // Determine expiry date
+            const expiryDateStr =
+              post.type === 'offering'
+                ? post.travelDate
+                : post.travelDateTo || post.travelDate;
               
+            if (expiryDateStr) {
+              const expiryDate = new Date(parseDateFromDDMMYYYY(expiryDateStr));
+              expiryDate.setHours(0, 0, 0, 0);
+              isExpired = expiryDate < today;
+            }
+
+            if (post.type === 'offering') {
               label = 'Offering';
               tagBackgroundColor = '#D1FAE5';
               tagTextColor = '#065F46';
+            
               const hasCompanionship = post.canOfferCompanionship;
               const hasCarry = post.canCarryItems;
-              
+
               if (hasCompanionship && hasCarry) {
                 iconCompanionship = true;
                 iconAlly = true;
@@ -636,23 +645,13 @@ export default function TravelScreen() {
                 iconCompanionship = true;
                 iconAlly = true;
               }
+
             } else if (post.type === 'seeking' || post.type === 'seeking-ally') {
-              // Seeking (both companionship and ally): disable if travelDateTo < today
-              // If travelDateTo is not available, then only disable if travelDate < today
-              if (post.travelDateTo) {
-                const travelDateTo = new Date(parseDateFromDDMMYYYY(post.travelDateTo));
-                travelDateTo.setHours(0, 0, 0, 0);
-                isExpired = travelDateTo < today;
-              } else {
-                const travelDate = new Date(parseDateFromDDMMYYYY(post.travelDate));
-                travelDate.setHours(0, 0, 0, 0);
-                isExpired = travelDate < today;
-              }
-              
+
               label = 'Seeking';
               tagBackgroundColor = '#DBEAFE';
               tagTextColor = '#1E40AF';
-              
+            
               if (post.type === 'seeking') {
                 iconCompanionship = true;
               } else {
