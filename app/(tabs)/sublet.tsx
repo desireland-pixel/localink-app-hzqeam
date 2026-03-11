@@ -118,8 +118,6 @@ export default function SubletScreen() {
     }
   };
 
-  console.log('SubletScreen: Rendering', { subletsCount: sublets.length, loading, filters: params.filters, selectedCity });
-
   const fetchPosts = React.useCallback(async () => {
     console.log('SubletScreen: Fetching sublets with filters:', params.filters);
     if (sublets.length === 0) {
@@ -129,10 +127,9 @@ export default function SubletScreen() {
       // DO NOT pass city to backend - city filtering is done on frontend only
       const filterParams = params.filters ? `?${params.filters}` : '';
       
-      console.log('SubletScreen: API call with params:', filterParams);
       const data = await authenticatedGet<Sublet[]>(`/api/sublets${filterParams}`);
-      console.log('SubletScreen: Fetched sublets', data);
       const dataArray = Array.isArray(data) ? data : [];
+      console.log('SubletScreen: Fetched sublets', dataArray.length);
       
       setSublets(dataArray);
     } catch (error) {
@@ -172,7 +169,6 @@ export default function SubletScreen() {
 
   // Apply city filter and sorting on the frontend
   const filteredAndSortedSublets = useMemo(() => {
-    console.log('SubletScreen: Applying city filter and sorting', { selectedCity, sortOption });
     
     // Step 1: Apply city filter
     let filtered = sublets;
@@ -247,12 +243,10 @@ export default function SubletScreen() {
   };
 
   const handlePostSublet = () => {
-    console.log('SubletScreen: Navigate to post sublet');
     router.push('/post-sublet');
   };
 
   const handleFilters = () => {
-    console.log('SubletScreen: Navigate to filters with current filters:', params.filters);
     router.push({
       pathname: '/sublet-filters',
       params: { filters: params.filters || '', city: selectedCity }
@@ -279,7 +273,6 @@ export default function SubletScreen() {
   };
 
   const handleCitySelect = (city: string) => {
-    console.log('SubletScreen: City selected:', city);
     setSelectedCity(city);
     setCityInputValue('');
     setShowCitySuggestions(false);
@@ -287,7 +280,6 @@ export default function SubletScreen() {
   };
 
   const handleClearCity = () => {
-    console.log('SubletScreen: Clear city selection');
     setSelectedCity('');
     setCityInputValue('');
     setShowCitySuggestions(false);
