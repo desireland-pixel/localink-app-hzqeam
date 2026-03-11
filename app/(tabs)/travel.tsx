@@ -623,7 +623,7 @@ export default function TravelScreen() {
             if (expiryDateStr) {
               const expiryDate = new Date(parseDateFromDDMMYYYY(expiryDateStr));
               expiryDate.setHours(0, 0, 0, 0);
-              isExpired = expiryDate <= today;
+              isExpired = expiryDate < today;
             }
 
             if (post.type === 'offering') {
