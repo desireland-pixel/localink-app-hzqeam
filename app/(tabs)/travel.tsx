@@ -147,8 +147,9 @@ export default function TravelScreen() {
       const filterParams = params.filters ? `?${params.filters}` : '';
       
       const data = await authenticatedGet<TravelPost[]>(`/api/travel-posts${filterParams}`);
-      console.log('TravelScreen: Fetched travel posts', dataArray.length);
       const dataArray = Array.isArray(data) ? data : [];
+      
+      console.log('TravelScreen: Fetched travel posts', dataArray.length);
       
       setPosts(dataArray);
     } catch (error) {
