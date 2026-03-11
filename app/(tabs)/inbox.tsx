@@ -44,8 +44,6 @@ export default function InboxScreen() {
   const [error, setError] = useState<string | null>(null);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
-  console.log('[InboxScreen] Rendering', { conversationsCount: conversations.length });
-
   const fetchConversations = React.useCallback(async () => {
     console.log('[InboxScreen] Fetching conversations');
     
@@ -57,7 +55,6 @@ export default function InboxScreen() {
     setError(null);
     try {
       const data = await authenticatedGet<Conversation[]>('/api/conversations');
-      console.log('[InboxScreen] Fetched conversations', data);
       
       if (!Array.isArray(data)) {
         console.error('[InboxScreen] Invalid conversations data format', data);
@@ -65,6 +62,8 @@ export default function InboxScreen() {
         setError('Invalid data format received from server');
         return;
       }
+      
+      console.log('[InboxScreen] Fetched conversations', data.length);
       
       const sortedData = data.sort((a, b) => {
         const aTime = a.lastMessage?.createdAt || a.createdAt;
@@ -114,7 +113,6 @@ export default function InboxScreen() {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('[InboxScreen] WebSocket message received', data);
 
           if (data.type === 'new_message') {
             fetchConversations();
@@ -160,7 +158,6 @@ export default function InboxScreen() {
   }, [fetchConversations, setupWebSocket]);
 
   const onRefresh = () => {
-    console.log('[InboxScreen] Refreshing conversations');
     setRefreshing(true);
     fetchConversations();
   };
