@@ -621,10 +621,20 @@ export default function TravelScreen() {
                 : post.travelDateTo || post.travelDate;
             
             if (expiryDateStr) {
-              const [day, month, year] = expiryDateStr.split('.');
-              const expiryDate = new Date(Number(year), Number(month) - 1, Number(day));
+
+              let expiryDate;
+
+              if (expiryDateStr.includes('-')) {
+                // YYYY-MM-DD from backend
+                const [year, month, day] = expiryDateStr.split('-');
+                expiryDate = new Date(Number(year), Number(month) - 1, Number(day));
+              } else {
+                // DD.MM.YYYY
+                const [day, month, year] = expiryDateStr.split('.');
+                expiryDate = new Date(Number(year), Number(month) - 1, Number(day));
+              }
+              
               expiryDate.setHours(0,0,0,0);
-            
               isExpired = expiryDate < today;
             }
           
