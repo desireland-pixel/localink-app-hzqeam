@@ -235,9 +235,16 @@ export default function TravelScreen() {
     // Step 3: Apply sorting
     const parseDateStr = (dateStr: string | null | undefined): number => {
       if (!dateStr) return 0;
-      const isoStr = parseDateFromDDMMYYYY(dateStr);
-      if (!isoStr) return 0;
-      return new Date(isoStr).getTime();
+      
+      let day, month, year;
+      
+      if (dateStr.includes('-')) {
+        [year, month, day] = dateStr.split('-');
+      } else {
+        [day, month, year] = dateStr.split('.');
+      }
+      
+      return new Date(Number(year), Number(month) - 1, Number(day)).getTime();
     };
 
     let sorted = [...filtered];
