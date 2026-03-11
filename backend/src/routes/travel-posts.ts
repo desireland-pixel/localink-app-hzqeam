@@ -1,6 +1,6 @@
 import type { App} from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, or, gte, lte, between, desc, asc, isNotNull, isNull, ne } from 'drizzle-orm';
+import { eq, and, or, gte, lt, lte, between, desc, asc, isNotNull, isNull, ne } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { TRAVEL_CITIES, COUNTRY_CITIES } from '../cities.js';
 import { generateShortId } from '../utils/short-id.js';
