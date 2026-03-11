@@ -351,6 +351,7 @@ export function registerTravelPostRoutes(app: App) {
       app.logger.info({ count: result.length, filters }, 'Travel posts listed successfully');
       return result;
     } catch (error) {
+      console.error('Failed to list travel posts:', error);
       app.logger.error({ err: error }, 'Failed to list travel posts');
       return reply.status(500).send({ error: 'Failed to list travel posts' });
     }
