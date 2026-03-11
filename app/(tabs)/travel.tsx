@@ -619,13 +619,15 @@ export default function TravelScreen() {
               post.type === 'offering'
                 ? post.travelDate
                 : post.travelDateTo || post.travelDate;
-              
+            
             if (expiryDateStr) {
-              const expiryDate = new Date(parseDateFromDDMMYYYY(expiryDateStr));
-              expiryDate.setHours(0, 0, 0, 0);
+              const [day, month, year] = expiryDateStr.split('.');
+              const expiryDate = new Date(Number(year), Number(month) - 1, Number(day));
+              expiryDate.setHours(0,0,0,0);
+            
               isExpired = expiryDate < today;
             }
-
+          
             if (post.type === 'offering') {
               label = 'Offering';
               tagBackgroundColor = '#D1FAE5';
