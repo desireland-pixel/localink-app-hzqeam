@@ -137,8 +137,6 @@ export default function TravelScreen() {
     }
   };
 
-  console.log('TravelScreen: Rendering', { postsCount: posts.length, loading, selectedFrom, selectedTo });
-
   const fetchPosts = React.useCallback(async () => {
     console.log('TravelScreen: Fetching travel posts');
     if (posts.length === 0) {
@@ -149,7 +147,7 @@ export default function TravelScreen() {
       const filterParams = params.filters ? `?${params.filters}` : '';
       
       const data = await authenticatedGet<TravelPost[]>(`/api/travel-posts${filterParams}`);
-      console.log('TravelScreen: Fetched travel posts', data);
+      console.log('TravelScreen: Fetched travel posts', dataArray.length);
       const dataArray = Array.isArray(data) ? data : [];
       
       setPosts(dataArray);
@@ -206,20 +204,17 @@ export default function TravelScreen() {
 
   // Apply from/to filter and sorting on the frontend
   const filteredAndSortedPosts = useMemo(() => {
-    console.log('TravelScreen: Applying from/to filter and sorting', { selectedFrom, selectedTo, sortOption });
     
     // Step 1: Apply from/to filter with country expansion
     let filtered = posts;
     if (selectedFrom) {
       const matchingFromCities = getMatchingCities(selectedFrom);
-      console.log('TravelScreen: Matching fromCity values:', matchingFromCities);
       filtered = filtered.filter(p =>
         matchingFromCities.some(city => city.toLowerCase() === p.fromCity.toLowerCase())
       );
     }
     if (selectedTo) {
       const matchingToCities = getMatchingCities(selectedTo);
-      console.log('TravelScreen: Matching toCity values:', matchingToCities);
       filtered = filtered.filter(p =>
         matchingToCities.some(city => city.toLowerCase() === p.toCity.toLowerCase())
       );
@@ -347,7 +342,6 @@ export default function TravelScreen() {
   };
 
   const handleFromSelect = (city: string) => {
-    console.log('TravelScreen: From city selected:', city);
     setSelectedFrom(city);
     setFromInputValue('');
     setShowFromSuggestions(false);
@@ -355,7 +349,6 @@ export default function TravelScreen() {
   };
 
   const handleToSelect = (city: string) => {
-    console.log('TravelScreen: To city selected:', city);
     setSelectedTo(city);
     setToInputValue('');
     setShowToSuggestions(false);
@@ -363,14 +356,12 @@ export default function TravelScreen() {
   };
 
   const handleClearFrom = () => {
-    console.log('TravelScreen: Clear from selection');
     setSelectedFrom('');
     setFromInputValue('');
     setShowFromSuggestions(false);
   };
 
   const handleClearTo = () => {
-    console.log('TravelScreen: Clear to selection');
     setSelectedTo('');
     setToInputValue('');
     setShowToSuggestions(false);
