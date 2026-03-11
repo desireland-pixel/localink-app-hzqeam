@@ -596,13 +596,6 @@ export default function TravelScreen() {
           }
         >
           {filteredAndSortedPosts.map((post) => {
-
-            console.log('Travel expiry check', {
-              id: post.id,
-              type: post.type,
-              travelDate: post.travelDate,
-              travelDateTo: post.travelDateTo,
-            });
           
             const dateDisplay = formatDateToDDMMYYYY(post.travelDate);
             const dateToDisplay = post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo) : null;
