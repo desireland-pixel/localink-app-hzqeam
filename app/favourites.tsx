@@ -76,11 +76,6 @@ export default function FavouritesScreen() {
       const data = await authenticatedGet<FavoritePost[]>('/api/favorites');
       console.log('FavouritesScreen: Fetched favorites', Array.isArray(data) ? data.length : 0);
       
-      // Log travel posts with incentive amounts for debugging
-      data.forEach(fav => {
-        if (fav.postType === 'travel' && fav.post) {
-      });
-      
       const now = new Date();
       now.setHours(0, 0, 0, 0); // Compare at day boundary
       
