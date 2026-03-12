@@ -61,8 +61,6 @@ export default function ChatScreen() {
   const [deletingMessage, setDeletingMessage] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
 
-  console.log('ChatScreen: Rendering', { conversationId: id, messagesCount: messages.length, currentUserId: user?.id, insets });
-
   const markMessagesAsRead = React.useCallback(async () => {
     if (!id) return;
     
@@ -78,7 +76,6 @@ export default function ChatScreen() {
   const startPolling = React.useCallback(() => {
     pollingIntervalRef.current = setInterval(async () => {
       try {
-        console.log('[ChatScreen] Polling for new messages');
         const data = await authenticatedGet<{ messages: Message[]; conversation: Conversation }>(`/api/conversations/${id}/messages`);
         
         if (data && data.messages && Array.isArray(data.messages)) {
@@ -88,7 +85,6 @@ export default function ChatScreen() {
           
           setMessages(prev => {
             if (prev.length !== sortedMessages.length) {
-              console.log('[ChatScreen] New messages detected via polling');
               markMessagesAsRead();
               return sortedMessages;
             }
@@ -127,7 +123,6 @@ export default function ChatScreen() {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('ChatScreen: WebSocket message received', data);
 
           if (data.type === 'new_message' && data.conversationId === id) {
             setMessages(prev => {
@@ -139,7 +134,6 @@ export default function ChatScreen() {
             
             markMessagesAsRead();
           } else if (data.type === 'message_status_update' && data.conversationId === id) {
-            console.log('ChatScreen: Updating message status', data);
             setMessages(prev => prev.map(msg => {
               if (msg.id === data.messageId) {
                 return {
@@ -171,15 +165,12 @@ export default function ChatScreen() {
   }, [id, markMessagesAsRead]);
 
   const fetchConversation = React.useCallback(async () => {
-    console.log('ChatScreen: Conversation details will be loaded via fetchMessages', id);
   }, [id]);
 
   const fetchMessages = React.useCallback(async () => {
-    console.log('ChatScreen: Fetching messages', id);
     setLoading(true);
     try {
       const data = await authenticatedGet<{ messages: Message[]; conversation: Conversation }>(`/api/conversations/${id}/messages`);
-      console.log('ChatScreen: Fetched messages response', data);
       
       if (!data || !data.messages || !Array.isArray(data.messages)) {
         console.error('ChatScreen: Invalid messages data format', data);
@@ -188,6 +179,7 @@ export default function ChatScreen() {
       }
       
       const messagesArray = data.messages;
+      console.log('ChatScreen: Fetched messages', messagesArray.length)
       
       if (data.conversation) {
         setConversation(data.conversation);
@@ -195,17 +187,6 @@ export default function ChatScreen() {
       
       const sortedMessages = [...messagesArray].sort((a, b) => {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-      
-      console.log('ChatScreen: Sorted messages', { 
-        count: sortedMessages.length, 
-        currentUserId: user?.id,
-        sampleMessages: sortedMessages.slice(0, 3).map(m => ({
-          id: m.id,
-          senderId: m.senderId,
-          isOwnMessage: m.senderId === user?.id,
-          content: m.content.substring(0, 20)
-        }))
       });
       
       setMessages(sortedMessages);
@@ -272,7 +253,6 @@ export default function ChatScreen() {
   const handleSend = async () => {
     if (!newMessage.trim() || sending) return;
 
-    console.log('ChatScreen: Sending message', newMessage);
     setSending(true);
     const messageText = newMessage.trim();
     setNewMessage('');
@@ -287,7 +267,6 @@ export default function ChatScreen() {
         `/api/conversations/${conversationId}/messages`,
         { content: messageText }
       );
-      console.log('ChatScreen: Message sent', response);
       
       const messageWithSender = {
         ...response,
@@ -315,11 +294,6 @@ export default function ChatScreen() {
   };
 
   const handleViewPost = () => {
-    console.log('ChatScreen: handleViewPost called', { 
-      postId: conversation?.postId, 
-      postType: conversation?.postType,
-      post: conversation?.post 
-    });
     
     if (!conversation?.post) {
       console.log('ChatScreen: Post has been deleted, showing notification');
@@ -334,8 +308,6 @@ export default function ChatScreen() {
     
     const postId = conversation.post.id;
     const postType = conversation.post.type;
-    
-    console.log('ChatScreen: Navigating to post', postId, postType);
     
     if (postType === 'sublet') {
       router.push(`/sublet/${postId}`);
