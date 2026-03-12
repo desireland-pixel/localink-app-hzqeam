@@ -65,8 +65,6 @@ export default function FavouritesScreen() {
   const [favorites, setFavorites] = useState<FavoritePost[]>([]);
   const [error, setError] = useState('');
 
-  console.log('FavouritesScreen: Rendering', { selectedTab, favoritesCount: favorites.length });
-
   useEffect(() => {
     fetchFavorites();
   }, []);
@@ -76,19 +74,11 @@ export default function FavouritesScreen() {
     setLoading(true);
     try {
       const data = await authenticatedGet<FavoritePost[]>('/api/favorites');
-      console.log('FavouritesScreen: Fetched favorites', data);
+      console.log('FavouritesScreen: Fetched favorites', Array.isArray(data) ? data.length : 0);
       
       // Log travel posts with incentive amounts for debugging
       data.forEach(fav => {
         if (fav.postType === 'travel' && fav.post) {
-          console.log('FavouritesScreen: Travel post', {
-            id: fav.post.id,
-            fromCity: fav.post.fromCity,
-            toCity: fav.post.toCity,
-            incentiveAmount: fav.post.incentiveAmount,
-            type: typeof fav.post.incentiveAmount
-          });
-        }
       });
       
       const now = new Date();
@@ -102,7 +92,6 @@ export default function FavouritesScreen() {
           const availableTo = new Date(f.post.availableTo);
           availableTo.setHours(0, 0, 0, 0);
           if (availableTo < now) {
-            console.log('FavouritesScreen: Filtering out expired sublet', f.post.id, f.post.availableTo);
             return false;
           }
         }
@@ -114,7 +103,6 @@ export default function FavouritesScreen() {
           const travelDate = new Date(dateToCheck);
           travelDate.setHours(0, 0, 0, 0);
           if (travelDate < now) {
-            console.log('FavouritesScreen: Filtering out expired travel post', f.post.id, dateToCheck);
             return false;
           }
         }
