@@ -58,8 +58,6 @@ export default function MyPostsScreen() {
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
   const [postToClose, setPostToClose] = useState<string | null>(null);
-
-  console.log('MyPostsScreen: Rendering', { selectedTab, postsCount: posts.length });
   
   // Handle tab parameter from navigation
   useEffect(() => {
@@ -80,7 +78,8 @@ export default function MyPostsScreen() {
       } else if (selectedTab === 'community') {
         data = await authenticatedGet<Post[]>('/api/my/community/topics');
       }
-      console.log('MyPostsScreen: Fetched posts', data);
+      console.log('MyPostsScreen: Fetched posts', Array.isArray(data) ? data.length : 0);
+
       // Sort by createdAt descending (newest first)
       const filtered = data.filter(p => p.status !== 'deleted');
       
