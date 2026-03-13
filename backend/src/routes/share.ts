@@ -83,7 +83,7 @@ export function registerShareRoutes(app: App) {
       }
 
       // Construct share URL (would be frontend URL in production)
-      const baseUrl = process.env.APP_URL || 'https://lokalinc.de';
+      const baseUrl = 'https://lokalinc.de';
       const shareUrl = `${baseUrl}/${postType}/${id}`;
 
       app.logger.info({ postType, postId: id, shareUrl }, 'Share info retrieved successfully');
