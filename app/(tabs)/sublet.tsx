@@ -508,7 +508,7 @@ export default function SubletScreen() {
                         cachePolicy="none"
                         contentFit="cover"
                         transition={200}
-                        placeholder={require('@/assets/images/e0ef75c7-f2f2-4978-a582-c04be452d5cf.png')}
+                        placeholder={require('@/assets/images/21c41f91-e05b-4a86-bfb8-6977eaaf608c.png')}
                         placeholderContentFit="contain"
                         onError={(error) => {
                           console.error('[SubletScreen] Image load error:', imageUrl, error);
