@@ -73,7 +73,7 @@ const faqs: FAQ[] = [
   },
   {
     question: 'What should I do if I encounter inappropriate content?',
-    answer: 'Please report any inappropriate content or behavior immediately by contacting us at info@lokalinc.de. We review all reports and take appropriate action to maintain a safe community. We reserve the right to suspend accounts that violate our Terms.',
+    answer: 'Please report any inappropriate content or behavior immediately by contacting us at support@lokalinc.de. We review all reports and take appropriate action to maintain a safe community. We reserve the right to suspend accounts that violate our Terms.',
   },
   {
     question: 'Can I change my username or city?',
@@ -85,7 +85,7 @@ const faqs: FAQ[] = [
   },
   {
     question: 'How can I delete my account?',
-    answer: 'You can contact us at info@lokalinc.de via your registered email with deletation request. We will process your request within 7 working days.',
+    answer: 'You can contact us at support@lokalinc.de via your registered email with the subject "Account Deletation Request". We will process your request within 7 working days.',
   },
   {
     question: 'How can I contact to give feedback?',
