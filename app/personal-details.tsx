@@ -79,7 +79,7 @@ export default function PersonalDetailsScreen() {
       
       // Navigate to home page after successful save
       console.log('PersonalDetailsScreen: Profile saved, redirecting to home page');
-      router.replace('/(tabs)/profile');
+      router.replace('/(tabs)/sublet');
     } catch (err: any) {
       console.error('PersonalDetailsScreen: Error updating details', err);
       setError(err.message || 'Failed to update personal details');
