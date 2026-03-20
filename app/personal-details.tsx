@@ -232,7 +232,6 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.4,
-    backgroundColor: '#9CA3AF',
   },
   buttonText: {
     ...typography.button,
