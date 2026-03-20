@@ -56,6 +56,10 @@ const faqs: FAQ[] = [
     answer: 'Tap the heart icon on any post to add it to your favorites. You can view all your saved posts in Profile > Favourites.',
   },
   {
+    question: 'How do I delete a messgae or a chat?',
+    answer: 'Long press on the message or chat you want to delete. A delete icon will appear on the right side. Tap "Delete" to remove it.',
+  },
+  {
     question: 'What is the difference between offering and seeking?',
     answer: 'Offering means you have something to provide (e.g., a sublet to rent out, travel companionship to offer, or you can carry items). Seeking means you are looking for something (e.g., looking for a sublet, seeking a travel companion, or seeking an ally to carry items).',
   },
