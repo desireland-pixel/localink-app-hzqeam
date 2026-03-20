@@ -77,7 +77,7 @@ export default function CommunityDetailsScreen() {
 
   const fetchTopic = React.useCallback(async () => {
     try {
-      console.log('[CommunityDetails] Fetching topic:', id);
+      console.log('CommunityDetailsScreen: Fetching topic', id);
       const data = await authenticatedGet<CommunityTopic>(`/api/community/topics/${id}`);
       
       const isOwner = data.userId === user?.id;
@@ -116,7 +116,7 @@ export default function CommunityDetailsScreen() {
       if (isOwner) {
         try {
           await authenticatedPost(`/api/community/topics/${id}/mark-replies-read`, {});
-          console.log('[CommunityDetails] Marked replies as read');
+          console.log('CommunityDetailsScreen: Replies marked as read');
           await fetchCommunityUnreadCount();
         } catch (err) {
           console.error('[CommunityDetails] Error marking replies as read:', err);
