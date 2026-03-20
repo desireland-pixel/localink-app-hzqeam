@@ -83,7 +83,7 @@ export default function DataPrivacyScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>9. Your Rights</Text>
           <Text style={styles.paragraph}>
-            You have rights under Articles 15–21 GDPR, including access, rectification, erasure, restriction, objection, and data portability.
+            You have rights under Articles 15–21 GDPR, including access, rectification, deletion, restriction, objection, and data portability.
           </Text>
           <Text style={styles.paragraph}>
             Requests may be directed to:{' '}
