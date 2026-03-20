@@ -79,7 +79,6 @@ export default function CommunityDetailsScreen() {
     try {
       console.log('[CommunityDetails] Fetching topic:', id);
       const data = await authenticatedGet<CommunityTopic>(`/api/community/topics/${id}`);
-      console.log('[CommunityDetails] Topic fetched:', data);
       
       const isOwner = data.userId === user?.id;
       
@@ -97,12 +96,11 @@ export default function CommunityDetailsScreen() {
               .filter(r => r.isRead === false)
               .map(r => r.id)
           );
-          console.log('[CommunityDetails] Found unread replies:', unreadIds.size, Array.from(unreadIds));
+          console.log('CommunityDetailsScreen: Unread replies', unreadIds.size);
           setUnreadReplyIds(unreadIds);
           
           if (unreadIds.size > 0) {
             setTimeout(() => {
-              console.log('[CommunityDetails] Removing unread borders after 2 seconds');
               setUnreadReplyIds(new Set());
             }, 2000);
           }
@@ -110,6 +108,7 @@ export default function CommunityDetailsScreen() {
       }
       
       setTopic(data);
+      console.log('CommunityDetailsScreen: Fetched topic', data?.id);
       
       const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=community`);
       setIsFavorited(favoriteCheck.isFavorited);
@@ -142,13 +141,13 @@ export default function CommunityDetailsScreen() {
     setSubmitting(true);
 
     try {
-      console.log('[CommunityDetails] Posting reply to topic:', id);
       await authenticatedPost(`/api/community/topics/${id}/replies`, {
         content: replyText.trim(),
       });
-      console.log('[CommunityDetails] Reply posted successfully');
       
       setReplyText('');
+      console.log('CommunityDetailsScreen: Reply posted');
+      
       Keyboard.dismiss();
       await fetchTopic();
     } catch (err) {
@@ -248,6 +247,7 @@ title: shareData.title,
     try {
       if (wasFavorited) {
         await authenticatedDelete(`/api/favorites/${id}?postType=community`, {});
+        console.log('CommunityDetailsScreen: Comment deleted');
       } else {
         await authenticatedPost('/api/favorites', { postId: id, postType: 'community' });
       }
@@ -286,7 +286,7 @@ title: shareData.title,
     
     try {
       const result = await authenticatedPost<{ liked: boolean; likeCount: number }>(`/api/community/replies/${replyId}/like`, {});
-      console.log('CommunityDetailsScreen: Like toggled, server response:', result);
+      console.log('CommunityDetailsScreen: Reply like toggled');
       setTopic(prev => {
         if (!prev || !prev.replies) return prev;
         return {
@@ -326,11 +326,9 @@ title: shareData.title,
 
   const handleDeleteComment = async () => {
     if (!commentToDelete) return;
-    console.log('[CommunityDetails] Deleting comment:', commentToDelete);
     setDeletingComment(true);
     try {
       await authenticatedDelete(`/api/community/replies/${commentToDelete}`, {});
-      console.log('[CommunityDetails] Comment deleted successfully');
       setShowDeleteCommentModal(false);
       setCommentToDelete(null);
       setTopic(prev => {
