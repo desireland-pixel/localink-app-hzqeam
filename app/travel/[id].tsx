@@ -53,8 +53,6 @@ export default function TravelDetailsScreen() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
 
-  console.log('TravelDetailsScreen: Viewing travel', { id, insets });
-
   const fetchTravelPost = React.useCallback(async () => {
     // Only show full loading spinner on initial load
     if (!initialLoadComplete) {
@@ -64,8 +62,8 @@ export default function TravelDetailsScreen() {
     try {
       console.log('[TravelDetails] Fetching travel post:', id);
       const data = await authenticatedGet<TravelPost>(`/api/travel-posts/${id}`);
-      console.log('[TravelDetails] Travel post fetched:', data);
       setTravelPost(data);
+		console.log('TravelDetailsScreen: Fetched travel post', data?.id);
       
       // Check if favorited
       const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=travel`);
@@ -96,8 +94,6 @@ export default function TravelDetailsScreen() {
       const postId = typeof id === 'string' ? id : String(id);
       const recipientId = travelPost.userId;
       
-      console.log('[TravelDetails] Creating conversation with postId:', postId, 'recipientId:', recipientId);
-      
       const response = await authenticatedPost<{ id: string; conversationId?: string }>(
         '/api/conversations',
         {
@@ -106,7 +102,6 @@ export default function TravelDetailsScreen() {
           recipientId: recipientId,
         }
       );
-      console.log('[TravelDetails] Conversation created:', response);
       
       const conversationId = response.conversationId || response.id;
       
@@ -136,7 +131,6 @@ export default function TravelDetailsScreen() {
       const shareData = await authenticatedGet<{ shareUrl: string; title: string; description: string }>(
         `/api/posts/travel/${id}/share`
       );
-      console.log('TravelDetailsScreen: Share data fetched', shareData);
       
       await Share.share({
 		  message: `Check out this post: ${travelPost.fromCity} ✈️ ${travelPost.toCity}
