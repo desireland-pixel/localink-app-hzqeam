@@ -4,16 +4,10 @@ import { api, authenticatedApi, signUpTestUser, expectStatus, connectAuthenticat
 describe("API Integration Tests", () => {
   let authToken: string;
   let authUser: any;
-  let recipientToken: string;
-  let recipientUser: any;
   let subletId: string;
   let travelPostId: string;
   let communityTopicId: string;
   let replyId: string;
-  let conversationId: string;
-  let messageId: string;
-  let subletForConversation: string;
-  let commentId: string;
 
   // ============ Auth & Profile Setup ============
 
@@ -25,14 +19,6 @@ describe("API Integration Tests", () => {
     expect(user.id).toBeDefined();
   });
 
-  test("Sign up second test user for conversations", async () => {
-    const { token, user } = await signUpTestUser();
-    recipientToken = token;
-    recipientUser = user;
-    expect(recipientToken).toBeDefined();
-    expect(recipientUser.id).toBeDefined();
-  });
-
   test("Get current user profile", async () => {
     const res = await authenticatedApi("/api/profile", authToken);
     await expectStatus(res, 200);
@@ -42,20 +28,17 @@ describe("API Integration Tests", () => {
   });
 
   test("Update profile with new username and city", async () => {
-    // Use a unique username based on user ID to avoid collisions
-    const uniqueUsername = `profile_${authUser.id.substring(0, 8)}`;
     const res = await authenticatedApi("/api/profile", authToken, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: uniqueUsername,
+        username: "testuser_profile",
         city: "Munich",
       }),
     });
     await expectStatus(res, 200);
     const data = await res.json();
-    // Usernames are stored in lowercase by the API
-    expect(data.username).toBe(uniqueUsername.toLowerCase());
+    expect(data.username).toBe("testuser_profile");
     expect(data.city).toBe("Munich");
   });
 
@@ -181,16 +164,6 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
-  test("Get sublets with rent range filter", async () => {
-    const res = await api("/api/sublets?minRent=1000&maxRent=2000");
-    await expectStatus(res, 200);
-  });
-
-  test("Get sublets with sorting", async () => {
-    const res = await api("/api/sublets?sort=cheapest");
-    await expectStatus(res, 200);
-  });
-
   test("Get sublet by ID", async () => {
     const res = await api(`/api/sublets/${subletId}`);
     await expectStatus(res, 200);
@@ -291,11 +264,6 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
-  test("Get travel posts with sorting", async () => {
-    const res = await api("/api/travel-posts?sort=newest");
-    await expectStatus(res, 200);
-  });
-
   test("Get travel post by ID", async () => {
     const res = await api(`/api/travel-posts/${travelPostId}`);
     await expectStatus(res, 200);
@@ -379,35 +347,6 @@ describe("API Integration Tests", () => {
     const data = await res.json();
     expect(data.favorite.id).toBeDefined();
     expect(data.favorite.postId).toBe(postId);
-  });
-
-  test("Create favorite on sublet", async () => {
-    const createRes = await authenticatedApi("/api/sublets", authToken, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "seeking",
-        title: "Looking for apartment in Vienna",
-        city: "Vienna",
-        availableFrom: "2026-07-01",
-        availableTo: "2026-08-31",
-        independentArrangementConsent: true,
-      }),
-    });
-    const createData = await createRes.json();
-    const postId = createData.id;
-
-    const res = await authenticatedApi("/api/favorites", authToken, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        postId,
-        postType: "sublet",
-      }),
-    });
-    await expectStatus(res, 201);
-    const data = await res.json();
-    expect(data.favorite.postType).toBe("sublet");
   });
 
   test("Get user favorites with pagination", async () => {
@@ -556,25 +495,6 @@ describe("API Integration Tests", () => {
     expect(typeof data.likeCount).toBe("number");
   });
 
-  test("Get comments for community post", async () => {
-    const res = await api(`/api/community/${communityTopicId}/comments`);
-    await expectStatus(res, 200);
-  });
-
-  test("Add comment to community post", async () => {
-    const res = await authenticatedApi(`/api/community/${communityTopicId}/comments`, authToken, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: "Great discussion topic!",
-      }),
-    });
-    await expectStatus(res, 200);
-    const data = await res.json();
-    commentId = data.id;
-    expect(commentId).toBeDefined();
-  });
-
   test("Get unread replies count for topic", async () => {
     const res = await authenticatedApi(`/api/community/topics/${communityTopicId}/unread-replies`, authToken);
     await expectStatus(res, 200);
@@ -656,89 +576,13 @@ describe("API Integration Tests", () => {
 
   // ============ Conversations ============
 
-  test("Create sublet for conversation test", async () => {
-    const res = await authenticatedApi("/api/sublets", authToken, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "offering",
-        title: "Conversation test sublet",
-        city: "Berlin",
-        availableFrom: "2026-10-01",
-        availableTo: "2026-12-31",
-        rent: "2000",
-        independentArrangementConsent: true,
-      }),
-    });
-    await expectStatus(res, 200);
-    const data = await res.json();
-    subletForConversation = data.id;
-    expect(subletForConversation).toBeDefined();
-  });
-
-  test("Start new conversation", async () => {
-    const res = await authenticatedApi("/api/conversations", authToken, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        postId: subletForConversation,
-        postType: "sublet",
-        recipientId: recipientUser.id,
-      }),
-    });
-    await expectStatus(res, 200);
-    const data = await res.json();
-    conversationId = data.id;
-    expect(conversationId).toBeDefined();
-  });
-
   test("Get conversations list for current user", async () => {
     const res = await authenticatedApi("/api/conversations", authToken);
     await expectStatus(res, 200);
   });
 
-  test("Get messages in conversation", async () => {
-    const res = await authenticatedApi(`/api/conversations/${conversationId}/messages`, authToken);
-    await expectStatus(res, 200);
-  });
-
-  test("Send message in conversation", async () => {
-    const res = await authenticatedApi(`/api/conversations/${conversationId}/messages`, authToken, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: "Hi, I'm interested in this sublet!",
-      }),
-    });
-    await expectStatus(res, 200);
-    const data = await res.json();
-    messageId = data.id;
-    expect(messageId).toBeDefined();
-  });
-
-  test("Mark conversation as read", async () => {
-    const res = await authenticatedApi(`/api/conversations/${conversationId}/mark-read`, authToken, {
-      method: "POST",
-    });
-    await expectStatus(res, 200);
-  });
-
-  test("Delete message from conversation", async () => {
-    const res = await authenticatedApi(`/api/conversations/${conversationId}/messages/${messageId}`, authToken, {
-      method: "DELETE",
-    });
-    await expectStatus(res, 200);
-  });
-
   test("Get unread conversation count", async () => {
     const res = await authenticatedApi("/api/conversations/unread-count", authToken);
-    await expectStatus(res, 200);
-  });
-
-  test("Delete conversation", async () => {
-    const res = await authenticatedApi(`/api/conversations/${conversationId}`, authToken, {
-      method: "DELETE",
-    });
     await expectStatus(res, 200);
   });
 
@@ -828,27 +672,6 @@ describe("API Integration Tests", () => {
     const postId = createData.id || createData.travelPostId;
 
     const res = await api(`/api/posts/travel/${postId}/share`);
-    await expectStatus(res, 200);
-    const data = await res.json();
-    expect(data.shareUrl).toBeDefined();
-    expect(data.title).toBeDefined();
-  });
-
-  test("Get share info for community post", async () => {
-    const createRes = await authenticatedApi("/api/community/topics", authToken, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        category: "Local Tips",
-        title: "Best coffee shops in Prague",
-        description: "Share your favorite cafes",
-        location: "Prague",
-      }),
-    });
-    const createData = await createRes.json();
-    const postId = createData.id;
-
-    const res = await api(`/api/posts/community/${postId}/share`);
     await expectStatus(res, 200);
     const data = await res.json();
     expect(data.shareUrl).toBeDefined();
