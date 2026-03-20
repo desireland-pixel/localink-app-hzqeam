@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { colors, spacing, typography, borderRadius } from '@/styles/commonStyles';
-import { authenticatedGet, BACKEND_URL, getBearerToken } from '@/utils/api';
+import { authenticatedGet, authenticatedDelete, BACKEND_URL, getBearerToken } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 
@@ -162,6 +162,33 @@ export default function InboxScreen() {
     fetchConversations();
   };
 
+  const handleDeleteConversation = (conversationId: string) => {
+    console.log('[InboxScreen] Long-press on conversation, prompting delete', conversationId);
+    Alert.alert(
+      'Delete conversation?',
+      'This will permanently delete the conversation and all its messages.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            console.log('[InboxScreen] Deleting conversation', conversationId);
+            try {
+              await authenticatedDelete(`/api/conversations/${conversationId}`);
+              console.log('[InboxScreen] Conversation deleted', conversationId);
+              setConversations(prev => prev.filter(c => c.id !== conversationId));
+              await fetchUnreadCount();
+            } catch (error: any) {
+              console.error('[InboxScreen] Error deleting conversation', error);
+              setError(error.message || 'Failed to delete conversation');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const timeDisplay = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -183,8 +210,11 @@ export default function InboxScreen() {
       const daysText = `${diffDays}d ago`;
       return daysText;
     }
-    
-    const dateText = date.toLocaleDateString();
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2);
+    const dateText = `${day}.${month}.${year}`;
     return dateText;
   };
 
@@ -261,7 +291,12 @@ export default function InboxScreen() {
                   styles.conversationCard,
                   hasUnread && styles.conversationCardUnread
                 ]}
-                onPress={() => router.push(`/chat/${conversation.id}`)}
+                onPress={() => {
+                  console.log('[InboxScreen] Open conversation', conversation.id);
+                  router.push(`/chat/${conversation.id}`);
+                }}
+                onLongPress={() => handleDeleteConversation(conversation.id)}
+                delayLongPress={400}
               >
                 <View style={styles.conversationHeader}>
                   <View style={styles.participantInfo}>

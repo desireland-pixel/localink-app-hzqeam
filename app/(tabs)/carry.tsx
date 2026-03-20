@@ -173,7 +173,7 @@ export default function CommunityScreen() {
   useEffect(() => {
     fetchTopics();
     fetchFavorites();
-  }, [selectedCity, sortOption]);
+  }, [selectedCity, sortOption, fetchTopics, fetchFavorites]);
 
   useFocusEffect(
     React.useCallback(() => {

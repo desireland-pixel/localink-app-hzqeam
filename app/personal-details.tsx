@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -19,6 +19,9 @@ export default function PersonalDetailsScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const originalUsername = useRef('');
+  const originalCity = useRef('');
+
   console.log('PersonalDetailsScreen: Rendering', { user: user?.id, profile: profile?.name });
 
   useEffect(() => {
@@ -26,13 +29,25 @@ export default function PersonalDetailsScreen() {
       setEmail(user.email || '');
     }
     if (profile) {
-      setName(profile.name || user?.name || '');
-      setCity(profile.city || '');
-      setUsername(profile.username || '');
+      const initialUsername = profile.username || '';
+      const initialCity = profile.city || '';
+      const initialName = profile.name || user?.name || '';
+      setName(initialName);
+      setCity(initialCity);
+      setUsername(initialUsername);
+      originalUsername.current = initialUsername;
+      originalCity.current = initialCity;
     } else if (user) {
       setName(user.name || '');
     }
   }, [user, profile]);
+
+  const hasChanges =
+    username.trim() !== originalUsername.current ||
+    city.trim() !== originalCity.current;
+
+  const isFormValid = username.trim() && city.trim();
+  const isSaveEnabled = isFormValid && hasChanges;
 
   const handleSave = async () => {
     console.log('PersonalDetailsScreen: Saving personal details');
@@ -78,7 +93,10 @@ export default function PersonalDetailsScreen() {
     router.push('/edit-password');
   };
 
-  const isFormValid = username.trim() && city.trim();
+  const handleFaqsPress = () => {
+    console.log('PersonalDetailsScreen: Navigate to FAQs');
+    router.push('/faqs');
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -135,9 +153,9 @@ export default function PersonalDetailsScreen() {
         />
 
         <TouchableOpacity
-          style={[styles.button, (!isFormValid || loading) && styles.buttonDisabled]}
+          style={[styles.button, (!isSaveEnabled || loading) && styles.buttonDisabled]}
           onPress={handleSave}
-          disabled={!isFormValid || loading}
+          disabled={!isSaveEnabled || loading}
         >
           {loading ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
@@ -145,6 +163,17 @@ export default function PersonalDetailsScreen() {
             <Text style={styles.buttonText}>Save Changes</Text>
           )}
         </TouchableOpacity>
+
+        <View style={styles.deleteAccountSection}>
+          <Text style={styles.deleteAccountTitle}>Delete Account</Text>
+          <Text style={styles.deleteAccountText}>
+            {'To delete your account, please send an email to support@lokalinc.de. More info in '}
+            <Text style={styles.deleteAccountLink} onPress={handleFaqsPress}>
+              FAQs page
+            </Text>
+            .
+          </Text>
+        </View>
       </ScrollView>
       </KeyboardAvoidingView>
 
@@ -202,10 +231,34 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.4,
+    backgroundColor: '#9CA3AF',
   },
   buttonText: {
     ...typography.button,
     color: '#FFFFFF',
+  },
+  deleteAccountSection: {
+    marginTop: spacing.md,
+    marginBottom: spacing.xl,
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  deleteAccountTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#E53935',
+    marginBottom: spacing.xs,
+  },
+  deleteAccountText: {
+    fontSize: 13,
+    color: '#888888',
+    lineHeight: 20,
+  },
+  deleteAccountLink: {
+    fontSize: 13,
+    color: '#888888',
+    textDecorationLine: 'underline',
   },
 });

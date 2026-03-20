@@ -165,7 +165,7 @@ export default function ChatScreen() {
   }, [id, markMessagesAsRead]);
 
   const fetchConversation = React.useCallback(async () => {
-  }, [id]);
+  }, []);
 
   const fetchMessages = React.useCallback(async () => {
     setLoading(true);
@@ -198,7 +198,7 @@ export default function ChatScreen() {
     } finally {
       setLoading(false);
     }
-  }, [id, user?.id, markMessagesAsRead]);
+  }, [id, markMessagesAsRead]);
 
   useFocusEffect(
     React.useCallback(() => {
