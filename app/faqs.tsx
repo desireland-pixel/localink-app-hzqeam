@@ -13,7 +13,7 @@ interface FAQ {
 const faqs: FAQ[] = [
   {
     question: 'What is LokaLinc?',
-    answer: 'LokaLinc is a community platform connecting expats in Germany. We help you find temporary accommodation (sublets), travel companions, and people who can carry (small/urgent) items between India and Germany.',
+    answer: 'LokaLinc is a community platform connecting expats in Germany. We help you find temporary accommodation (sublets), travel companions, and people who can carry (small/urgent) items between India and Germany. Visit our website: https://lokalinc.de',
   },
   {
     question: 'How do I post a sublet?',
@@ -89,7 +89,7 @@ const faqs: FAQ[] = [
   },
   {
     question: 'How can I delete my account?',
-    answer: 'You can contact us at support@lokalinc.de via your registered email with the subject "Account Deletation Request". We will process your request within 7 working days.',
+    answer: 'You can contact us at support@lokalinc.de via your registered email with the subject "Account Deletation Request". We will process your request within 7 working days. For more details: Visit https://lokalinc.de/support',
   },
   {
     question: 'How can I contact to give feedback?',
