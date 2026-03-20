@@ -51,10 +51,7 @@ export default function SubletDetailsScreen() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
 
-  console.log('SubletDetailsScreen: Rendering', { id, sublet, imageCount: sublet?.imageUrls?.length, insets });
-
-  const fetchSublet = React.useCallback(async () => {
-    console.log('SubletDetailsScreen: Fetching sublet', id);
+  const fetchSublet = React.useCallback(async () => {   
     
     // Only show full loading spinner on initial load
     if (!initialLoadComplete) {
@@ -63,8 +60,8 @@ export default function SubletDetailsScreen() {
     
     try {
       const data = await authenticatedGet<Sublet>(`/api/sublets/${id}`);
-      console.log('SubletDetailsScreen: Fetched sublet', data);
       setSublet(data);
+      console.log('SubletDetailsScreen: Fetching sublet', data?.id);
       
       // Check if favorited
       const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=sublet`);
@@ -95,8 +92,6 @@ export default function SubletDetailsScreen() {
       const postId = typeof id === 'string' ? id : String(id);
       const recipientId = sublet.userId;
       
-      console.log('SubletDetailsScreen: Creating conversation with postId:', postId, 'recipientId:', recipientId);
-      
       const response = await authenticatedPost<{ id: string; conversationId?: string }>(
         '/api/conversations',
         {
@@ -105,7 +100,6 @@ export default function SubletDetailsScreen() {
           recipientId: recipientId,
         }
       );
-      console.log('SubletDetailsScreen: Conversation created', response);
       
       const conversationId = response.conversationId || response.id;
       
@@ -133,7 +127,6 @@ export default function SubletDetailsScreen() {
       const shareData = await authenticatedGet<{ shareUrl: string; title: string; description: string }>(
         `/api/posts/sublet/${id}/share`
       );
-      console.log('SubletDetailsScreen: Share data fetched', shareData);
       
       await Share.share({
         message: `Check out this post 🏠: ${shareData.title}
