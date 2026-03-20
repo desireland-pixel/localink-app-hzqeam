@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity, RefreshControl, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { colors, spacing, typography, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedDelete, BACKEND_URL, getBearerToken } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
+import { IconSymbol } from '@/components/IconSymbol';
 
 interface Conversation {
   id: string;
@@ -43,6 +44,10 @@ export default function InboxScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
+  const [deletingConversation, setDeletingConversation] = useState(false);
 
   const fetchConversations = React.useCallback(async () => {
     console.log('[InboxScreen] Fetching conversations');
@@ -162,31 +167,32 @@ export default function InboxScreen() {
     fetchConversations();
   };
 
-  const handleDeleteConversation = (conversationId: string) => {
-    console.log('[InboxScreen] Long-press on conversation, prompting delete', conversationId);
-    Alert.alert(
-      'Delete conversation?',
-      'This will permanently delete the conversation and all its messages.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            console.log('[InboxScreen] Deleting conversation', conversationId);
-            try {
-              await authenticatedDelete(`/api/conversations/${conversationId}`);
-              console.log('[InboxScreen] Conversation deleted', conversationId);
-              setConversations(prev => prev.filter(c => c.id !== conversationId));
-              await fetchUnreadCount();
-            } catch (error: any) {
-              console.error('[InboxScreen] Error deleting conversation', error);
-              setError(error.message || 'Failed to delete conversation');
-            }
-          },
-        },
-      ]
-    );
+  const handleLongPressConversation = (conversationId: string) => {
+    console.log('[InboxScreen] Long-press on conversation, showing delete button', conversationId);
+    setSelectedConversationId(prev => prev === conversationId ? null : conversationId);
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!conversationToDelete) return;
+    console.log('[InboxScreen] Deleting conversation', conversationToDelete);
+    setDeletingConversation(true);
+    try {
+      await authenticatedDelete(`/api/conversations/${conversationToDelete}`);
+      console.log('[InboxScreen] Conversation deleted', conversationToDelete);
+      setShowDeleteModal(false);
+      setConversationToDelete(null);
+      setSelectedConversationId(null);
+      setConversations(prev => prev.filter(c => c.id !== conversationToDelete));
+      await fetchUnreadCount();
+    } catch (error: any) {
+      console.error('[InboxScreen] Error deleting conversation', error);
+      setShowDeleteModal(false);
+      setConversationToDelete(null);
+      setSelectedConversationId(null);
+      setError(error.message || 'Failed to delete conversation');
+    } finally {
+      setDeletingConversation(false);
+    }
   };
 
   const timeDisplay = (dateString: string) => {
@@ -284,55 +290,81 @@ export default function InboxScreen() {
             const postType = conversation.post?.type || conversation.postType;
             const emoji = postTypeEmoji(postType);
             
+            const isSelected = selectedConversationId === conversation.id;
+
             return (
-              <TouchableOpacity
-                key={conversation.id}
-                style={[
-                  styles.conversationCard,
-                  hasUnread && styles.conversationCardUnread
-                ]}
-                onPress={() => {
-                  console.log('[InboxScreen] Open conversation', conversation.id);
-                  router.push(`/chat/${conversation.id}`);
-                }}
-                onLongPress={() => handleDeleteConversation(conversation.id)}
-                delayLongPress={400}
-              >
-                <View style={styles.conversationHeader}>
-                  <View style={styles.participantInfo}>
-                    <Text style={[
-                      styles.participantName,
-                      hasUnread && styles.participantNameUnread
-                    ]}>
-                      {participantName}
-                    </Text>
-                    <View style={styles.postTag}>
-                      <Text style={styles.postEmoji}>{emoji}</Text>
-                      <Text style={[styles.postTitle, isPostDeleted && styles.postTitleDeleted]} numberOfLines={1}>
-                        {postTitle}
+              <View key={conversation.id} style={styles.conversationCardWrapper}>
+                <TouchableOpacity
+                  style={[
+                    styles.conversationCard,
+                    hasUnread && styles.conversationCardUnread,
+                    isSelected && styles.conversationCardSelected,
+                  ]}
+                  onPress={() => {
+                    if (isSelected) {
+                      setSelectedConversationId(null);
+                      return;
+                    }
+                    console.log('[InboxScreen] Open conversation', conversation.id);
+                    router.push(`/chat/${conversation.id}`);
+                  }}
+                  onLongPress={() => handleLongPressConversation(conversation.id)}
+                  delayLongPress={400}
+                >
+                  <View style={styles.conversationHeader}>
+                    <View style={styles.participantInfo}>
+                      <Text style={[
+                        styles.participantName,
+                        hasUnread && styles.participantNameUnread
+                      ]}>
+                        {participantName}
                       </Text>
-                    </View>
-                  </View>
-                  <View style={styles.rightColumn}>
-                    <Text style={styles.timestamp}>
-                      {timeText}
-                    </Text>
-                    {hasUnread && (
-                      <View style={styles.unreadBadge}>
-                        <Text style={styles.unreadBadgeText}>
-                          {conversation.unreadCount}
+                      <View style={styles.postTag}>
+                        <Text style={styles.postEmoji}>{emoji}</Text>
+                        <Text style={[styles.postTitle, isPostDeleted && styles.postTitleDeleted]} numberOfLines={1}>
+                          {postTitle}
                         </Text>
                       </View>
-                    )}
+                    </View>
+                    <View style={styles.rightColumn}>
+                      <Text style={styles.timestamp}>
+                        {timeText}
+                      </Text>
+                      {hasUnread && (
+                        <View style={styles.unreadBadge}>
+                          <Text style={styles.unreadBadgeText}>
+                            {conversation.unreadCount}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
-                </View>
-                <Text style={[
-                  styles.lastMessage,
-                  hasUnread && styles.lastMessageUnread
-                ]} numberOfLines={2}>
-                  {isLastMessageFromMe ? 'You: ' : ''}{lastMessagePreview}
-                </Text>
-              </TouchableOpacity>
+                  <Text style={[
+                    styles.lastMessage,
+                    hasUnread && styles.lastMessageUnread
+                  ]} numberOfLines={2}>
+                    {isLastMessageFromMe ? 'You: ' : ''}{lastMessagePreview}
+                  </Text>
+                </TouchableOpacity>
+                {isSelected && (
+                  <TouchableOpacity
+                    style={styles.deleteConversationButton}
+                    onPress={() => {
+                      console.log('[InboxScreen] Delete icon pressed for conversation', conversation.id);
+                      setConversationToDelete(conversation.id);
+                      setShowDeleteModal(true);
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <IconSymbol
+                      ios_icon_name="trash"
+                      android_material_icon_name="delete"
+                      size={18}
+                      color="#FF3B30"
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
             );
           })}
         </ScrollView>
@@ -344,6 +376,33 @@ export default function InboxScreen() {
         message={error || ''}
         onClose={() => setError(null)}
         type="error"
+      />
+
+      <Modal
+        visible={showDeleteModal}
+        title="Delete Chat"
+        message="Are you sure you want to delete this Chat? This action cannot be undone and will delete all messages."
+        onClose={() => {
+          setShowDeleteModal(false);
+          setConversationToDelete(null);
+        }}
+        type="warning"
+        actions={[
+          {
+            text: 'Cancel',
+            onPress: () => {
+              setShowDeleteModal(false);
+              setConversationToDelete(null);
+            },
+            style: 'cancel',
+          },
+          {
+            text: deletingConversation ? 'Deleting...' : 'Delete',
+            onPress: handleDeleteConversation,
+            style: 'destructive',
+            disabled: deletingConversation,
+          },
+        ]}
       />
     </SafeAreaView>
   );
@@ -400,11 +459,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
+  conversationCardWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
   conversationCard: {
+    flex: 1,
     backgroundColor: colors.card,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
-    marginTop: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -412,6 +476,15 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     borderWidth: 2,
     backgroundColor: colors.card,
+  },
+  conversationCardSelected: {
+    opacity: 0.85,
+  },
+  deleteConversationButton: {
+    padding: spacing.sm,
+    borderRadius: borderRadius.sm,
+    backgroundColor: '#FEE2E2',
+    marginLeft: spacing.sm,
   },
   conversationHeader: {
     flexDirection: 'row',
