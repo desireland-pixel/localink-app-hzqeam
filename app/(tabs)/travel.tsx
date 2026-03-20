@@ -177,7 +177,7 @@ export default function TravelScreen() {
   useEffect(() => {
     fetchPosts();
     fetchFavorites();
-  }, [params.filters]);
+  }, [params.filters, fetchPosts, fetchFavorites]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -205,17 +205,24 @@ export default function TravelScreen() {
 
   // Apply from/to filter and sorting on the frontend
   const filteredAndSortedPosts = useMemo(() => {
-    
+    const getMatchingCitiesLocal = (selection: string): string[] => {
+      const countryCities = COUNTRY_CITIES[selection];
+      if (countryCities) {
+        return [selection, ...countryCities];
+      }
+      return [selection];
+    };
+
     // Step 1: Apply from/to filter with country expansion
     let filtered = posts;
     if (selectedFrom) {
-      const matchingFromCities = getMatchingCities(selectedFrom);
+      const matchingFromCities = getMatchingCitiesLocal(selectedFrom);
       filtered = filtered.filter(p =>
         matchingFromCities.some(city => city.toLowerCase() === p.fromCity.toLowerCase())
       );
     }
     if (selectedTo) {
-      const matchingToCities = getMatchingCities(selectedTo);
+      const matchingToCities = getMatchingCitiesLocal(selectedTo);
       filtered = filtered.filter(p =>
         matchingToCities.some(city => city.toLowerCase() === p.toCity.toLowerCase())
       );

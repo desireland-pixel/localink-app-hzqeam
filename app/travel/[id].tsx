@@ -63,7 +63,7 @@ export default function TravelDetailsScreen() {
       console.log('[TravelDetails] Fetching travel post:', id);
       const data = await authenticatedGet<TravelPost>(`/api/travel-posts/${id}`);
       setTravelPost(data);
-		console.log('TravelDetailsScreen: Fetched travel post', data?.id);
+      console.log('TravelDetailsScreen: Fetched travel post', data?.id);
       
       // Check if favorited
       const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=travel`);
@@ -133,7 +133,7 @@ export default function TravelDetailsScreen() {
       );
       
       await Share.share({
-		  message: `Check out this post: ${travelPost.fromCity} ✈️ ${travelPost.toCity}
+        message: `Check out this post: ${travelPost.fromCity} ✈️ ${travelPost.toCity}
         
 Shared via Lokalinc - a community platform
 ${shareData.shareUrl}`,
@@ -267,7 +267,7 @@ ${shareData.shareUrl}`,
   const hasIncentive = travelPost.incentive !== undefined && travelPost.incentive !== null;
   const incentiveDisplayText = hasIncentive ? travelPost.incentive?.displayText : null;
   const incentiveDisclaimer = hasIncentive ? travelPost.incentive?.disclaimer : null;
-	
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>

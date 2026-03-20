@@ -226,10 +226,10 @@ export default function RootLayout() {
                   }} 
                 />
                 <Stack.Screen 
-                  name="settings" 
+                  name="about" 
                   options={{ 
                     headerShown: true,
-                    title: 'Settings',
+                    title: 'About',
                     headerBackTitle: 'Back'
                   }} 
                 />

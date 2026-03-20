@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
@@ -67,6 +68,7 @@ export default function CommunityDetailsScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
   const [showDeleteCommentModal, setShowDeleteCommentModal] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [deletingComment, setDeletingComment] = useState(false);
@@ -74,6 +76,16 @@ export default function CommunityDetailsScreen() {
   const insets = useSafeAreaInsets();
 
   console.log('CommunityDetailsScreen: Viewing topic', { id, insets });
+
+  const LIKED_KEY = `liked_topic_${id}`;
+
+  useEffect(() => {
+    AsyncStorage.getItem(LIKED_KEY).then(val => {
+      if (val !== null) {
+        setIsLiked(val === 'true');
+      }
+    });
+  }, [LIKED_KEY]);
 
   const fetchTopic = React.useCallback(async () => {
     try {
@@ -109,6 +121,18 @@ export default function CommunityDetailsScreen() {
       
       setTopic(data);
       console.log('CommunityDetailsScreen: Fetched topic', data?.id);
+
+      // Restore liked state: prefer API field, fall back to AsyncStorage
+      const apiLiked = (data as any).liked ?? (data as any).is_liked;
+      if (typeof apiLiked === 'boolean') {
+        setIsLiked(apiLiked);
+        await AsyncStorage.setItem(LIKED_KEY, String(apiLiked));
+      } else {
+        const stored = await AsyncStorage.getItem(LIKED_KEY);
+        if (stored !== null) {
+          setIsLiked(stored === 'true');
+        }
+      }
       
       const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=community`);
       setIsFavorited(favoriteCheck.isFavorited);
@@ -128,7 +152,7 @@ export default function CommunityDetailsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [id, user?.id]);
+  }, [id, user?.id, LIKED_KEY, fetchCommunityUnreadCount]);
 
   useEffect(() => {
     fetchTopic();
