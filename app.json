@@ -35,7 +35,7 @@
       "expo-web-browser",
       "expo-secure-store"
     ],
-    "scheme": "natively",
+    "scheme": "lokalinc",
     "experiments": {
       "typedRoutes": true
     },
