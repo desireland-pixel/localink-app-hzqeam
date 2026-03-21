@@ -4,7 +4,7 @@
     "slug": "lokalinc",
     "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/images/natively-dark.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/natively-dark.png",
