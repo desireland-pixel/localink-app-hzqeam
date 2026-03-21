@@ -2,7 +2,7 @@
   "expo": {
     "name": "LokaLinc",
     "slug": "lokalinc",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -40,7 +40,8 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {}
+      "router": {},
+      "backendUrl": "https://6wndnnezzbq6kb7ema9agyxa8fyjc3vb.app.specular.dev"
     }
   }
 }
