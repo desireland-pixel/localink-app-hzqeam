@@ -1,41 +1,29 @@
 {
   "expo": {
-    "name": "LokaLinc",
-    "slug": "lokalinc",
-    "version": "1.0.0",
+    "name": "Natively",
+    "slug": "Natively",
+    "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/images/Logo_LokaLinc_inverse.jpg",
+    "icon": "./assets/images/natively-dark.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/Logo_LokaLinc_inverse.jpg",
+      "image": "./assets/images/natively-dark.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.Natively",
-      "buildNumber": "1",
+      "bundleIdentifier": "com.placeholder.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Logo_LokaLinc_inverse.jpg",
+        "foregroundImage": "./assets/images/natively-dark.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.localink.pa",
-      "versionCode": 1,
-      "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "INTERNET",
-        "ACCESS_NETWORK_STATE",
-        "VIBRATE"
-      ]
+      "package": "com.placeholder.app"
     },
     "web": {
       "favicon": "./assets/images/final_quest_240x240.png",
@@ -45,32 +33,14 @@
       "expo-font",
       "expo-router",
       "expo-web-browser",
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "The app accesses your photos to let you share images.",
-          "cameraPermission": "The app accesses your camera to let you take photos."
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/final_quest_240x240.png",
-          "color": "#000000",
-          "sounds": []
-        }
-      ]
+      "expo-secure-store"
     ],
-    "scheme": "lokalinc",
+    "scheme": "natively",
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      "router": {},
-      "backendUrl": "https://6wndnnezzbq6kb7ema9agyxa8fyjc3vb.app.specular.dev"
-    },
-    "notification": {
-      "icon": "./assets/notification-icon.png"
+      "router": {}
     }
   }
 }
