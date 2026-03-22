@@ -42,6 +42,9 @@
     "extra": {
       "router": {},
       "backendUrl": "https://6wndnnezzbq6kb7ema9agyxa8fyjc3vb.app.specular.dev"
+    },
+    "notification": {
+      "icon": "./assets/notification-icon.png"
     }
   }
 }
