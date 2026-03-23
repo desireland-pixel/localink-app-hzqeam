@@ -1,0 +1,125 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1770663716938,
+      "tag": "20260209190156_stormy_exodus",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1770723457630,
+      "tag": "20260210113737_cloudy_sunfire",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770762774183,
+      "tag": "20260210223254_damp_blob",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1770812438617,
+      "tag": "20260211122038_perpetual_joseph",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1770985396316,
+      "tag": "20260213122316_lush_thunderbolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1771009760950,
+      "tag": "20260213190920_lovely_giant_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771085318792,
+      "tag": "20260214160838_flat_sleeper",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1771165291324,
+      "tag": "20260215142131_square_spirit",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1771232228644,
+      "tag": "20260216085708_brief_plazm",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1771313249974,
+      "tag": "20260217072729_unique_edwin_jarvis",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1771432091993,
+      "tag": "20260218162811_rainy_gauntlet",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1771490901106,
+      "tag": "20260219084821_nervous_harpoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1771962881009,
+      "tag": "20260224195441_mighty_queen_noir",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1772041323150,
+      "tag": "20260225174203_cultured_marauders",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1772118686876,
+      "tag": "20260226151126_useful_betty_brant",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1772226148318,
+      "tag": "20260227210228_happy_madame_masque",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1772392580290,
+      "tag": "20260301191620_premium_proudstar",
+      "breakpoints": true
+    }
+  ]
+}

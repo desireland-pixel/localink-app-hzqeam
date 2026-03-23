@@ -1,0 +1,1 @@
+ALTER TABLE "conversations" ADD COLUMN "has_sent_messages" boolean DEFAULT false NOT NULL;
