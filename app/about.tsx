@@ -26,7 +26,7 @@ export default function AboutScreen() {
               />
               <Text style={styles.settingText}>Version</Text>
             </View>
-            <Text style={styles.settingValue}>1.0.1</Text>
+            <Text style={styles.settingValue}>1.0.2</Text>
           </View>
         </View>
 
