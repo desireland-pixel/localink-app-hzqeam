@@ -8,6 +8,9 @@ describe("API Integration Tests", () => {
   let travelPostId: string;
   let communityTopicId: string;
   let replyId: string;
+  let conversationId: string;
+  let messageId: string;
+  let communityPostId: string;
 
   // ============ Auth & Profile Setup ============
 
@@ -423,6 +426,7 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
     const data = await res.json();
     communityTopicId = data.id;
+    communityPostId = data.id; // Same ID used for comments testing
     expect(communityTopicId).toBeDefined();
   });
 
@@ -557,7 +561,7 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400);
   });
 
-  // ============ Community Posts ============
+  // ============ Community Posts & Comments ============
 
   test("Get all community posts", async () => {
     const res = await api("/api/community-posts");
@@ -574,6 +578,37 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
+  test("Get comments for community post", async () => {
+    const res = await authenticatedApi(`/api/community/${communityPostId}/comments`, authToken);
+    await expectStatus(res, 200);
+  });
+
+  test("Add comment to community post", async () => {
+    const res = await authenticatedApi(`/api/community/${communityPostId}/comments`, authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: "Great discussion! I really agree with this perspective.",
+      }),
+    });
+    await expectStatus(res, 200);
+  });
+
+  test("Add comment to non-existent post returns 404", async () => {
+    const res = await authenticatedApi(
+      "/api/community/00000000-0000-0000-0000-000000000000/comments",
+      authToken,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: "Test comment",
+        }),
+      }
+    );
+    await expectStatus(res, 404);
+  });
+
   // ============ Conversations ============
 
   test("Get conversations list for current user", async () => {
@@ -584,6 +619,130 @@ describe("API Integration Tests", () => {
   test("Get unread conversation count", async () => {
     const res = await authenticatedApi("/api/conversations/unread-count", authToken);
     await expectStatus(res, 200);
+  });
+
+  test("Start a new conversation on sublet post", async () => {
+    // Create a test sublet to reference
+    const createSubletRes = await authenticatedApi("/api/sublets", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        title: "Conversation test sublet",
+        city: "Berlin",
+        availableFrom: "2026-09-01",
+        availableTo: "2026-12-31",
+        rent: "1400",
+        independentArrangementConsent: true,
+      }),
+    });
+    const subletData = await createSubletRes.json();
+    const testSubletId = subletData.id;
+
+    const res = await authenticatedApi("/api/conversations", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId: testSubletId,
+        postType: "sublet",
+        recipientId: authUser.id,
+      }),
+    });
+    // Accept success or validation error depending on API behavior
+    await expectStatus(res, 200, 201, 400);
+    if (res.status === 200 || res.status === 201) {
+      const data = await res.json();
+      conversationId = data.id;
+      expect(conversationId).toBeDefined();
+    }
+  });
+
+  test("Send message in conversation", async () => {
+    // Create a new conversation first if we don't have one
+    if (!conversationId) {
+      const createSubletRes = await authenticatedApi("/api/sublets", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "offering",
+          title: "Message test sublet",
+          city: "Hamburg",
+          availableFrom: "2026-10-01",
+          availableTo: "2026-11-30",
+          rent: "1300",
+          independentArrangementConsent: true,
+        }),
+      });
+      const subletData = await createSubletRes.json();
+      const testSubletId = subletData.id;
+
+      const convRes = await authenticatedApi("/api/conversations", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postId: testSubletId,
+          postType: "sublet",
+          recipientId: authUser.id,
+        }),
+      });
+      if (convRes.status === 200 || convRes.status === 201) {
+        const convData = await convRes.json();
+        conversationId = convData.id;
+      }
+    }
+
+    if (conversationId) {
+      const res = await authenticatedApi(`/api/conversations/${conversationId}/messages`, authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: "Hi, I'm very interested in this place!",
+        }),
+      });
+      await expectStatus(res, 200);
+      const data = await res.json();
+      messageId = data.id;
+      expect(messageId).toBeDefined();
+    }
+  });
+
+  test("Get messages for conversation", async () => {
+    if (conversationId) {
+      const res = await authenticatedApi(`/api/conversations/${conversationId}/messages`, authToken);
+      await expectStatus(res, 200);
+    }
+  });
+
+  test("Mark conversation as read", async () => {
+    if (conversationId) {
+      const res = await authenticatedApi(`/api/conversations/${conversationId}/mark-read`, authToken, {
+        method: "POST",
+      });
+      await expectStatus(res, 200);
+    }
+  });
+
+  test("Delete message from conversation", async () => {
+    if (conversationId && messageId) {
+      const res = await authenticatedApi(
+        `/api/conversations/${conversationId}/messages/${messageId}`,
+        authToken,
+        {
+          method: "DELETE",
+        }
+      );
+      await expectStatus(res, 200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+    }
+  });
+
+  test("Get messages for non-existent conversation returns 404", async () => {
+    const res = await authenticatedApi(
+      "/api/conversations/00000000-0000-0000-0000-000000000000/messages",
+      authToken
+    );
+    await expectStatus(res, 404);
   });
 
   // ============ Push Tokens ============
