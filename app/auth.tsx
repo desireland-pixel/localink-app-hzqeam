@@ -408,7 +408,7 @@ export default function AuthScreen() {
           <View style={styles.content}>
             <View style={styles.header}>
               <Image
-                source={require('@/assets/images/21c41f91-e05b-4a86-bfb8-6977eaaf608c.png')}
+                source={require('@/assets/Logo_LokaLinc.jpg')}
                 style={styles.logo}
                 resizeMode="contain"
               />
