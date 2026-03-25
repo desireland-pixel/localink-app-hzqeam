@@ -8,6 +8,8 @@ describe("API Integration Tests", () => {
   let travelPostId: string;
   let communityTopicId: string;
   let replyId: string;
+  let conversationId: string;
+  let messageId: string;
 
   // ============ Auth & Profile Setup ============
 
@@ -28,17 +30,18 @@ describe("API Integration Tests", () => {
   });
 
   test("Update profile with new username and city", async () => {
+    const uniqueUsername = `testuser_${crypto.randomUUID().substring(0, 8)}`;
     const res = await authenticatedApi("/api/profile", authToken, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: "testuser_profile",
+        username: uniqueUsername,
         city: "Munich",
       }),
     });
     await expectStatus(res, 200);
     const data = await res.json();
-    expect(data.username).toBe("testuser_profile");
+    expect(data.username).toBe(uniqueUsername);
     expect(data.city).toBe("Munich");
   });
 
@@ -557,7 +560,7 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400);
   });
 
-  // ============ Community Posts ============
+  // ============ Community Posts & Comments ============
 
   test("Get all community posts", async () => {
     const res = await api("/api/community-posts");
@@ -574,6 +577,50 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
+  test("Get comments for a community post", async () => {
+    // Create a new topic to comment on
+    const topicRes = await authenticatedApi("/api/community/topics", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "General",
+        title: "Community comments test topic",
+        description: "Testing comment functionality",
+        location: "Berlin",
+      }),
+    });
+    const topicData = await topicRes.json();
+    const topicId = topicData.id;
+
+    const res = await api(`/api/community/${topicId}/comments`);
+    await expectStatus(res, 200);
+  });
+
+  test("Add a comment to a community post", async () => {
+    // Create a topic for commenting
+    const topicRes = await authenticatedApi("/api/community/topics", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "General",
+        title: "Topic for test comments",
+        description: "Test topic",
+        location: "Munich",
+      }),
+    });
+    const topicData = await topicRes.json();
+    const topicId = topicData.id;
+
+    const res = await authenticatedApi(`/api/community/${topicId}/comments`, authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: "This is a test comment on the community post.",
+      }),
+    });
+    await expectStatus(res, 200);
+  });
+
   // ============ Conversations ============
 
   test("Get conversations list for current user", async () => {
@@ -584,6 +631,196 @@ describe("API Integration Tests", () => {
   test("Get unread conversation count", async () => {
     const res = await authenticatedApi("/api/conversations/unread-count", authToken);
     await expectStatus(res, 200);
+  });
+
+  test("Start a new conversation on a travel post", async () => {
+    // Create a travel post to start conversation on
+    const postRes = await authenticatedApi("/api/travel-posts", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        fromCity: "Berlin",
+        toCity: "Munich",
+        travelDate: "2026-10-15",
+        companionshipConsent: true,
+      }),
+    });
+    const postData = await postRes.json();
+    const postId = postData.id || postData.travelPostId;
+
+    const res = await authenticatedApi("/api/conversations", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId,
+        postType: "travel",
+        recipientId: authUser.id,
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    conversationId = data.id;
+    expect(conversationId).toBeDefined();
+  });
+
+  test("Send a message in a conversation", async () => {
+    if (!conversationId) {
+      // Create conversation if not exists
+      const postRes = await authenticatedApi("/api/travel-posts", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "seeking",
+          fromCity: "Berlin",
+          toCity: "Hamburg",
+          travelDate: "2026-11-01",
+          seekingConsent: true,
+        }),
+      });
+      const postData = await postRes.json();
+      const postId = postData.id || postData.travelPostId;
+
+      const convRes = await authenticatedApi("/api/conversations", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postId,
+          postType: "travel",
+          recipientId: authUser.id,
+        }),
+      });
+      const convData = await convRes.json();
+      conversationId = convData.id;
+    }
+
+    const res = await authenticatedApi(`/api/conversations/${conversationId}/messages`, authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: "Hello! I'm interested in this post.",
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    messageId = data.id;
+    expect(messageId).toBeDefined();
+  });
+
+  test("Get messages in a conversation", async () => {
+    if (!conversationId) {
+      const postRes = await authenticatedApi("/api/travel-posts", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "offering",
+          fromCity: "Munich",
+          toCity: "Frankfurt am Main",
+          travelDate: "2026-12-01",
+          companionshipConsent: true,
+        }),
+      });
+      const postData = await postRes.json();
+      const postId = postData.id || postData.travelPostId;
+
+      const convRes = await authenticatedApi("/api/conversations", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postId,
+          postType: "travel",
+          recipientId: authUser.id,
+        }),
+      });
+      const convData = await convRes.json();
+      conversationId = convData.id;
+    }
+
+    const res = await authenticatedApi(`/api/conversations/${conversationId}/messages`, authToken);
+    await expectStatus(res, 200);
+  });
+
+  test("Mark conversation as read", async () => {
+    if (!conversationId) {
+      const postRes = await authenticatedApi("/api/travel-posts", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "seeking",
+          fromCity: "Hannover",
+          toCity: "Cologne",
+          travelDate: "2027-01-01",
+          seekingConsent: true,
+        }),
+      });
+      const postData = await postRes.json();
+      const postId = postData.id || postData.travelPostId;
+
+      const convRes = await authenticatedApi("/api/conversations", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postId,
+          postType: "travel",
+          recipientId: authUser.id,
+        }),
+      });
+      const convData = await convRes.json();
+      conversationId = convData.id;
+    }
+
+    const res = await authenticatedApi(`/api/conversations/${conversationId}/mark-read`, authToken, {
+      method: "POST",
+    });
+    await expectStatus(res, 200);
+  });
+
+  test("Delete a message from a conversation", async () => {
+    if (!conversationId || !messageId) {
+      // Create conversation and message
+      const postRes = await authenticatedApi("/api/travel-posts", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "offering",
+          fromCity: "Düsseldorf",
+          toCity: "Stuttgart",
+          travelDate: "2027-02-01",
+          companionshipConsent: true,
+        }),
+      });
+      const postData = await postRes.json();
+      const postId = postData.id || postData.travelPostId;
+
+      const convRes = await authenticatedApi("/api/conversations", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postId,
+          postType: "travel",
+          recipientId: authUser.id,
+        }),
+      });
+      const convData = await convRes.json();
+      conversationId = convData.id;
+
+      const msgRes = await authenticatedApi(`/api/conversations/${conversationId}/messages`, authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: "This message will be deleted.",
+        }),
+      });
+      const msgData = await msgRes.json();
+      messageId = msgData.id;
+    }
+
+    const res = await authenticatedApi(`/api/conversations/${conversationId}/messages/${messageId}`, authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
   });
 
   // ============ Push Tokens ============
