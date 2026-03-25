@@ -12,9 +12,9 @@ export default function TabLayout() {
   console.log('TabLayout (iOS): Rendering tabs', { unreadCount, communityUnreadCount, insets });
 
   // Calculate flexible tab bar height based on safe area insets
-  // Standard tab bar content height: ~60px (icon + label + padding)
+  // Standard tab bar content height: ~50px (icon + label + padding)
   // Add bottom safe area inset for devices with home indicators (iPhone X and newer)
-  const tabBarHeight = 60 + insets.bottom;
+  const tabBarHeight = 50 + insets.bottom;
   const tabBarPaddingBottom = Math.max(5, insets.bottom);
 
   return (
