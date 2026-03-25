@@ -31,17 +31,18 @@ describe("API Integration Tests", () => {
   });
 
   test("Update profile with new username and city", async () => {
+    const uniqueUsername = `testuser_${crypto.randomUUID().substring(0, 8)}`;
     const res = await authenticatedApi("/api/profile", authToken, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: "testuser_profile",
+        username: uniqueUsername,
         city: "Munich",
       }),
     });
     await expectStatus(res, 200);
     const data = await res.json();
-    expect(data.username).toBe("testuser_profile");
+    expect(data.username).toBe(uniqueUsername);
     expect(data.city).toBe("Munich");
   });
 
@@ -91,7 +92,6 @@ describe("API Integration Tests", () => {
         newPassword: "NewPassword456!",
       }),
     });
-    // Expect either 200 or 400 (wrong old password)
     await expectStatus(res, 400);
   });
 
@@ -648,13 +648,10 @@ describe("API Integration Tests", () => {
         recipientId: authUser.id,
       }),
     });
-    // Accept success or validation error depending on API behavior
-    await expectStatus(res, 200, 201, 400);
-    if (res.status === 200 || res.status === 201) {
-      const data = await res.json();
-      conversationId = data.id;
-      expect(conversationId).toBeDefined();
-    }
+    await expectStatus(res, 200);
+    const data = await res.json();
+    conversationId = data.id;
+    expect(conversationId).toBeDefined();
   });
 
   test("Send message in conversation", async () => {
@@ -685,25 +682,22 @@ describe("API Integration Tests", () => {
           recipientId: authUser.id,
         }),
       });
-      if (convRes.status === 200 || convRes.status === 201) {
-        const convData = await convRes.json();
-        conversationId = convData.id;
-      }
+      await expectStatus(convRes, 200);
+      const convData = await convRes.json();
+      conversationId = convData.id;
     }
 
-    if (conversationId) {
-      const res = await authenticatedApi(`/api/conversations/${conversationId}/messages`, authToken, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: "Hi, I'm very interested in this place!",
-        }),
-      });
-      await expectStatus(res, 200);
-      const data = await res.json();
-      messageId = data.id;
-      expect(messageId).toBeDefined();
-    }
+    const res = await authenticatedApi(`/api/conversations/${conversationId}/messages`, authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: "Hi, I'm very interested in this place!",
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    messageId = data.id;
+    expect(messageId).toBeDefined();
   });
 
   test("Get messages for conversation", async () => {

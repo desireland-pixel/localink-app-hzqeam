@@ -4,7 +4,7 @@ import { eq, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import * as authSchema from '../db/auth-schema.js';
 import crypto from 'crypto';
-import { resend } from '@specific-dev/framework';
+import { resend, APIError } from '@specific-dev/framework';
 
 interface VerifyOtpBody {
   email: string;
@@ -74,38 +74,19 @@ export function registerAuthRoutes(app: App) {
         return reply.status(403).send({ error: 'Please verify your email.' });
       }
 
-      // Proxy the login request to Better Auth's sign-in endpoint
-      // This allows Better Auth to handle password verification
-      const port = request.socket.localPort || 3000;
-      const protocol = request.protocol || 'http';
-      const hostname = request.hostname || 'localhost';
-      const baseUrl = `${protocol}://${hostname}${port !== 80 && port !== 443 ? `:${port}` : ''}`;
-      const authResponse = await fetch(`${baseUrl}/api/auth/sign-in/email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+      // Use Better Auth API to sign in
+      const result = await app.auth.api.signInEmail({
+        body: { email, password },
+        returnHeaders: true,
       });
 
-      if (!authResponse.ok) {
-        app.logger.warn({ email }, 'Login failed - password verification failed');
-        return reply.status(401).send({ error: 'Invalid email or password.' });
-      }
-
-      const authData = await authResponse.json() as Record<string, any>;
       app.logger.info({ email, rememberMe }, 'Login successful');
 
       // If rememberMe is true, set extended session cookie (90 days)
-      if (rememberMe) {
+      if (rememberMe && result.headers) {
         const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
-        const expiresAt = new Date(Date.now() + ninetyDaysMs);
+        const setCookieHeaders = Array.from(result.headers.getSetCookie?.() || []);
 
-        // Copy Set-Cookie headers from auth response and extend expiry for remember me
-        const setCookieHeaders = authResponse.headers.getSetCookie?.() || [];
         for (const setCookieHeader of setCookieHeaders) {
           if (setCookieHeader.includes('session')) {
             // Update the cookie string with new max-age for 90 days
@@ -116,17 +97,21 @@ export function registerAuthRoutes(app: App) {
             reply.header('Set-Cookie', setCookieHeader);
           }
         }
-      } else {
+      } else if (result.headers) {
         // Copy original Set-Cookie headers
-        const setCookieHeaders = authResponse.headers.getSetCookie?.() || [];
+        const setCookieHeaders = Array.from(result.headers.getSetCookie?.() || []);
         for (const setCookieHeader of setCookieHeaders) {
           reply.header('Set-Cookie', setCookieHeader);
         }
       }
 
-      // Return auth data
-      return authData;
+      // Return user data and auth response
+      return result.response;
     } catch (error) {
+      if (error instanceof APIError) {
+        app.logger.warn({ email, errorCode: error.statusCode }, 'Login failed - authentication error');
+        return reply.status(error.statusCode).send({ error: error.message });
+      }
       app.logger.error({ err: error, email }, 'Login error');
       return reply.status(500).send({ error: 'Login failed' });
     }
@@ -188,35 +173,21 @@ export function registerAuthRoutes(app: App) {
           return reply.status(400).send({ error: 'Username already exists' });
         }
 
-        // Proxy the signup request to Better Auth's sign-up endpoint
-        const port = request.socket.localPort || 3000;
-        const protocol = request.protocol || 'http';
-        const hostname = request.hostname || 'localhost';
-        const baseUrl = `${protocol}://${hostname}${port !== 80 && port !== 443 ? `:${port}` : ''}`;
+        // Use Better Auth API to sign up
+        try {
+          const signupResult = await app.auth.api.signUpEmail({
+            body: { email, password, name },
+          });
 
-        app.logger.info({ baseUrl }, 'Calling Better Auth signup endpoint');
-
-        const signupResponse = await fetch(`${baseUrl}/api/auth/sign-up/email`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            password,
-            name,
-          }),
-        });
-
-        if (!signupResponse.ok) {
-          const errorText = await signupResponse.text();
-          app.logger.warn({ email, status: signupResponse.status, error: errorText }, 'Signup failed via Better Auth');
-          return reply.status(400).send({ error: 'Failed to create account. Please try again.' });
+          userId = signupResult.user.id;
+          app.logger.info({ email, userId }, 'User created successfully');
+        } catch (authError) {
+          if (authError instanceof APIError) {
+            app.logger.warn({ email, errorCode: authError.statusCode }, 'Signup failed - Better Auth error');
+            return reply.status(authError.statusCode).send({ error: authError.message });
+          }
+          throw authError;
         }
-
-        const signupData = await signupResponse.json();
-        userId = (signupData as any)?.user?.id;
-        app.logger.info({ email, userId }, 'User created successfully');
       }
 
       // Create or update profile with username and city from signup
