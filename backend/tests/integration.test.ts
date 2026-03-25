@@ -535,6 +535,22 @@ describe("API Integration Tests", () => {
     expect(data.success).toBe(true);
   });
 
+  test("Get comments for community post", async () => {
+    const res = await authenticatedApi(`/api/community/${communityPostId}/comments`, authToken);
+    await expectStatus(res, 200);
+  });
+
+  test("Add comment to community post", async () => {
+    const res = await authenticatedApi(`/api/community/${communityPostId}/comments`, authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: "Great discussion! I really agree with this perspective.",
+      }),
+    });
+    await expectStatus(res, 200);
+  });
+
   test("Delete own community reply", async () => {
     const res = await authenticatedApi(`/api/community/replies/${replyId}`, authToken, {
       method: "DELETE",
@@ -598,25 +614,9 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
-  test("Get comments for community post", async () => {
-    const res = await authenticatedApi(`/api/community/${communityPostId}/comments`, authToken);
-    await expectStatus(res, 200);
-  });
-
   test("Get comments for community post with invalid UUID format returns 400", async () => {
     const res = await authenticatedApi("/api/community/invalid-uuid/comments", authToken);
     await expectStatus(res, 400);
-  });
-
-  test("Add comment to community post", async () => {
-    const res = await authenticatedApi(`/api/community/${communityPostId}/comments`, authToken, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: "Great discussion! I really agree with this perspective.",
-      }),
-    });
-    await expectStatus(res, 200);
   });
 
   test("Add comment to non-existent post returns 404", async () => {
