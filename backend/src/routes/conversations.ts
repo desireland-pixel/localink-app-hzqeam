@@ -219,6 +219,22 @@ export function registerConversationRoutes(app: App) {
           recipientId: { type: 'string' },
         },
       },
+      response: {
+        200: {
+          type: 'object',
+          required: ['id', 'participant1Id', 'participant2Id', 'postId', 'postType', 'hasSentMessages', 'createdAt'],
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            participant1Id: { type: 'string' },
+            participant2Id: { type: 'string' },
+            postId: { type: 'string', format: 'uuid' },
+            postType: { type: 'string', enum: ['sublet', 'travel'] },
+            lastMessageAt: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
+            hasSentMessages: { type: 'boolean' },
+            createdAt: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const session = await requireAuth(request, reply);
@@ -247,7 +263,7 @@ export function registerConversationRoutes(app: App) {
 
       if (existing) {
         app.logger.info({ conversationId: existing.id }, 'Conversation already exists');
-        return existing;
+        return reply.code(200).send(existing);
       }
 
       // Create new conversation
@@ -262,7 +278,7 @@ export function registerConversationRoutes(app: App) {
         .returning();
 
       app.logger.info({ conversationId: conversation.id, userId: session.user.id }, 'Conversation created successfully');
-      return conversation;
+      return reply.code(200).send(conversation);
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id }, 'Failed to create conversation');
       return reply.status(500).send({ error: 'Failed to create conversation' });
@@ -286,6 +302,19 @@ export function registerConversationRoutes(app: App) {
         properties: {
           limit: { type: 'string' },
           offset: { type: 'string' },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          required: ['messages', 'conversation'],
+          properties: {
+            messages: {
+              type: 'array',
+              items: { type: 'object' },
+            },
+            conversation: { type: 'object' },
+          },
         },
       },
     },
@@ -442,6 +471,22 @@ export function registerConversationRoutes(app: App) {
           content: { type: 'string' },
         },
       },
+      response: {
+        200: {
+          type: 'object',
+          required: ['id', 'conversationId', 'senderId', 'content', 'createdAt'],
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            conversationId: { type: 'string', format: 'uuid' },
+            senderId: { type: 'string' },
+            content: { type: 'string' },
+            deliveredAt: { type: 'string', format: 'date-time' },
+            readAt: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
+            createdAt: { type: 'string', format: 'date-time' },
+            sender: { type: 'object' },
+          },
+        },
+      },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const session = await requireAuth(request, reply);
@@ -540,7 +585,7 @@ export function registerConversationRoutes(app: App) {
         },
       }, recipientId);
 
-      return messageWithSender;
+      return reply.code(200).send(messageWithSender);
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, conversationId: id }, 'Failed to send message');
       return reply.status(500).send({ error: 'Failed to send message' });
@@ -558,6 +603,16 @@ export function registerConversationRoutes(app: App) {
           id: { type: 'string', format: 'uuid' },
         },
         required: ['id'],
+      },
+      response: {
+        200: {
+          type: 'object',
+          required: ['success', 'markedCount'],
+          properties: {
+            success: { type: 'boolean' },
+            markedCount: { type: 'number' },
+          },
+        },
       },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
@@ -612,7 +667,7 @@ export function registerConversationRoutes(app: App) {
       }
 
       app.logger.info({ conversationId: id, userId: session.user.id, markedCount }, 'Messages marked as read successfully');
-      return { success: true, markedCount };
+      return reply.code(200).send({ success: true, markedCount });
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, conversationId: id }, 'Failed to mark messages as read');
       return reply.status(500).send({ error: 'Failed to mark messages as read' });
@@ -691,7 +746,7 @@ export function registerConversationRoutes(app: App) {
         .where(eq(schema.messages.id, messageId));
 
       app.logger.info({ messageId, conversationId, userId: session.user.id }, 'Message deleted successfully');
-      return { success: true, message: 'Message deleted successfully' };
+      return reply.code(200).send({ success: true, message: 'Message deleted successfully' });
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, conversationId, messageId }, 'Failed to delete message');
       return reply.status(500).send({ error: 'Failed to delete message' });

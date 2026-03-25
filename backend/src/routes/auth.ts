@@ -149,19 +149,30 @@ export function registerAuthRoutes(app: App) {
           termsAccepted: { type: 'boolean' },
         },
       },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            requiresOtpVerification: { type: 'boolean' },
+            email: { type: 'string' },
+          },
+        },
+      },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { email, password, name, username, city, termsAccepted } = request.body as SignupBody;
     app.logger.info({ email, name, username, city }, 'Signup attempt');
 
     // Validate all required fields
-    if (!email || !password || !name || !username || !city || !termsAccepted) {
+    if (!email || !password || !name || !username || !city || typeof termsAccepted !== 'boolean' || !termsAccepted) {
       app.logger.warn({ email }, 'Signup failed - missing required fields or terms not accepted');
       return reply.status(400).send({ error: 'All fields are required and terms must be accepted' });
     }
 
     try {
-      // Check if user already exists
+      // Check if verified account already exists for this email
       const existingUser = await app.db.query.user.findFirst({
         where: eq(authSchema.user.email, email),
       });
@@ -169,89 +180,89 @@ export function registerAuthRoutes(app: App) {
       let userId: string;
 
       if (existingUser) {
-        // If email exists but is not verified, allow retry
+        // If email verified account exists, reject signup
         if (existingUser.emailVerified) {
-          app.logger.warn({ email }, 'Signup failed - user already exists and email is verified');
-          return reply.status(400).send({ error: 'User with this email already exists' });
-        }
-        // Email exists but not verified - allow retry with same email
-        app.logger.info({ email, userId: existingUser.id }, 'Retrying signup with unverified email');
-        userId = existingUser.id;
-      } else {
-        // Check if username already exists (case-insensitive)
-        const existingUsername = await app.db.query.profiles.findFirst({
-          where: eq(schema.profiles.username, username.toLowerCase()),
-        });
-
-        if (existingUsername) {
-          app.logger.warn({ username }, 'Signup failed - username already exists');
-          return reply.status(400).send({ error: 'Username already exists' });
+          app.logger.warn({ email }, 'Signup failed - verified account already exists');
+          return reply.status(409).send({ error: 'An account with this email already exists. Please sign in instead.' });
         }
 
-        // Proxy the signup request to Better Auth's sign-up endpoint
-        const port = request.socket.localPort || 3000;
-        const protocol = request.protocol || 'http';
-        const hostname = request.hostname || 'localhost';
-        const baseUrl = `${protocol}://${hostname}${port !== 80 && port !== 443 ? `:${port}` : ''}`;
+        // Email exists but not verified - delete unverified account and related data
+        app.logger.info({ email, userId: existingUser.id }, 'Deleting unverified account to allow re-registration');
 
-        app.logger.info({ baseUrl }, 'Calling Better Auth signup endpoint');
+        // Delete related account rows (handles cascade deletes for sessions, accounts)
+        await app.db
+          .delete(authSchema.account)
+          .where(eq(authSchema.account.userId, existingUser.id));
 
-        const signupResponse = await fetch(`${baseUrl}/api/auth/sign-up/email`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            password,
-            name,
-          }),
-        });
+        // Delete the unverified user
+        await app.db
+          .delete(authSchema.user)
+          .where(eq(authSchema.user.id, existingUser.id));
 
-        if (!signupResponse.ok) {
-          const errorText = await signupResponse.text();
-          app.logger.warn({ email, status: signupResponse.status, error: errorText }, 'Signup failed via Better Auth');
-          return reply.status(400).send({ error: 'Failed to create account. Please try again.' });
-        }
-
-        const signupData = await signupResponse.json();
-        userId = (signupData as any)?.user?.id;
-        app.logger.info({ email, userId }, 'User created successfully');
+        app.logger.info({ email }, 'Unverified account deleted');
       }
 
-      // Create or update profile with username and city from signup
-      try {
-        const existingProfile = await app.db.query.profiles.findFirst({
-          where: eq(schema.profiles.userId, userId),
-        });
+      // Check if username already exists (case-insensitive)
+      const existingUsername = await app.db.query.profiles.findFirst({
+        where: eq(schema.profiles.username, username.toLowerCase()),
+      });
 
-        if (existingProfile) {
-          // Update existing profile
-          await app.db
-            .update(schema.profiles)
-            .set({
-              username: username.toLowerCase(),
-              city: city,
-              updatedAt: new Date(),
-            })
-            .where(eq(schema.profiles.userId, userId));
-          app.logger.info({ userId, username, city }, 'Profile updated during signup retry');
-        } else {
-          // Create new profile
-          await app.db
-            .insert(schema.profiles)
-            .values({
-              userId,
-              name: name,
-              username: username.toLowerCase(),
-              city: city,
-              photoUrl: null,
-            });
-          app.logger.info({ userId, username, city }, 'Profile created during signup');
-        }
+      if (existingUsername) {
+        app.logger.warn({ username }, 'Signup failed - username already exists');
+        return reply.status(409).send({ error: 'Username already exists' });
+      }
+
+      // Proxy the signup request to Better Auth's sign-up endpoint
+      const port = request.socket.localPort || 3000;
+      const protocol = request.protocol || 'http';
+      const hostname = request.hostname || 'localhost';
+      const baseUrl = `${protocol}://${hostname}${port !== 80 && port !== 443 ? `:${port}` : ''}`;
+
+      app.logger.info({ baseUrl }, 'Calling Better Auth signup endpoint');
+
+      const signupResponse = await fetch(`${baseUrl}/api/auth/sign-up/email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          name,
+        }),
+      });
+
+      if (!signupResponse.ok) {
+        const errorText = await signupResponse.text();
+        app.logger.warn({ email, status: signupResponse.status, error: errorText }, 'Signup failed via Better Auth');
+        return reply.status(400).send({ error: 'Failed to create account. Please try again.' });
+      }
+
+      const signupData = await signupResponse.json();
+      userId = (signupData as any)?.user?.id;
+      app.logger.info({ email, userId }, 'User created successfully via Better Auth');
+
+      // Create profile with GDPR consent
+      try {
+        const now = new Date();
+        await app.db
+          .insert(schema.profiles)
+          .values({
+            userId,
+            name: name,
+            username: username.toLowerCase(),
+            city: city,
+            gdprConsentAccepted: termsAccepted,
+            gdprConsentAcceptedAt: termsAccepted ? now : null,
+            subletDisclaimerAccepted: false,
+            travelDisclaimerAccepted: false,
+            createdAt: now,
+            updatedAt: now,
+          });
+        app.logger.info({ userId, username, city }, 'Profile created during signup');
       } catch (profileError) {
-        app.logger.error({ err: profileError, userId }, 'Failed to create/update profile during signup');
-        // Continue with OTP generation even if profile creation/update fails
+        app.logger.error({ err: profileError, userId }, 'Failed to create profile during signup');
+        throw profileError;
       }
 
       // Generate OTP for email verification
@@ -267,7 +278,7 @@ export function registerAuthRoutes(app: App) {
           expiresAt,
         });
 
-      app.logger.info({ email }, 'OTP generated');
+      app.logger.info({ email }, 'OTP generated and stored');
 
       // Send OTP email (fire and forget)
       resend.emails.send({
@@ -288,12 +299,12 @@ export function registerAuthRoutes(app: App) {
       });
 
       app.logger.info({ email }, 'OTP email sent for signup');
-      return {
+      return reply.status(201).send({
         success: true,
-        message: 'Account created successfully. Please verify your email using the OTP sent to your email address.',
+        message: 'Account created. Please verify your email.',
         requiresOtpVerification: true,
         email,
-      };
+      });
     } catch (error) {
       app.logger.error({ err: error, email }, 'Signup error');
       return reply.status(500).send({ error: 'Failed to create account. Please try again.' });
@@ -587,15 +598,28 @@ export function registerAuthRoutes(app: App) {
         type: 'object',
         required: ['username'],
         properties: {
-          username: { type: 'string' },
+          username: { type: 'string', description: 'Username to check' },
         },
       },
       response: {
         200: {
           type: 'object',
+          required: ['available'],
           properties: {
             available: { type: 'boolean' },
-            message: { type: 'string' },
+            message: { type: 'string', description: 'Optional message if username is taken' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
           },
         },
       },
