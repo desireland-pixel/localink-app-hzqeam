@@ -508,7 +508,7 @@ export default function SubletScreen() {
                         cachePolicy="none"
                         contentFit="cover"
                         transition={200}
-                        placeholder={require('@/assets/Logo_LokaLinc.jpg')}
+                        placeholder={require('@/assets/images/Logo_LokaLinc.png')}
                         placeholderContentFit="contain"
                         onError={(error) => {
                           console.error('[SubletScreen] Image load error:', imageUrl, error);
