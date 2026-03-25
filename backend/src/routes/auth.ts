@@ -4,7 +4,7 @@ import { eq, desc } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import * as authSchema from '../db/auth-schema.js';
 import crypto from 'crypto';
-import { resend } from '@specific-dev/framework';
+import { resend, APIError } from '@specific-dev/framework';
 
 interface VerifyOtpBody {
   email: string;
@@ -127,6 +127,10 @@ export function registerAuthRoutes(app: App) {
       // Return auth data
       return authData;
     } catch (error) {
+      if (error instanceof APIError) {
+        app.logger.warn({ email, errorCode: error.statusCode }, 'Login failed - authentication error');
+        return reply.status(error.statusCode).send({ error: error.message });
+      }
       app.logger.error({ err: error, email }, 'Login error');
       return reply.status(500).send({ error: 'Login failed' });
     }
@@ -212,30 +216,39 @@ export function registerAuthRoutes(app: App) {
         return reply.status(409).send({ error: 'Username already exists' });
       }
 
-      // Proxy the signup request to Better Auth's sign-up endpoint
-      const port = request.socket.localPort || 3000;
-      const protocol = request.protocol || 'http';
-      const hostname = request.hostname || 'localhost';
-      const baseUrl = `${protocol}://${hostname}${port !== 80 && port !== 443 ? `:${port}` : ''}`;
+      // Create or update profile with username and city from signup
+      try {
+        const existingProfile = await app.db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, userId),
+        });
 
-      app.logger.info({ baseUrl }, 'Calling Better Auth signup endpoint');
-
-      const signupResponse = await fetch(`${baseUrl}/api/auth/sign-up/email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          name,
-        }),
-      });
-
-      if (!signupResponse.ok) {
-        const errorText = await signupResponse.text();
-        app.logger.warn({ email, status: signupResponse.status, error: errorText }, 'Signup failed via Better Auth');
-        return reply.status(400).send({ error: 'Failed to create account. Please try again.' });
+        if (existingProfile) {
+          // Update existing profile
+          await app.db
+            .update(schema.profiles)
+            .set({
+              username: username.toLowerCase(),
+              city: city,
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.profiles.userId, userId));
+          app.logger.info({ userId, username, city }, 'Profile updated during signup retry');
+        } else {
+          // Create new profile
+          await app.db
+            .insert(schema.profiles)
+            .values({
+              userId,
+              name: name,
+              username: username.toLowerCase(),
+              city: city,
+              photoUrl: null,
+            });
+          app.logger.info({ userId, username, city }, 'Profile created during signup');
+        }
+      } catch (profileError) {
+        app.logger.error({ err: profileError, userId }, 'Failed to create/update profile during signup');
+        // Continue with OTP generation even if profile creation/update fails
       }
 
       const signupData = await signupResponse.json();
