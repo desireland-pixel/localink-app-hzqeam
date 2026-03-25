@@ -246,7 +246,7 @@ ${shareData.shareUrl}`,
                     contentFit="cover"
                     cachePolicy="none"
                     transition={200}
-                    placeholder={require('@/assets/images/21c41f91-e05b-4a86-bfb8-6977eaaf608c.png')}
+                    placeholder={require('@/assets/Logo_LokaLinc.jpg')}
                     placeholderContentFit="contain"
                     priority={index === 0 ? 'high' : 'normal'}
                     onError={(error) => {
