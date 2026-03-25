@@ -44,7 +44,7 @@ export default function IndexScreen() {
       <View style={styles.content}>
         <View style={styles.logoContainer}>
           <Image
-            source={require('@/assets/images/21c41f91-e05b-4a86-bfb8-6977eaaf608c.png')}
+            source={require('@/assets/images/Logo_LokaLinc.png')}
             style={styles.logoImage}
             resizeMode="contain"
           />
