@@ -179,6 +179,11 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 404);
   });
 
+  test("Get sublet with invalid UUID format returns 400", async () => {
+    const res = await api("/api/sublets/invalid-uuid");
+    await expectStatus(res, 400);
+  });
+
   test("Update sublet - change title and rent", async () => {
     const res = await authenticatedApi(`/api/sublets/${subletId}`, authToken, {
       method: "PUT",
@@ -277,6 +282,11 @@ describe("API Integration Tests", () => {
   test("Get travel post by non-existent ID returns 404", async () => {
     const res = await api("/api/travel-posts/00000000-0000-0000-0000-000000000000");
     await expectStatus(res, 404);
+  });
+
+  test("Get travel post with invalid UUID format returns 400", async () => {
+    const res = await api("/api/travel-posts/invalid-uuid");
+    await expectStatus(res, 400);
   });
 
   test("Update travel post", async () => {
@@ -378,6 +388,11 @@ describe("API Integration Tests", () => {
     expect(typeof data.isFavorited).toBe("boolean");
   });
 
+  test("Check if post is favorited with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/favorites/check/invalid-uuid?postType=travel", authToken);
+    await expectStatus(res, 400);
+  });
+
   test("Delete favorite from post", async () => {
     const createRes = await authenticatedApi("/api/travel-posts", authToken, {
       method: "POST",
@@ -450,6 +465,11 @@ describe("API Integration Tests", () => {
   test("Get non-existent community topic returns 404", async () => {
     const res = await api("/api/community/topics/00000000-0000-0000-0000-000000000000");
     await expectStatus(res, 404);
+  });
+
+  test("Get community topic with invalid UUID format returns 400", async () => {
+    const res = await api("/api/community/topics/invalid-uuid");
+    await expectStatus(res, 400);
   });
 
   test("Update community topic title and description", async () => {
@@ -583,6 +603,11 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
+  test("Get comments for community post with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/community/invalid-uuid/comments", authToken);
+    await expectStatus(res, 400);
+  });
+
   test("Add comment to community post", async () => {
     const res = await authenticatedApi(`/api/community/${communityPostId}/comments`, authToken, {
       method: "POST",
@@ -654,6 +679,19 @@ describe("API Integration Tests", () => {
     expect(conversationId).toBeDefined();
   });
 
+  test("Start conversation with invalid post ID format fails", async () => {
+    const res = await authenticatedApi("/api/conversations", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId: "invalid-uuid",
+        postType: "sublet",
+        recipientId: authUser.id,
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   test("Send message in conversation", async () => {
     // Create a new conversation first if we don't have one
     if (!conversationId) {
@@ -705,6 +743,11 @@ describe("API Integration Tests", () => {
       const res = await authenticatedApi(`/api/conversations/${conversationId}/messages`, authToken);
       await expectStatus(res, 200);
     }
+  });
+
+  test("Get messages for conversation with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/conversations/invalid-uuid/messages", authToken);
+    await expectStatus(res, 400);
   });
 
   test("Mark conversation as read", async () => {
@@ -834,6 +877,11 @@ describe("API Integration Tests", () => {
   test("Get share for non-existent post returns 404", async () => {
     const res = await api("/api/posts/sublet/00000000-0000-0000-0000-000000000000/share");
     await expectStatus(res, 404);
+  });
+
+  test("Get share for post with invalid UUID format returns 400", async () => {
+    const res = await api("/api/posts/sublet/invalid-uuid/share");
+    await expectStatus(res, 400);
   });
 
   // ============ File Upload ============
