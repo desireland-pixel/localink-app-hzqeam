@@ -216,13 +216,31 @@ export default function AuthScreen() {
       if (mode === "signin") {
         console.log('[AuthScreen] Signing in with email:', email, 'rememberMe:', rememberMe);
 
-        const { data, error: signInError } = await authClient.signIn.email({ email, password });
+        const signInUrl = `${BACKEND_URL}/api/auth/sign-in/email`;
+        console.log('[AuthScreen] POST', signInUrl);
+        const signInResponse = await fetch(signInUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Origin': BACKEND_URL,
+          },
+          body: JSON.stringify({ email, password }),
+        });
 
-        console.log('[AuthScreen] authClient.signIn.email result — data:', data, 'error:', signInError);
+        const signInText = await signInResponse.text();
+        console.log('[AuthScreen] Sign in response status:', signInResponse.status);
 
-        if (signInError) {
-          const errorMsg = signInError.message || 'Login failed';
-          console.error('[AuthScreen] Sign in error:', errorMsg);
+        let data: any = null;
+        try {
+          data = JSON.parse(signInText);
+        } catch (_) {
+          console.error('[AuthScreen] Failed to parse sign in response:', signInText);
+          throw new Error('Unexpected server response. Please try again.');
+        }
+
+        if (!signInResponse.ok) {
+          const errorMsg: string = data?.message || data?.error || 'Login failed';
+          console.error('[AuthScreen] Sign in error:', signInResponse.status, errorMsg);
 
           if (errorMsg.includes('not verified') || errorMsg.includes('verify') || errorMsg.includes('OTP')) {
             setError('Email not verified. Please check your email for the verification code.');
@@ -237,10 +255,13 @@ export default function AuthScreen() {
           throw new Error(errorMsg);
         }
 
+        console.log('[AuthScreen] Sign in successful, data keys:', Object.keys(data || {}));
+
         // Store bearer token if returned
-        if (data?.session?.token) {
+        const token = data?.token || data?.session?.token;
+        if (token) {
           console.log('[AuthScreen] Storing bearer token after email sign in');
-          await setBearerToken(data.session.token);
+          await setBearerToken(token);
         }
 
         // Save or clear credentials based on Remember Me
