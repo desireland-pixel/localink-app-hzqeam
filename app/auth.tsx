@@ -170,10 +170,10 @@ export default function AuthScreen() {
       return;
     }
 
-    // Email format validation — domain must be at least 5 chars, TLD at least 2 chars
+    // Email format validation
     function isValidEmail(emailVal: string): boolean {
       const trimmed = emailVal.trim();
-      const regex = /^[^\s@]+@[^\s@]{5,}\.[^\s@]{2,}$/;
+      const regex = /^[^\s@]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       return regex.test(trimmed);
     }
     if (!isValidEmail(email)) {
