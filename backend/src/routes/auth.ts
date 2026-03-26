@@ -216,46 +216,23 @@ export function registerAuthRoutes(app: App) {
         return reply.status(409).send({ error: 'Username already exists' });
       }
 
-      // Create or update profile with username and city from signup
+      // Use Better Auth API to create the user
       try {
-        const existingProfile = await app.db.query.profiles.findFirst({
-          where: eq(schema.profiles.userId, userId),
+        const signupResult = await app.auth.api.signUpEmail({
+          body: { email, password, name },
         });
 
-        if (existingProfile) {
-          // Update existing profile
-          await app.db
-            .update(schema.profiles)
-            .set({
-              username: username.toLowerCase(),
-              city: city,
-              updatedAt: new Date(),
-            })
-            .where(eq(schema.profiles.userId, userId));
-          app.logger.info({ userId, username, city }, 'Profile updated during signup retry');
-        } else {
-          // Create new profile
-          await app.db
-            .insert(schema.profiles)
-            .values({
-              userId,
-              name: name,
-              username: username.toLowerCase(),
-              city: city,
-              photoUrl: null,
-            });
-          app.logger.info({ userId, username, city }, 'Profile created during signup');
+        userId = signupResult.user.id;
+        app.logger.info({ email, userId }, 'User created successfully via Better Auth');
+      } catch (authError) {
+        if (authError instanceof APIError) {
+          app.logger.warn({ email, errorCode: authError.statusCode }, 'Signup failed - Better Auth error');
+          return reply.status(authError.statusCode).send({ error: authError.message });
         }
-      } catch (profileError) {
-        app.logger.error({ err: profileError, userId }, 'Failed to create/update profile during signup');
-        // Continue with OTP generation even if profile creation/update fails
+        throw authError;
       }
 
-      const signupData = await signupResponse.json();
-      userId = (signupData as any)?.user?.id;
-      app.logger.info({ email, userId }, 'User created successfully via Better Auth');
-
-      // Create profile with GDPR consent
+      // Create profile with GDPR consent and signup data
       try {
         const now = new Date();
         await app.db
