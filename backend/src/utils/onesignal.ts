@@ -1,7 +1,7 @@
 import type { App } from '../index.js';
 
 const ONESIGNAL_ENDPOINT = 'https://onesignal.com/api/v1/notifications';
-const ONESIGNAL_APP_ID = 'cb93c36b-43e2-4a76-9575-6ad75bf14a75';
+const ONESIGNAL_APP_ID = 'b8e6b443-0155-4da8-8119-dce696e20d30';
 
 interface SendPushData {
   [key: string]: any;
