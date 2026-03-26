@@ -101,6 +101,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       }
 
       // Check current permission status
+			OneSignal.Notifications.requestPermission(true);
       const permissionStatus = OneSignal.Notifications.hasPermission();
       setHasPermission(permissionStatus);
 
