@@ -170,9 +170,13 @@ export default function AuthScreen() {
       return;
     }
 
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]{2,}\.[^\s@]{2,}$/;
-    if (!emailRegex.test(email.trim())) {
+    // Email format validation — domain must be at least 5 chars, TLD at least 2 chars
+    function isValidEmail(emailVal: string): boolean {
+      const trimmed = emailVal.trim();
+      const regex = /^[^\s@]+@[^\s@]{5,}\.[^\s@]{2,}$/;
+      return regex.test(trimmed);
+    }
+    if (!isValidEmail(email)) {
       console.log('[AuthScreen] Email validation failed:', email);
       setEmailError("Please enter a valid email address.");
       return;
@@ -521,7 +525,7 @@ export default function AuthScreen() {
                         placeholder="username * (small-case only)"
                         placeholderTextColor={colors.textLight}
                         value={username}
-                        onChangeText={setUsername}
+                        onChangeText={(v) => { setUsername(v); setUsernameError(null); }}
                         autoCapitalize="none"
                         autoCorrect={false}
                         editable={!loading}
