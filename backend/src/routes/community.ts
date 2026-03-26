@@ -4,6 +4,7 @@ import { eq, and, desc, asc, sql, count, isNull } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { generateShortId } from '../utils/short-id.js';
 import { sendPushNotification } from '../utils/push-notifications.js';
+import { sendPushNotification as sendOnesignalNotification } from '../utils/onesignal.js';
 
 interface DiscussionTopicFilters {
   category?: string;
@@ -391,6 +392,15 @@ export function registerCommunityRoutes(app: App) {
             topicId: id,
           },
         }, topic.userId);
+
+        // Send OneSignal notification to topic author (fire-and-forget)
+        const topicAuthorOnesignalToken = await app.db.query.userOnesignalTokens.findFirst({
+          where: eq(schema.userOnesignalTokens.userId, topic.userId),
+        });
+
+        if (topicAuthorOnesignalToken) {
+          sendOnesignalNotification(app, [topicAuthorOnesignalToken.playerId], 'New reply to your post', body.content.substring(0, 100), { topicId: id });
+        }
       }
 
       app.logger.info({ replyId: newReply.id, topicId: id, userId: session.user.id }, 'Discussion reply created successfully');
@@ -863,6 +873,21 @@ export function registerCommunityRoutes(app: App) {
           });
         liked = true;
         app.logger.info({ replyId, userId: session.user.id }, 'Reply liked');
+
+        // Send OneSignal notification to reply author when liked (fire-and-forget)
+        const replyAuthor = await app.db.query.discussionReplies.findFirst({
+          where: eq(schema.discussionReplies.id, replyId),
+        });
+
+        if (replyAuthor && replyAuthor.userId !== session.user.id) {
+          const replyAuthorOnesignalToken = await app.db.query.userOnesignalTokens.findFirst({
+            where: eq(schema.userOnesignalTokens.userId, replyAuthor.userId),
+          });
+
+          if (replyAuthorOnesignalToken) {
+            sendOnesignalNotification(app, [replyAuthorOnesignalToken.playerId], 'Your reply was liked', 'Someone liked your reply', {});
+          }
+        }
       }
 
       // Get updated like count

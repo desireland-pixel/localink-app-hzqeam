@@ -913,6 +913,21 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
+  // ============ OneSignal ============
+
+  test("Register OneSignal player ID", async () => {
+    const res = await authenticatedApi("/api/onesignal/register", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        playerId: "onesignal_player_id_test_123",
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+  });
+
   // ============ Share ============
 
   test("Get share info for sublet post", async () => {

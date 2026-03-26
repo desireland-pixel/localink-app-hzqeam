@@ -4,6 +4,7 @@ import { eq, and, or, desc, inArray, ne, isNull } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { wsManager } from '../websocket-manager.js';
 import { sendPushNotification } from '../utils/push-notifications.js';
+import { sendPushNotification as sendOnesignalNotification } from '../utils/onesignal.js';
 
 interface CreateConversationBody {
   postId: string;
@@ -584,6 +585,15 @@ export function registerConversationRoutes(app: App) {
           conversationId: id,
         },
       }, recipientId);
+
+      // Send OneSignal notification to recipient (fire-and-forget)
+      const recipientOnesignalToken = await app.db.query.userOnesignalTokens.findFirst({
+        where: eq(schema.userOnesignalTokens.userId, recipientId),
+      });
+
+      if (recipientOnesignalToken) {
+        sendOnesignalNotification(app, [recipientOnesignalToken.playerId], `New message from ${senderName || 'Someone'}`, content.substring(0, 100), { conversationId: id });
+      }
 
       return reply.code(200).send(messageWithSender);
     } catch (error) {

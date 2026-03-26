@@ -230,6 +230,14 @@ export const pushTokens = pgTable('push_tokens', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// OneSignal player IDs for push notifications
+export const userOnesignalTokens = pgTable('user_onesignal_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull().unique().references(() => user.id, { onDelete: 'cascade' }),
+  playerId: text('player_id').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Relations for community
 export const discussionTopicsRelations = relations(discussionTopics, ({ one, many }) => ({
   user: one(user, {

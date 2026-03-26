@@ -13,6 +13,7 @@ import { registerUploadRoutes } from './routes/upload.js';
 import { registerShareRoutes } from './routes/share.js';
 import { registerCommunityRoutes } from './routes/community.js';
 import { registerPushTokenRoutes } from './routes/push-tokens.js';
+import { registerOnesignalRoutes } from './routes/onesignal.js';
 import { startCleanupJob } from './utils/cleanup-job.js';
 
 const schema = { ...appSchema, ...authSchema };
@@ -65,6 +66,7 @@ registerUploadRoutes(app);
 registerShareRoutes(app);
 registerCommunityRoutes(app);
 registerPushTokenRoutes(app);
+registerOnesignalRoutes(app);
 
 // Start cleanup job for soft-deleted posts
 startCleanupJob(app);
