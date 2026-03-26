@@ -20,7 +20,7 @@ import Modal from "@/components/ui/Modal";
 import { apiPost, apiGet, BACKEND_URL } from "@/utils/api";
 import { IconSymbol } from "@/components/IconSymbol";
 import { CitySearchInput } from "@/components/CitySearchInput";
-import { setBearerToken } from "@/lib/auth";
+import { authClient, setBearerToken } from "@/lib/auth";
 import * as SecureStore from "expo-secure-store";
 
 type Mode = "signin" | "signup" | "forgot-password";
@@ -215,43 +215,23 @@ export default function AuthScreen() {
     try {
       if (mode === "signin") {
         console.log('[AuthScreen] Signing in with email:', email, 'rememberMe:', rememberMe);
-        
-        // Call backend login API with rememberMe parameter
-        const response = await fetch(`${BACKEND_URL}/api/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, rememberMe }),
-          credentials: 'include',
-        });
 
-        console.log('[AuthScreen] Login response status:', response.status);
+        const { data, error: signInError } = await authClient.signIn.email({ email, password });
 
-        // Parse response body
-        let data: any;
-        try {
-          const text = await response.text();
-          console.log('[AuthScreen] Login response body:', text);
-          data = text ? JSON.parse(text) : {};
-        } catch (parseError) {
-          console.error('[AuthScreen] Failed to parse response:', parseError);
-          throw new Error('Invalid response from server');
-        }
+        console.log('[AuthScreen] authClient.signIn.email result — data:', data, 'error:', signInError);
 
-        if (!response.ok) {
-          const errorMsg = data?.error || data?.message || 'Login failed';
-          console.error('[AuthScreen] Login failed:', errorMsg);
-          
+        if (signInError) {
+          const errorMsg = signInError.message || 'Login failed';
+          console.error('[AuthScreen] Sign in error:', errorMsg);
+
           if (errorMsg.includes('not verified') || errorMsg.includes('verify') || errorMsg.includes('OTP')) {
             setError('Email not verified. Please check your email for the verification code.');
-            // Redirect to OTP verification
             setTimeout(() => {
               router.push({ pathname: '/verify-otp', params: { email } });
             }, 2000);
           } else if (errorMsg.includes('Invalid') || errorMsg.includes('incorrect') || errorMsg.includes('wrong') || errorMsg.includes('credentials')) {
-            // For authentication failures (wrong email/password)
             setError('Email or Password is incorrect.');
           } else {
-            // Generic error
             setError(errorMsg || 'Login failed. Please try again.');
           }
           throw new Error(errorMsg);
@@ -261,9 +241,6 @@ export default function AuthScreen() {
         if (data?.session?.token) {
           console.log('[AuthScreen] Storing bearer token after email sign in');
           await setBearerToken(data.session.token);
-        } else if (data?.token) {
-          console.log('[AuthScreen] Storing bearer token (token field) after email sign in');
-          await setBearerToken(data.token);
         }
 
         // Save or clear credentials based on Remember Me
