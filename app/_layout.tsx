@@ -16,6 +16,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { WidgetProvider } from "@/contexts/WidgetContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { colors } from "@/styles/commonStyles";
 
 SplashScreen.preventAutoHideAsync();
@@ -72,6 +73,7 @@ export default function RootLayout() {
         value={colorScheme === "dark" ? CustomDarkTheme : CustomDefaultTheme}
       >
         <AuthProvider>
+        <NotificationProvider>
           <WidgetProvider>
             <GestureHandlerRootView style={{ flex: 1 }}>
               <Stack>
@@ -238,6 +240,7 @@ export default function RootLayout() {
               <SystemBars style="auto" />
             </GestureHandlerRootView>
           </WidgetProvider>
+        </NotificationProvider>
         </AuthProvider>
       </ThemeProvider>
     </>

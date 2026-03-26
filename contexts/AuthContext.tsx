@@ -5,6 +5,45 @@ import * as Linking from "expo-linking";
 import { authClient, setBearerToken, clearAuthTokens } from "@/lib/auth";
 import { authenticatedGet, getBearerToken, BACKEND_URL } from "@/utils/api";
 
+// OneSignal is only available on native — import conditionally to avoid web crashes
+let OneSignal: typeof import("react-native-onesignal").OneSignal | null = null;
+if (Platform.OS !== "web") {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    OneSignal = require("react-native-onesignal").OneSignal;
+  } catch {
+    // OneSignal not available
+  }
+}
+
+async function registerOneSignalPlayerId(token: string): Promise<void> {
+  if (!OneSignal) return;
+  try {
+    const playerId = await OneSignal.User.pushSubscription.getIdAsync();
+    if (!playerId) {
+      console.log("[AuthContext] OneSignal player ID not available yet");
+      return;
+    }
+    console.log("[AuthContext] Registering OneSignal player ID with backend:", playerId);
+    const response = await fetch(`${BACKEND_URL}/api/onesignal/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ playerId }),
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      console.warn("[AuthContext] OneSignal registration failed:", response.status, text);
+    } else {
+      console.log("[AuthContext] OneSignal player ID registered successfully");
+    }
+  } catch (error) {
+    console.warn("[AuthContext] OneSignal registration error:", error);
+  }
+}
+
 interface User {
   id: string;
   email: string;
@@ -168,6 +207,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('[AuthContext] User session found:', data.user.id);
         setUserRef.current(data.user as User);
         await fetchProfileStandalone();
+        // Register OneSignal player ID on session restore (startup or refresh)
+        registerOneSignalPlayerId(token);
       } else {
         console.log('[AuthContext] No user in session response, user is logged out');
         setUserRef.current(null);
@@ -326,6 +367,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('[AuthContext] No user in response, fetching from session');
         await fetchUser();
       }
+
+      // Register OneSignal player ID after successful login
+      const currentToken = data?.session?.token || data?.token || await getBearerToken();
+      if (currentToken) {
+        registerOneSignalPlayerId(currentToken);
+      }
     } catch (error: any) {
       console.error("[AuthContext] Email sign in failed:", error);
       throw error;
@@ -361,6 +408,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = await openOAuthPopup(provider);
         await setBearerToken(token);
         await fetchUser();
+        registerOneSignalPlayerId(token);
       } else {
         const callbackURL = Linking.createURL("/");
         console.log(`[AuthContext] Using callback URL: ${callbackURL}`);
@@ -369,6 +417,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           callbackURL,
         });
         await fetchUser();
+        const token = await getBearerToken();
+        if (token) registerOneSignalPlayerId(token);
       }
     } catch (error) {
       console.error(`[AuthContext] ${provider} sign in failed:`, error);

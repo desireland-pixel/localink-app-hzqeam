@@ -15,7 +15,16 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.lokalinc.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      },
+      "entitlements": {
+        "aps-environment": "production",
+        "com.apple.security.application-groups": [
+          "group.com.lokalinc.app.onesignal"
+        ]
       }
     },
     "android": {
@@ -30,6 +39,12 @@
       "bundler": "metro"
     },
     "plugins": [
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production"
+        }
+      ],
       "expo-font",
       "expo-router",
       "expo-web-browser",
@@ -41,7 +56,8 @@
     },
     "extra": {
       "router": {},
-      "backendUrl": "https://prod-proj-dpluqp3d5nexthtfrcpmq-liwg5h36mq-ey.a.run.app/"
+      "backendUrl": "https://prod-proj-dpluqp3d5nexthtfrcpmq-liwg5h36mq-ey.a.run.app/",
+      "oneSignalAppId": "cb93c36b-43e2-4a76-9575-6ad75bf14a75"
     },
     "notification": {
       "icon": "./assets/notification-icon.png"

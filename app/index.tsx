@@ -5,7 +5,6 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors, typography, spacing } from '@/styles/commonStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 export default function IndexScreen() {
   const router = useRouter();
   const { user, loading, profileLoading } = useAuth();
