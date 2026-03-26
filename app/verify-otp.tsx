@@ -21,6 +21,7 @@ export default function VerifyOTPScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const email = params.email as string;
+  const username = params.username as string | undefined;
 
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,10 +30,10 @@ export default function VerifyOTPScreen() {
   const [success, setSuccess] = useState<string | null>(null);
   const [verified, setVerified] = useState(false);
 
-  console.log('[VerifyOTP] Rendering, email:', email);
+  console.log('[VerifyOTP] Rendering, email:', email, 'username:', username);
 
   const handleVerifyOTP = async () => {
-    console.log('[VerifyOTP] Verifying OTP');
+    console.log('[VerifyOTP] Verifying OTP for email:', email);
     
     if (!otp || otp.length !== 6) {
       setError('Please enter a valid 6-digit OTP');
@@ -46,6 +47,19 @@ export default function VerifyOTPScreen() {
       console.log('[VerifyOTP] Calling verify-otp API');
       const result = await apiPost('/api/verify-otp', { email, otp });
       console.log('[VerifyOTP] OTP verified successfully', result);
+
+      // After successful OTP verification, register the username if provided
+      if (username) {
+        try {
+          console.log('[VerifyOTP] Registering username after OTP verification:', username);
+          await apiPost('/api/register-username', { username });
+          console.log('[VerifyOTP] Username registered successfully:', username);
+        } catch (usernameErr: any) {
+          // Log but don't block — user can update username later in Personal Details
+          console.warn('[VerifyOTP] Username registration failed (non-fatal):', usernameErr?.message || usernameErr);
+        }
+      }
+
       setVerified(true);
       setSuccess('Your account has been created successfully!');
     } catch (err: any) {

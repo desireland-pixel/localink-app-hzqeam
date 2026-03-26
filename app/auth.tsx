@@ -74,7 +74,8 @@ export default function AuthScreen() {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [termsContent, setTermsContent] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
-  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const fetchAndShowTerms = async () => {
     if (termsContent) {
@@ -100,36 +101,7 @@ export default function AuthScreen() {
     }
   };
 
-  // Check username availability when user types
-  useEffect(() => {
-    if (mode !== 'signup' || !username.trim()) {
-      setUsernameError(null);
-      return;
-    }
-
-    const checkUsername = async () => {
-      setCheckingUsername(true);
-      try {
-        const result = await apiGet<{ available: boolean; message?: string }>(
-          `/api/check-username?username=${encodeURIComponent(username.toLowerCase())}`
-        );
-        if (!result.available) {
-          setUsernameError(result.message || 'Username already exists');
-        } else {
-          setUsernameError(null);
-        }
-      } catch (err) {
-        console.error('[AuthScreen] Error checking username:', err);
-        // Don't show error to user, just clear the error state
-        setUsernameError(null);
-      } finally {
-        setCheckingUsername(false);
-      }
-    };
-
-    const timeoutId = setTimeout(checkUsername, 500);
-    return () => clearTimeout(timeoutId);
-  }, [username, mode]);
+  // Username uniqueness is NOT checked here — it is deferred to after OTP verification
 
   // Load saved credentials on mount if Remember Me was previously enabled
   useEffect(() => {
@@ -188,9 +160,28 @@ export default function AuthScreen() {
 
   const handleEmailAuth = async () => {
     console.log('[AuthScreen] Email auth attempt, mode:', mode, 'rememberMe:', rememberMe);
+
+    // Reset inline errors
+    setEmailError(null);
+    setPasswordError(null);
     
     if (!email || !password) {
       setError("Please enter email and password");
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]{2,}\.[^\s@]{2,}$/;
+    if (!emailRegex.test(email.trim())) {
+      console.log('[AuthScreen] Email validation failed:', email);
+      setEmailError("Please enter a valid email address.");
+      return;
+    }
+
+    // Password minimum length
+    if (password.length < 8) {
+      console.log('[AuthScreen] Password too short:', password.length, 'chars');
+      setPasswordError("Password must be at least 8 characters.");
       return;
     }
 
@@ -201,10 +192,6 @@ export default function AuthScreen() {
       }
       if (!username.trim()) {
         setError("Please enter a username");
-        return;
-      }
-      if (usernameError) {
-        setError("Please choose a different username");
         return;
       }
       if (!city.trim()) {
@@ -305,7 +292,7 @@ export default function AuthScreen() {
         console.log('[AuthScreen] Signing up with email');
         // Call backend signup API directly to get OTP flow
         // Backend now allows re-signup if email_verified = false (unverified accounts)
-        // Convert username to lowercase before sending to backend
+        // Username uniqueness is NOT checked here — deferred to after OTP verification
         const result = await apiPost<{
           success: boolean;
           message?: string;
@@ -320,8 +307,11 @@ export default function AuthScreen() {
           termsAccepted: true
         });
         console.log('[AuthScreen] Sign up successful, redirecting to OTP verification', result);
-        // Always redirect to OTP verification on successful signup
-        router.push({ pathname: '/verify-otp', params: { email } });
+        // Pass signup data to OTP screen so username can be registered after verification
+        router.push({
+          pathname: '/verify-otp',
+          params: { email, username: username.toLowerCase(), name, city },
+        });
       }
     } catch (err: any) {
       console.error('[AuthScreen] Auth error:', err);
@@ -480,12 +470,15 @@ export default function AuthScreen() {
                     placeholder={mode === "signup" ? "Email *" : "Email"}
                     placeholderTextColor={colors.textLight}
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(v) => { setEmail(v); setEmailError(null); }}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
                     editable={!loading}
                   />
+                  {emailError && (
+                    <Text style={styles.inlineError}>{emailError}</Text>
+                  )}
                 </View>
 
                 <View style={styles.inputGroup}>
@@ -496,7 +489,7 @@ export default function AuthScreen() {
                       placeholder={mode === "signup" ? "Password *" : "Password"}
                       placeholderTextColor={colors.textLight}
                       value={password}
-                      onChangeText={setPassword}
+                      onChangeText={(v) => { setPassword(v); setPasswordError(null); }}
                       secureTextEntry={!showPassword}
                       autoCapitalize="none"
                       editable={!loading}
@@ -513,6 +506,9 @@ export default function AuthScreen() {
                       />
                     </TouchableOpacity>
                   </View>
+                  {passwordError && (
+                    <Text style={styles.inlineError}>{passwordError}</Text>
+                  )}
                 </View>
 
                 {mode === "signup" && (
@@ -522,7 +518,7 @@ export default function AuthScreen() {
                     <View style={styles.inputGroup}>
                       <TextInput
                         style={styles.input}
-                        placeholder="username *"
+                        placeholder="username * (small-case only)"
                         placeholderTextColor={colors.textLight}
                         value={username}
                         onChangeText={setUsername}
@@ -776,6 +772,12 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   usernameError: {
+    ...typography.bodySmall,
+    color: '#FF3B30',
+    fontSize: 11,
+    marginTop: spacing.xs,
+  },
+  inlineError: {
     ...typography.bodySmall,
     color: '#FF3B30',
     fontSize: 11,
