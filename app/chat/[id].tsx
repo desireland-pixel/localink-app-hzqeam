@@ -165,7 +165,20 @@ export default function ChatScreen() {
   }, [id, markMessagesAsRead]);
 
   const fetchConversation = React.useCallback(async () => {
-  }, []);
+    try {
+      console.log('ChatScreen: Fetching conversation details for id:', id);
+      // The endpoint may return the conversation directly or wrapped — handle both
+      const data = await authenticatedGet<Conversation | { conversation: Conversation }>(`/api/conversations/${id}`);
+      if (!data) return;
+      const conv = (data as any).conversation ?? (data as Conversation);
+      if (conv?.id) {
+        console.log('ChatScreen: Conversation fetched, post:', conv.post);
+        setConversation(conv);
+      }
+    } catch (error) {
+      console.error('ChatScreen: Error fetching conversation details', error);
+    }
+  }, [id]);
 
   const fetchMessages = React.useCallback(async () => {
     setLoading(true);
@@ -317,7 +330,9 @@ export default function ChatScreen() {
   };
 
   const timeDisplay = (dateString: string) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const timeText = `${hours}:${minutes}`;
