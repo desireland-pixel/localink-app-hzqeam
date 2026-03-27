@@ -42,8 +42,7 @@
       [
         "onesignal-expo-plugin",
         {
-          "mode": "production",
-          "iosNotificationServiceExtensionBundleId": "com.lokalinc.app.onesignalExt"
+          "mode": "production"
         }
       ],
       "expo-font",
