@@ -34,11 +34,7 @@ interface Conversation {
     name: string;
     username?: string;
   };
-  post: {
-    id: string;
-    title: string;
-    type: 'sublet' | 'travel';
-  };
+  post?: { id: string; title: string; type: 'sublet' | 'travel' } | null;
 }
 
 export default function ChatScreen() {
@@ -340,9 +336,11 @@ export default function ChatScreen() {
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
+    if (!item.content) return null;
     const currentUserId = user?.id;
     const messageSenderId = item.senderId;
     const isOwnMessage = currentUserId === messageSenderId;
+    const senderName = item.sender?.name || '';
     const time = timeDisplay(item.createdAt);
     const isSelected = selectedMessageId === item.id;
 
@@ -380,6 +378,9 @@ export default function ChatScreen() {
           ]}
         >
           <View style={styles.messageContent}>
+            {!isOwnMessage && senderName ? (
+              <Text style={styles.senderName}>{senderName}</Text>
+            ) : null}
             <Text style={[
               styles.messageText,
               isOwnMessage && styles.ownMessageText
@@ -471,7 +472,7 @@ export default function ChatScreen() {
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
           style={styles.messagesContainer}
-          contentContainerStyle= {{ ...styles.messagesContent, flexGrow: 1, justifyContent: 'flex-end' }}
+          contentContainerStyle={styles.messagesContent}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         />
@@ -648,6 +649,13 @@ const styles = StyleSheet.create({
   },
   messageContent: {
     flexDirection: 'column',
+  },
+  senderName: {
+    ...typography.bodySmall,
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 2,
   },
   messageText: {
     ...typography.body,
