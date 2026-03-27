@@ -73,6 +73,15 @@ export function registerConversationRoutes(app: App) {
     schema: {
       description: 'List all conversations for current user with last message preview',
       tags: ['conversations'],
+      response: {
+        200: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: true,
+          },
+        },
+      },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const session = await requireAuth(request, reply);
@@ -304,7 +313,10 @@ export function registerConversationRoutes(app: App) {
           type: 'object',
           required: ['conversation'],
           properties: {
-            conversation: { type: 'object' },
+            conversation: {
+              type: 'object',
+              additionalProperties: true,
+            },
           },
         },
       },
@@ -426,9 +438,15 @@ export function registerConversationRoutes(app: App) {
           properties: {
             messages: {
               type: 'array',
-              items: { type: 'object' },
+              items: {
+                type: 'object',
+                additionalProperties: true,
+              },
             },
-            conversation: { type: 'object' },
+            conversation: {
+              type: 'object',
+              additionalProperties: true,
+            },
           },
         },
       },

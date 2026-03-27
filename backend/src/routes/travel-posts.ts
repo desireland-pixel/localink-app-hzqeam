@@ -262,7 +262,7 @@ export function registerTravelPostRoutes(app: App) {
       const offset = parseInt(filters.offset || '0');
 
       // Determine sort order
-      let orderByClause: any;
+      let orderByClause: any[] = [];
       if (filters.sort === 'earliest-departure') {
         // Primary sort by travelDate ASC, Secondary sort by travelDateTo ASC
         orderByClause = [asc(schema.travelPosts.travelDate), asc(schema.travelPosts.travelDateTo)];
@@ -271,7 +271,7 @@ export function registerTravelPostRoutes(app: App) {
         orderByClause = [desc(schema.travelPosts.travelDateTo), desc(schema.travelPosts.travelDate)];
       } else {
         // Default: newest (sort by createdAt DESC)
-        orderByClause = desc(schema.travelPosts.createdAt);
+        orderByClause = [desc(schema.travelPosts.createdAt)];
       }
 
       const posts = await app.db
@@ -299,7 +299,7 @@ export function registerTravelPostRoutes(app: App) {
         .where(and(...conditions))
         .limit(limit)
         .offset(offset)
-        .orderBy(orderByClause);
+        .orderBy(...orderByClause);
 
       // Transform to include user object, format dates, and add formatted title
       const result = await Promise.all(posts.map(async (post) => {
