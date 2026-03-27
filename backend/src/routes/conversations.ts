@@ -229,6 +229,7 @@ export function registerConversationRoutes(app: App) {
           postType: { type: 'string', enum: ['sublet', 'travel'] },
           recipientId: { type: 'string' },
         },
+        additionalProperties: true,
       },
       response: {
         200: {
@@ -244,6 +245,7 @@ export function registerConversationRoutes(app: App) {
             hasSentMessages: { type: 'boolean' },
             createdAt: { type: 'string', format: 'date-time' },
           },
+          additionalProperties: true,
         },
       },
     },
@@ -318,6 +320,7 @@ export function registerConversationRoutes(app: App) {
               additionalProperties: true,
             },
           },
+          additionalProperties: true,
         },
       },
     },
@@ -632,6 +635,7 @@ export function registerConversationRoutes(app: App) {
         properties: {
           content: { type: 'string' },
         },
+        additionalProperties: true,
       },
       response: {
         200: {
@@ -645,8 +649,9 @@ export function registerConversationRoutes(app: App) {
             deliveredAt: { type: 'string', format: 'date-time' },
             readAt: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
             createdAt: { type: 'string', format: 'date-time' },
-            sender: { type: 'object' },
+            sender: { type: 'object', additionalProperties: true },
           },
+          additionalProperties: true,
         },
       },
     },
@@ -783,6 +788,7 @@ export function registerConversationRoutes(app: App) {
             success: { type: 'boolean' },
             markedCount: { type: 'number' },
           },
+          additionalProperties: true,
         },
       },
     },
@@ -865,6 +871,7 @@ export function registerConversationRoutes(app: App) {
             success: { type: 'boolean' },
             message: { type: 'string' },
           },
+          additionalProperties: true,
         },
       },
     },
