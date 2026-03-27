@@ -2,7 +2,7 @@
   "expo": {
     "name": "LokaLinc",
     "slug": "lokalinc",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -18,7 +18,8 @@
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
           "remote-notification"
-        ]
+        ],
+        "NSLocationWhenInUseUsageDescription": "LokaLinc allows users to select a location/city to search for nearby housing and travel help."
       },
       "entitlements": {
         "aps-environment": "production",
