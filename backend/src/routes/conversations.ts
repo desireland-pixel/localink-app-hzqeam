@@ -1,7 +1,8 @@
 import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, or, desc, inArray, ne, isNull } from 'drizzle-orm';
+import { eq, and, or, desc, asc, inArray, ne, isNull } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
+import { user } from '../db/auth-schema.js';
 import { wsManager } from '../websocket-manager.js';
 import { sendPushNotification } from '../utils/push-notifications.js';
 import { sendPushNotification as sendOnesignalNotification } from '../utils/onesignal.js';
@@ -359,11 +360,14 @@ export function registerConversationRoutes(app: App) {
         where: eq(schema.profiles.userId, otherParticipantId),
       });
 
-      // Fetch post details based on postType
+      // Fetch post details based on postType (only if not deleted)
       let post = null;
-      if (conversation.postType === 'sublet') {
+      if (conversation.postType === 'sublet' && conversation.postId) {
         const sublet = await app.db.query.sublets.findFirst({
-          where: eq(schema.sublets.id, conversation.postId),
+          where: and(
+            eq(schema.sublets.id, conversation.postId),
+            isNull(schema.sublets.deletedAt)
+          ),
         });
         if (sublet) {
           post = {
@@ -372,9 +376,12 @@ export function registerConversationRoutes(app: App) {
             type: 'sublet' as const,
           };
         }
-      } else if (conversation.postType === 'travel') {
+      } else if (conversation.postType === 'travel' && conversation.postId) {
         const travelPost = await app.db.query.travelPosts.findFirst({
-          where: eq(schema.travelPosts.id, conversation.postId),
+          where: and(
+            eq(schema.travelPosts.id, conversation.postId),
+            isNull(schema.travelPosts.deletedAt)
+          ),
         });
         if (travelPost) {
           post = {
@@ -397,12 +404,12 @@ export function registerConversationRoutes(app: App) {
           )
         );
 
-      // Get messages (sorted descending as originally, frontend will handle sorting)
+      // Get messages (sorted ascending by createdAt)
       const messages = await app.db
         .select()
         .from(schema.messages)
         .where(eq(schema.messages.conversationId, id))
-        .orderBy(desc(schema.messages.createdAt))
+        .orderBy(asc(schema.messages.createdAt))
         .limit(limit)
         .offset(offset);
 
@@ -416,18 +423,38 @@ export function registerConversationRoutes(app: App) {
 
       const senderProfileMap = new Map(senderProfiles.map(p => [p.userId, p]));
 
+      // Get user table entries for senders to get names as fallback
+      const users = senderIds.size > 0
+        ? await app.db.query.user.findMany({
+            where: inArray(user.id, Array.from(senderIds)),
+          })
+        : [];
+
+      const userMap = new Map(users.map(u => [u.id, u]));
+
       // Enrich messages with sender information
       const messagesWithSender = messages.map(msg => {
         const senderProfile = senderProfileMap.get(msg.senderId);
+        const senderUser = userMap.get(msg.senderId);
+
+        // Determine sender name: use profile name if available, else use user table, else fallback to participant names
+        let senderName = senderProfile?.name || senderUser?.name || (msg.senderId === session.user.id
+          ? conversation.participant1Id === session.user.id
+            ? conversation.participant1.name
+            : conversation.participant2.name
+          : otherParticipant.name);
+
         return {
-          ...msg,
+          id: msg.id,
+          conversationId: msg.conversationId,
+          senderId: msg.senderId,
+          content: msg.content,
+          createdAt: msg.createdAt,
+          deliveredAt: msg.deliveredAt,
+          readAt: msg.readAt,
           sender: {
             id: msg.senderId,
-            name: msg.senderId === session.user.id
-              ? conversation.participant1Id === session.user.id
-                ? conversation.participant1.name
-                : conversation.participant2.name
-              : otherParticipant.name,
+            name: senderName,
             username: senderProfile?.username || null,
           },
         };
@@ -436,9 +463,11 @@ export function registerConversationRoutes(app: App) {
       app.logger.info({ conversationId: id, count: messagesWithSender.length }, 'Messages fetched and marked as read successfully');
 
       return {
-        messages: messagesWithSender,
         conversation: {
           id: conversation.id,
+          postId: conversation.postId,
+          postType: conversation.postType,
+          createdAt: conversation.createdAt,
           otherParticipant: {
             id: otherParticipantId,
             name: otherParticipant.name,
@@ -446,6 +475,7 @@ export function registerConversationRoutes(app: App) {
           },
           post: post,
         },
+        messages: messagesWithSender,
       };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, conversationId: id }, 'Failed to fetch messages');

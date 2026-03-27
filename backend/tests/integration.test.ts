@@ -345,6 +345,24 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400);
   });
 
+  test("Create travel post with seeking-ally type", async () => {
+    const res = await authenticatedApi("/api/travel-posts", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "seeking-ally",
+        fromCity: "Berlin",
+        toCity: "Munich",
+        travelDate: "2026-08-20",
+        item: "Laptop",
+        allyConsent: true,
+      }),
+    });
+    await expectStatus(res, 201);
+    const data = await res.json();
+    expect(data.id || data.travelPostId).toBeDefined();
+  });
+
   // ============ Favorites ============
 
   test("Create favorite on travel post", async () => {
@@ -436,6 +454,173 @@ describe("API Integration Tests", () => {
     });
     await expectStatus(deleteRes, 200);
     const data = await deleteRes.json();
+    expect(data.success).toBe(true);
+  });
+
+  test("Create favorite on sublet post", async () => {
+    const createRes = await authenticatedApi("/api/sublets", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        title: "Favorite test sublet",
+        city: "Vienna",
+        availableFrom: "2026-05-01",
+        availableTo: "2026-07-31",
+        rent: "1000",
+        independentArrangementConsent: true,
+      }),
+    });
+    const createData = await createRes.json();
+    const subletId = createData.id;
+
+    const res = await authenticatedApi("/api/favorites", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId: subletId,
+        postType: "sublet",
+      }),
+    });
+    await expectStatus(res, 201);
+    const data = await res.json();
+    expect(data.favorite.id).toBeDefined();
+    expect(data.favorite.postType).toBe("sublet");
+  });
+
+  test("Check if sublet post is favorited", async () => {
+    const createRes = await authenticatedApi("/api/sublets", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        title: "Check favorite test sublet",
+        city: "Prague",
+        availableFrom: "2026-04-01",
+        availableTo: "2026-06-30",
+        rent: "900",
+        independentArrangementConsent: true,
+      }),
+    });
+    const createData = await createRes.json();
+    const subletId = createData.id;
+
+    const res = await authenticatedApi(`/api/favorites/check/${subletId}?postType=sublet`, authToken);
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(typeof data.isFavorited).toBe("boolean");
+  });
+
+  test("Delete favorite on sublet post", async () => {
+    const createRes = await authenticatedApi("/api/sublets", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        title: "Delete favorite test sublet",
+        city: "Zurich",
+        availableFrom: "2026-03-01",
+        availableTo: "2026-05-31",
+        rent: "1200",
+        independentArrangementConsent: true,
+      }),
+    });
+    const createData = await createRes.json();
+    const subletId = createData.id;
+
+    await authenticatedApi("/api/favorites", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId: subletId,
+        postType: "sublet",
+      }),
+    });
+
+    const res = await authenticatedApi(`/api/favorites/${subletId}?postType=sublet`, authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+  });
+
+  test("Create favorite on community post", async () => {
+    const createRes = await authenticatedApi("/api/community/topics", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "General",
+        title: "Favorite test community topic",
+        description: "Testing community topic favorites",
+        location: "Vienna",
+      }),
+    });
+    const createData = await createRes.json();
+    const topicId = createData.id;
+
+    const res = await authenticatedApi("/api/favorites", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId: topicId,
+        postType: "community",
+      }),
+    });
+    await expectStatus(res, 201);
+    const data = await res.json();
+    expect(data.favorite.id).toBeDefined();
+    expect(data.favorite.postType).toBe("community");
+  });
+
+  test("Check if community post is favorited", async () => {
+    const createRes = await authenticatedApi("/api/community/topics", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "Housing",
+        title: "Check favorite test community topic",
+        description: "Testing favorite check on community",
+        location: "Prague",
+      }),
+    });
+    const createData = await createRes.json();
+    const topicId = createData.id;
+
+    const res = await authenticatedApi(`/api/favorites/check/${topicId}?postType=community`, authToken);
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(typeof data.isFavorited).toBe("boolean");
+  });
+
+  test("Delete favorite on community post", async () => {
+    const createRes = await authenticatedApi("/api/community/topics", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "Local Tips",
+        title: "Delete favorite test community topic",
+        description: "Testing favorite deletion on community",
+        location: "Zurich",
+      }),
+    });
+    const createData = await createRes.json();
+    const topicId = createData.id;
+
+    await authenticatedApi("/api/favorites", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId: topicId,
+        postType: "community",
+      }),
+    });
+
+    const res = await authenticatedApi(`/api/favorites/${topicId}?postType=community`, authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
     expect(data.success).toBe(true);
   });
 
