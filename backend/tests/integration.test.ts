@@ -518,17 +518,19 @@ describe("API Integration Tests", () => {
       body: JSON.stringify({
         type: "offering",
         title: "Delete favorite test sublet",
-        city: "Zurich",
-        availableFrom: "2026-03-01",
-        availableTo: "2026-05-31",
+        city: "Munich",
+        availableFrom: "2026-04-01",
+        availableTo: "2026-06-30",
         rent: "1200",
         independentArrangementConsent: true,
       }),
     });
+    await expectStatus(createRes, 200);
     const createData = await createRes.json();
     const subletId = createData.id;
+    expect(subletId).toBeDefined();
 
-    await authenticatedApi("/api/favorites", authToken, {
+    const favRes = await authenticatedApi("/api/favorites", authToken, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -536,6 +538,7 @@ describe("API Integration Tests", () => {
         postType: "sublet",
       }),
     });
+    await expectStatus(favRes, 201);
 
     const res = await authenticatedApi(`/api/favorites/${subletId}?postType=sublet`, authToken, {
       method: "DELETE",
