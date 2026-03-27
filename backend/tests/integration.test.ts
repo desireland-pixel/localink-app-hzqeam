@@ -126,6 +126,13 @@ describe("API Integration Tests", () => {
     expect(Array.isArray(data.cities)).toBe(true);
   });
 
+  test("Search cities with type filter", async () => {
+    const res = await api("/api/cities/search?q=Berlin&type=all");
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(Array.isArray(data.cities)).toBe(true);
+  });
+
   // ============ Sublets CRUD ============
 
   test("Create sublet (offering type)", async () => {
@@ -164,6 +171,21 @@ describe("API Integration Tests", () => {
 
   test("Get sublets filtered by type", async () => {
     const res = await api("/api/sublets?type=offering");
+    await expectStatus(res, 200);
+  });
+
+  test("Get sublets sorted by cheapest", async () => {
+    const res = await api("/api/sublets?sort=cheapest");
+    await expectStatus(res, 200);
+  });
+
+  test("Get sublets sorted by earliest", async () => {
+    const res = await api("/api/sublets?sort=earliest");
+    await expectStatus(res, 200);
+  });
+
+  test("Get sublets with pagination", async () => {
+    const res = await api("/api/sublets?limit=5&offset=0");
     await expectStatus(res, 200);
   });
 
@@ -276,6 +298,21 @@ describe("API Integration Tests", () => {
 
   test("Get travel posts filtered by role", async () => {
     const res = await api("/api/travel-posts?role=offering");
+    await expectStatus(res, 200);
+  });
+
+  test("Get travel posts sorted by earliest-departure", async () => {
+    const res = await api("/api/travel-posts?sort=earliest-departure");
+    await expectStatus(res, 200);
+  });
+
+  test("Get travel posts sorted by latest-departure", async () => {
+    const res = await api("/api/travel-posts?sort=latest-departure");
+    await expectStatus(res, 200);
+  });
+
+  test("Get travel posts with pagination", async () => {
+    const res = await api("/api/travel-posts?limit=10&offset=0");
     await expectStatus(res, 200);
   });
 
@@ -806,6 +843,21 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
+  test("Get community posts sorted by trending", async () => {
+    const res = await api("/api/community-posts?sort=trending");
+    await expectStatus(res, 200);
+  });
+
+  test("Get community posts sorted by oldest", async () => {
+    const res = await api("/api/community-posts?sort=oldest");
+    await expectStatus(res, 200);
+  });
+
+  test("Get community posts with pagination", async () => {
+    const res = await api("/api/community-posts?limit=5&offset=0");
+    await expectStatus(res, 200);
+  });
+
   test("Get comments for a community post", async () => {
     // Create a new topic to comment on
     const topicRes = await authenticatedApi("/api/community/topics", authToken, {
@@ -1322,6 +1374,32 @@ describe("API Integration Tests", () => {
     expect(ws).toBeDefined();
     expect(ws.readyState).toBe(1); // OPEN
     ws.close();
+  });
+
+  // ============ Admin Endpoints ============
+
+  test("Admin push notification endpoint requires authorization", async () => {
+    const res = await api("/api/admin/notifications/push", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Test Notification",
+        message: "This is a test",
+      }),
+    });
+    await expectStatus(res, 401, 403);
+  });
+
+  test("Admin email notification endpoint requires authorization", async () => {
+    const res = await api("/api/admin/notifications/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subject: "Test Email",
+        body: "This is a test email",
+      }),
+    });
+    await expectStatus(res, 401, 403);
   });
 
   // ============ General ============

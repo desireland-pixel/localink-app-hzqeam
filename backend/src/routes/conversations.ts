@@ -73,6 +73,15 @@ export function registerConversationRoutes(app: App) {
     schema: {
       description: 'List all conversations for current user with last message preview',
       tags: ['conversations'],
+      response: {
+        200: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: true,
+          },
+        },
+      },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const session = await requireAuth(request, reply);
@@ -220,6 +229,7 @@ export function registerConversationRoutes(app: App) {
           postType: { type: 'string', enum: ['sublet', 'travel'] },
           recipientId: { type: 'string' },
         },
+        additionalProperties: true,
       },
       response: {
         200: {
@@ -235,6 +245,7 @@ export function registerConversationRoutes(app: App) {
             hasSentMessages: { type: 'boolean' },
             createdAt: { type: 'string', format: 'date-time' },
           },
+          additionalProperties: true,
         },
       },
     },
@@ -304,8 +315,12 @@ export function registerConversationRoutes(app: App) {
           type: 'object',
           required: ['conversation'],
           properties: {
-            conversation: { type: 'object' },
+            conversation: {
+              type: 'object',
+              additionalProperties: true,
+            },
           },
+          additionalProperties: true,
         },
       },
     },
@@ -426,9 +441,15 @@ export function registerConversationRoutes(app: App) {
           properties: {
             messages: {
               type: 'array',
-              items: { type: 'object' },
+              items: {
+                type: 'object',
+                additionalProperties: true,
+              },
             },
-            conversation: { type: 'object' },
+            conversation: {
+              type: 'object',
+              additionalProperties: true,
+            },
           },
         },
       },
@@ -614,6 +635,7 @@ export function registerConversationRoutes(app: App) {
         properties: {
           content: { type: 'string' },
         },
+        additionalProperties: true,
       },
       response: {
         200: {
@@ -627,8 +649,9 @@ export function registerConversationRoutes(app: App) {
             deliveredAt: { type: 'string', format: 'date-time' },
             readAt: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
             createdAt: { type: 'string', format: 'date-time' },
-            sender: { type: 'object' },
+            sender: { type: 'object', additionalProperties: true },
           },
+          additionalProperties: true,
         },
       },
     },
@@ -765,6 +788,7 @@ export function registerConversationRoutes(app: App) {
             success: { type: 'boolean' },
             markedCount: { type: 'number' },
           },
+          additionalProperties: true,
         },
       },
     },
@@ -847,6 +871,7 @@ export function registerConversationRoutes(app: App) {
             success: { type: 'boolean' },
             message: { type: 'string' },
           },
+          additionalProperties: true,
         },
       },
     },
