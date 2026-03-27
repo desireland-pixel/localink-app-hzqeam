@@ -287,6 +287,119 @@ export function registerConversationRoutes(app: App) {
     }
   });
 
+  // Get conversation details with participant and post information
+  app.fastify.get('/api/conversations/:id', {
+    schema: {
+      description: 'Get conversation details including participant and post information',
+      tags: ['conversations'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+        },
+        required: ['id'],
+      },
+      response: {
+        200: {
+          type: 'object',
+          required: ['conversation'],
+          properties: {
+            conversation: { type: 'object' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    const { id } = request.params as { id: string };
+
+    app.logger.info({ userId: session.user.id, conversationId: id }, 'Fetching conversation details');
+
+    try {
+      // Check if user is a participant and get conversation with participant details
+      const conversation = await app.db.query.conversations.findFirst({
+        where: eq(schema.conversations.id, id),
+        with: {
+          participant1: true,
+          participant2: true,
+        },
+      });
+
+      if (!conversation) {
+        app.logger.warn({ conversationId: id }, 'Conversation not found');
+        return reply.status(404).send({ error: 'Conversation not found' });
+      }
+
+      if (conversation.participant1Id !== session.user.id && conversation.participant2Id !== session.user.id) {
+        app.logger.warn({ userId: session.user.id, conversationId: id }, 'Unauthorized conversation access attempt');
+        return reply.status(403).send({ error: 'You are not a participant in this conversation' });
+      }
+
+      // Get other participant
+      const otherParticipantId = conversation.participant1Id === session.user.id ? conversation.participant2Id : conversation.participant1Id;
+      const otherParticipant = conversation.participant1Id === session.user.id ? conversation.participant2 : conversation.participant1;
+
+      // Fetch other participant's profile for username
+      const otherParticipantProfile = await app.db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, otherParticipantId),
+      });
+
+      // Fetch post details based on postType (only if not deleted)
+      let post = null;
+      if (conversation.postType === 'sublet' && conversation.postId) {
+        const sublet = await app.db.query.sublets.findFirst({
+          where: and(
+            eq(schema.sublets.id, conversation.postId),
+            isNull(schema.sublets.deletedAt)
+          ),
+        });
+        if (sublet) {
+          post = {
+            id: sublet.id,
+            title: sublet.title,
+            type: 'sublet' as const,
+          };
+        }
+      } else if (conversation.postType === 'travel' && conversation.postId) {
+        const travelPost = await app.db.query.travelPosts.findFirst({
+          where: and(
+            eq(schema.travelPosts.id, conversation.postId),
+            isNull(schema.travelPosts.deletedAt)
+          ),
+        });
+        if (travelPost) {
+          post = {
+            id: travelPost.id,
+            title: `${travelPost.fromCity} → ${travelPost.toCity}`,
+            type: 'travel' as const,
+          };
+        }
+      }
+
+      app.logger.info({ conversationId: id }, 'Conversation details fetched successfully');
+
+      return {
+        conversation: {
+          id: conversation.id,
+          postId: conversation.postId,
+          postType: conversation.postType,
+          createdAt: conversation.createdAt,
+          otherParticipant: {
+            id: otherParticipantId,
+            name: otherParticipant.name,
+            username: otherParticipantProfile?.username || null,
+          },
+          post: post,
+        },
+      };
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id, conversationId: id }, 'Failed to fetch conversation details');
+      return reply.status(500).send({ error: 'Failed to fetch conversation details' });
+    }
+  });
+
   // Get messages for a conversation with participant and post details
   app.fastify.get('/api/conversations/:id/messages', {
     schema: {

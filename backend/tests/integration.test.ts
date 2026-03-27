@@ -898,6 +898,63 @@ describe("API Integration Tests", () => {
     expect(conversationId).toBeDefined();
   });
 
+  test("Start conversation missing required fields fails", async () => {
+    const res = await authenticatedApi("/api/conversations", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        // Missing required: postId, postType, recipientId
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Get conversation by ID", async () => {
+    if (!conversationId) {
+      // Create conversation if not exists
+      const postRes = await authenticatedApi("/api/travel-posts", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "offering",
+          fromCity: "Leipzig",
+          toCity: "Cologne",
+          travelDate: "2026-09-10",
+          companionshipConsent: true,
+        }),
+      });
+      const postData = await postRes.json();
+      const postId = postData.id || postData.travelPostId;
+
+      const convRes = await authenticatedApi("/api/conversations", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postId,
+          postType: "travel",
+          recipientId: authUser.id,
+        }),
+      });
+      const convData = await convRes.json();
+      conversationId = convData.id;
+    }
+
+    const res = await authenticatedApi(`/api/conversations/${conversationId}`, authToken);
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.conversation).toBeDefined();
+  });
+
+  test("Get non-existent conversation returns 404", async () => {
+    const res = await authenticatedApi("/api/conversations/00000000-0000-0000-0000-000000000000", authToken);
+    await expectStatus(res, 404);
+  });
+
+  test("Get conversation by invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/conversations/invalid-uuid", authToken);
+    await expectStatus(res, 400);
+  });
+
   test("Send a message in a conversation", async () => {
     if (!conversationId) {
       // Create conversation if not exists
@@ -941,6 +998,45 @@ describe("API Integration Tests", () => {
     expect(messageId).toBeDefined();
   });
 
+  test("Send message missing required content fails", async () => {
+    if (!conversationId) {
+      const postRes = await authenticatedApi("/api/travel-posts", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "seeking",
+          fromCity: "Dresden",
+          toCity: "Leipzig",
+          travelDate: "2026-10-05",
+          seekingConsent: true,
+        }),
+      });
+      const postData = await postRes.json();
+      const postId = postData.id || postData.travelPostId;
+
+      const convRes = await authenticatedApi("/api/conversations", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postId,
+          postType: "travel",
+          recipientId: authUser.id,
+        }),
+      });
+      const convData = await convRes.json();
+      conversationId = convData.id;
+    }
+
+    const res = await authenticatedApi(`/api/conversations/${conversationId}/messages`, authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        // Missing required: content
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   test("Get messages in a conversation", async () => {
     if (!conversationId) {
       const postRes = await authenticatedApi("/api/travel-posts", authToken, {
@@ -972,6 +1068,16 @@ describe("API Integration Tests", () => {
 
     const res = await authenticatedApi(`/api/conversations/${conversationId}/messages`, authToken);
     await expectStatus(res, 200);
+  });
+
+  test("Get messages for non-existent conversation returns 404", async () => {
+    const res = await authenticatedApi("/api/conversations/00000000-0000-0000-0000-000000000000/messages", authToken);
+    await expectStatus(res, 404);
+  });
+
+  test("Get messages with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/conversations/invalid-uuid/messages", authToken);
+    await expectStatus(res, 400);
   });
 
   test("Mark conversation as read", async () => {
@@ -1055,6 +1161,13 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
     const data = await res.json();
     expect(data.success).toBe(true);
+  });
+
+  test("Delete message from non-existent conversation returns 404", async () => {
+    const res = await authenticatedApi("/api/conversations/00000000-0000-0000-0000-000000000000/messages/00000000-0000-0000-0000-000000000001", authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 404);
   });
 
   // ============ Push Tokens ============
