@@ -82,7 +82,7 @@ describe("API Integration Tests", () => {
     expect(data.success).toBe(true);
   });
 
-  test("Change password with wrong old password fails", async () => {
+  test("Change password with wrong old password returns 400", async () => {
     const res = await authenticatedApi("/api/profile/change-password", authToken, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -91,7 +91,6 @@ describe("API Integration Tests", () => {
         newPassword: "NewPassword456!",
       }),
     });
-    // Expect either 200 or 400 (wrong old password)
     await expectStatus(res, 400);
   });
 

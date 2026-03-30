@@ -566,33 +566,16 @@ export function registerConversationRoutes(app: App) {
 
       const userMap = new Map(users.map(u => [u.id, u]));
 
-      // Enrich messages with sender information
-      const messagesWithSender = messages.map(msg => {
-        const senderProfile = senderProfileMap.get(msg.senderId);
-        const senderUser = userMap.get(msg.senderId);
-
-        // Determine sender name: use profile name if available, else use user table, else fallback to participant names
-        let senderName = senderProfile?.name || senderUser?.name || (msg.senderId === session.user.id
-          ? conversation.participant1Id === session.user.id
-            ? conversation.participant1.name
-            : conversation.participant2.name
-          : otherParticipant.name);
-
-        return {
-          id: msg.id,
-          conversationId: msg.conversationId,
-          senderId: msg.senderId,
-          content: msg.content,
-          createdAt: msg.createdAt,
-          deliveredAt: msg.deliveredAt,
-          readAt: msg.readAt,
-          sender: {
-            id: msg.senderId,
-            name: senderName,
-            username: senderProfile?.username || null,
-          },
-        };
-      });
+      // Map messages to response format with only required fields
+      const messagesWithSender = messages.map(msg => ({
+        id: msg.id,
+        conversationId: msg.conversationId,
+        senderId: msg.senderId,
+        content: msg.content,
+        readAt: msg.readAt,
+        deliveredAt: msg.deliveredAt,
+        createdAt: msg.createdAt,
+      }));
 
       app.logger.info({ conversationId: id, count: messagesWithSender.length }, 'Messages fetched and marked as read successfully');
 
