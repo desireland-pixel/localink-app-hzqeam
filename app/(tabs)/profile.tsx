@@ -164,6 +164,30 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
+              console.log('[ProfileScreen] Navigate to notification preferences');
+              router.push('/notification-preferences');
+            }}
+          >
+            <View style={styles.menuItemLeft}>
+              <IconSymbol 
+                ios_icon_name="bell.badge.fill" 
+                android_material_icon_name="notifications-active" 
+                size={22} 
+                color={colors.text} 
+              />
+              <Text style={styles.menuItemText}>Notification Preferences</Text>
+            </View>
+            <IconSymbol 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron-right" 
+              size={20} 
+              color={colors.textSecondary} 
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => {
               console.log('[ProfileScreen] Navigate to FAQs');
               router.push('/faqs');
             }}

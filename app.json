@@ -24,7 +24,8 @@
       "entitlements": {
         "aps-environment": "production",
         "com.apple.security.application-groups": [
-          "group.com.lokalinc.app.onesignal"
+          "group.com.lokalinc.app.onesignal",
+          "group.com.lokalinc.parth.onesignal"
         ]
       }
     },
@@ -58,7 +59,7 @@
     "extra": {
       "router": {},
       "backendUrl": "https://prod-proj-dpluqp3d5nexthtfrcpmq-liwg5h36mq-ey.a.run.app",
-      "oneSignalAppId": "b8e6b443-0155-4da8-8119-dce696e20d30"
+      "oneSignalAppId": "cb93c36b-43e2-4a76-9575-6ad75bf14a75"
     },
     "notification": {
       "icon": "./assets/notification-icon.png"
