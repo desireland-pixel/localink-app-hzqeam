@@ -378,9 +378,6 @@ export default function ChatScreen() {
           ]}
         >
           <View style={styles.messageContent}>
-            {!isOwnMessage && senderName ? (
-              <Text style={styles.senderName}>{senderName}</Text>
-            ) : null}
             <Text style={[
               styles.messageText,
               isOwnMessage && styles.ownMessageText
