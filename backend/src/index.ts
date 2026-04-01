@@ -31,7 +31,7 @@ app.withAuth({
     requireEmailVerification: false,
     sendResetPassword: async ({ user, url }) => {
       resend.emails.send({
-        from: 'LokaLinc <noreply@localink.app>',
+        from: 'LokaLinc <noreply@lokalinc.de>',
         to: user.email,
         subject: 'LokaLinc - Reset Your Password',
         html: `
@@ -39,7 +39,7 @@ app.withAuth({
             <h2>Reset Your Password</h2>
             <p>Click the link below to reset your password:</p>
             <div style="margin: 30px 0;">
-              <a href="${url}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              <a href="${url}" style="background-color: #10B981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                 Reset Password
               </a>
             </div>
