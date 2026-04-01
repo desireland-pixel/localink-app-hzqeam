@@ -121,7 +121,10 @@ export default function PostCommunityTopicScreen() {
             </TouchableOpacity>
             {showCategoryPicker && (
               <View style={styles.categoryPicker}>
-                <ScrollView style={styles.categoryPickerScroll}>
+                <ScrollView
+                  style={styles.categoryPickerScroll}
+                  nestedScrollEnabled={true}
+                  >
                   {CATEGORIES.map((cat) => (
                     <TouchableOpacity
                       key={cat}
