@@ -1328,6 +1328,27 @@ describe("API Integration Tests", () => {
     expect(data.title).toBeDefined();
   });
 
+  test("Get share info for community post", async () => {
+    const createRes = await authenticatedApi("/api/community/topics", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "General",
+        title: "Share test community topic",
+        description: "Testing share functionality for community post",
+        location: "Berlin",
+      }),
+    });
+    const createData = await createRes.json();
+    const postId = createData.id;
+
+    const res = await api(`/api/posts/community/${postId}/share`);
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.shareUrl).toBeDefined();
+    expect(data.title).toBeDefined();
+  });
+
   test("Get share for non-existent post returns 404", async () => {
     const res = await api("/api/posts/sublet/00000000-0000-0000-0000-000000000000/share");
     await expectStatus(res, 404);

@@ -1,4 +1,4 @@
-import { createApplication, resend } from "@specific-dev/framework";
+import { createApplication, resend, createAuthMiddleware } from "@specific-dev/framework";
 import * as appSchema from './db/schema.js';
 import * as authSchema from './db/auth-schema.js';
 import { registerAuthRoutes } from './routes/auth.js';
@@ -24,32 +24,63 @@ export type App = typeof app;
 // Configure storage for file uploads
 app.withStorage();
 
+// Store client platform info to determine reset URL format
+let lastClientPlatform: string | undefined;
+let lastUserAgent: string = '';
+
+// Create before hook to capture client platform info for password reset
+const beforeAuthHook = createAuthMiddleware(async (ctx) => {
+  if (ctx.path === "/request-password-reset") {
+    lastClientPlatform = ctx.request?.headers?.['x-client-platform'] as string | undefined;
+    lastUserAgent = (ctx.request?.headers?.['user-agent'] as string) || '';
+    app.logger.info({ clientPlatform: lastClientPlatform, userAgent: lastUserAgent }, 'Password reset requested');
+  }
+});
+
 // Configure Better Auth with email and password support
 // Note: Email verification is handled by custom OTP system to prevent duplicate emails
 app.withAuth({
   emailAndPassword: {
     requireEmailVerification: false,
     sendResetPassword: async ({ user, url }) => {
+      // Determine if request is from native client
+      const isNative = lastClientPlatform === 'native' ||
+                      /Expo|okhttp|CFNetwork/i.test(lastUserAgent);
+
+      // Extract token from URL
+      const urlObj = new URL(url);
+      const resetToken = urlObj.searchParams.get('token') || '';
+
+      // Build reset URL based on client type
+      const resetUrl = isNative
+        ? `localink://reset-password?token=${resetToken}`
+        : `https://8ktzqvc7jybkjvj4cr9gwmp8qp4v5q3y.app.specular.dev/reset-password?token=${resetToken}`;
+
+      app.logger.info({ userId: user.id, isNative, resetUrl }, 'Sending password reset email');
+
       resend.emails.send({
         from: 'LokaLinc <noreply@lokalinc.de>',
         to: user.email,
-        subject: 'LokaLinc - Reset Your Password',
+        subject: 'Reset your LokaLinc password',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Reset Your Password</h2>
-            <p>Click the link below to reset your password:</p>
+            <h2>Reset Your LokaLinc Password</h2>
+            <p>Click the link below to reset your LokaLinc password. This link expires in 1 hour.</p>
             <div style="margin: 30px 0;">
-              <a href="${url}" style="background-color: #10B981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              <a href="${resetUrl}" style="background-color: #10B981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                 Reset Password
               </a>
             </div>
             <p style="color: #6B7280; margin-top: 20px;">Or copy and paste this link into your browser:</p>
-            <p style="color: #4F46E5; word-break: break-all;">${url}</p>
+            <p style="color: #4F46E5; word-break: break-all;">${resetUrl}</p>
             <p style="color: #6B7280;">If you didn't request a password reset, please ignore this email.</p>
           </div>
         `,
       });
     },
+  },
+  hooks: {
+    before: beforeAuthHook,
   },
 });
 
