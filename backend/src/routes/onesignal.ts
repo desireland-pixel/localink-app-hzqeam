@@ -201,7 +201,7 @@ export function registerOnesignalRoutes(app: App) {
       for (const targetUser of users) {
         try {
           resend.emails.send({
-            from: 'LokaLinc <noreply@localink.app>',
+            from: 'LokaLinc <noreply@lokalinc.de>',
             to: targetUser.email,
             subject: subject,
             html: body,
