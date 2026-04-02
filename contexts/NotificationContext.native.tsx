@@ -146,6 +146,10 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         if (__DEV__) {
           console.log("[OneSignal] Linked user ID:", user.id);
         }
+        const userWithEmail = user as { id?: string; email?: string };
+        if (userWithEmail.email) {
+          OneSignal.User.addEmail(userWithEmail.email);
+        }
       } else {
         OneSignal.logout();
       }

@@ -7,7 +7,6 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 import { authenticatedGet, authenticatedPost, authenticatedDelete, apiGet } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { IconSymbol } from '@/components/IconSymbol';
-import { NotificationBell } from "@/components/NotificationBell";
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
@@ -231,9 +230,7 @@ export default function CommunityScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.pageHeader}>
         <Text style={styles.pageTitle}>Community</Text>
-                <NotificationBell />
-        
-<View style={styles.pageHeaderCenter}>
+        <View style={styles.pageHeaderCenter}>
           <View style={styles.cityButtonContainer}>
             {!selectedCity ? (
               <View style={styles.cityInputWrapper}>

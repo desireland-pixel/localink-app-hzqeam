@@ -165,7 +165,7 @@ export default function ProfileScreen() {
             style={styles.menuItem}
             onPress={() => {
               console.log('[ProfileScreen] Navigate to notification preferences');
-              router.push('/notification-preferences');
+              router.push('/notifications');
             }}
           >
             <View style={styles.menuItemLeft}>

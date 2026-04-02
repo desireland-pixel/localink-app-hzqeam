@@ -124,14 +124,6 @@ export default function RootLayout() {
                   }} 
                 />
                 <Stack.Screen 
-                  name="notification-preferences" 
-                  options={{ 
-                    headerShown: true,
-                    title: 'Notification Preferences',
-                    headerBackTitle: 'Back'
-                  }} 
-                />
-                <Stack.Screen 
                   name="faqs" 
                   options={{ 
                     headerShown: true,

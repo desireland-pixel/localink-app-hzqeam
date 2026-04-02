@@ -8,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { IconSymbol } from '@/components/IconSymbol';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { HeaderRightButton, HeaderLeftButton } from '@/components/HeaderButtons';
-import { NotificationBell } from "@/components/NotificationBell";
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
@@ -239,9 +238,7 @@ export default function CommunityScreen() {
       <View style={styles.container}>
         <View style={styles.pageHeader}>
           <Text style={styles.pageTitle}>Community</Text>
-                    <NotificationBell />
-          
-<View style={styles.pageHeaderCenter}>
+          <View style={styles.pageHeaderCenter}>
             <View style={styles.cityButtonContainer}>
               {!selectedCity ? (
                 <View style={styles.cityInputWrapper}>
