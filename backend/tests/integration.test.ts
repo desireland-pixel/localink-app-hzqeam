@@ -1396,6 +1396,68 @@ describe("API Integration Tests", () => {
     ws.close();
   });
 
+  // ============ Notification Preferences ============
+
+  test("Get notification preferences for authenticated user", async () => {
+    const res = await authenticatedApi("/api/notification-preferences", authToken);
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(typeof data.notifyEmail).toBe("boolean");
+    expect(typeof data.notifyPush).toBe("boolean");
+    expect(typeof data.notifyMessages).toBe("boolean");
+    expect(typeof data.notifyPosts).toBe("boolean");
+  });
+
+  test("Get notification preferences without authentication returns 401", async () => {
+    const res = await api("/api/notification-preferences");
+    await expectStatus(res, 401);
+  });
+
+  test("Update notification preferences - enable all notifications", async () => {
+    const res = await authenticatedApi("/api/notification-preferences", authToken, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        notifyEmail: true,
+        notifyPush: true,
+        notifyMessages: true,
+        notifyPosts: true,
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.notifyEmail).toBe(true);
+    expect(data.notifyPush).toBe(true);
+    expect(data.notifyMessages).toBe(true);
+    expect(data.notifyPosts).toBe(true);
+  });
+
+  test("Update notification preferences - partial update", async () => {
+    const res = await authenticatedApi("/api/notification-preferences", authToken, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        notifyEmail: false,
+        notifyPush: true,
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(typeof data.notifyEmail).toBe("boolean");
+    expect(typeof data.notifyPush).toBe("boolean");
+  });
+
+  test("Update notification preferences without authentication returns 401", async () => {
+    const res = await api("/api/notification-preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        notifyEmail: false,
+      }),
+    });
+    await expectStatus(res, 401);
+  });
+
   // ============ Admin Endpoints ============
 
   test("Admin push notification endpoint requires authorization", async () => {

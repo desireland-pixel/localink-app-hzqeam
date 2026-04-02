@@ -721,27 +721,37 @@ export function registerConversationRoutes(app: App) {
         message: messageWithSender,
       });
 
-      // Send push notification to recipient
-      const recipientProfile = await app.db.query.profiles.findFirst({
-        where: eq(schema.profiles.userId, recipientId),
+      // Check recipient's notification preferences before sending push
+      const recipientPreferences = await app.db.query.userNotificationPreferences.findFirst({
+        where: eq(schema.userNotificationPreferences.userId, recipientId),
       });
 
-      sendPushNotification(app, {
-        to: '',
-        title: `New message from ${senderName || 'Someone'}`,
-        body: content.substring(0, 100),
-        data: {
-          conversationId: id,
-        },
-      }, recipientId);
+      const shouldNotifyMessages = recipientPreferences?.notifyMessages ?? true;
+      const shouldNotifyPush = recipientPreferences?.notifyPush ?? true;
 
-      // Send OneSignal notification to recipient (fire-and-forget)
-      const recipientOnesignalToken = await app.db.query.userOnesignalTokens.findFirst({
-        where: eq(schema.userOnesignalTokens.userId, recipientId),
-      });
+      if (shouldNotifyMessages && shouldNotifyPush) {
+        // Send push notification to recipient
+        const recipientProfile = await app.db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, recipientId),
+        });
 
-      if (recipientOnesignalToken) {
-        sendOnesignalNotification(app, [recipientOnesignalToken.playerId], `New message from ${senderName || 'Someone'}`, content.substring(0, 100), { conversationId: id });
+        sendPushNotification(app, {
+          to: '',
+          title: `New message from ${senderName || 'Someone'}`,
+          body: content.substring(0, 100),
+          data: {
+            conversationId: id,
+          },
+        }, recipientId);
+
+        // Send OneSignal notification to recipient (fire-and-forget)
+        const recipientOnesignalToken = await app.db.query.userOnesignalTokens.findFirst({
+          where: eq(schema.userOnesignalTokens.userId, recipientId),
+        });
+
+        if (recipientOnesignalToken) {
+          sendOnesignalNotification(app, [recipientOnesignalToken.playerId], `New message from ${senderName || 'Someone'}`, content.substring(0, 100), { conversationId: id });
+        }
       }
 
       return reply.code(200).send(messageWithSender);

@@ -380,26 +380,36 @@ export function registerCommunityRoutes(app: App) {
 
       // Send push notification to topic author if different from reply author
       if (topic.userId !== session.user.id) {
-        const replyAuthorProfile = await app.db.query.profiles.findFirst({
-          where: eq(schema.profiles.userId, session.user.id),
+        // Check topic author's notification preferences
+        const topicAuthorPreferences = await app.db.query.userNotificationPreferences.findFirst({
+          where: eq(schema.userNotificationPreferences.userId, topic.userId),
         });
 
-        sendPushNotification(app, {
-          to: '',
-          title: 'New reply to your post',
-          body: body.content.substring(0, 100),
-          data: {
-            topicId: id,
-          },
-        }, topic.userId);
+        const shouldNotifyPosts = topicAuthorPreferences?.notifyPosts ?? true;
+        const shouldNotifyPush = topicAuthorPreferences?.notifyPush ?? true;
 
-        // Send OneSignal notification to topic author (fire-and-forget)
-        const topicAuthorOnesignalToken = await app.db.query.userOnesignalTokens.findFirst({
-          where: eq(schema.userOnesignalTokens.userId, topic.userId),
-        });
+        if (shouldNotifyPosts && shouldNotifyPush) {
+          const replyAuthorProfile = await app.db.query.profiles.findFirst({
+            where: eq(schema.profiles.userId, session.user.id),
+          });
 
-        if (topicAuthorOnesignalToken) {
-          sendOnesignalNotification(app, [topicAuthorOnesignalToken.playerId], 'New reply to your post', body.content.substring(0, 100), { topicId: id });
+          sendPushNotification(app, {
+            to: '',
+            title: 'New reply to your post',
+            body: body.content.substring(0, 100),
+            data: {
+              topicId: id,
+            },
+          }, topic.userId);
+
+          // Send OneSignal notification to topic author (fire-and-forget)
+          const topicAuthorOnesignalToken = await app.db.query.userOnesignalTokens.findFirst({
+            where: eq(schema.userOnesignalTokens.userId, topic.userId),
+          });
+
+          if (topicAuthorOnesignalToken) {
+            sendOnesignalNotification(app, [topicAuthorOnesignalToken.playerId], 'New reply to your post', body.content.substring(0, 100), { topicId: id });
+          }
         }
       }
 
@@ -880,12 +890,22 @@ export function registerCommunityRoutes(app: App) {
         });
 
         if (replyAuthor && replyAuthor.userId !== session.user.id) {
-          const replyAuthorOnesignalToken = await app.db.query.userOnesignalTokens.findFirst({
-            where: eq(schema.userOnesignalTokens.userId, replyAuthor.userId),
+          // Check reply author's notification preferences
+          const replyAuthorPreferences = await app.db.query.userNotificationPreferences.findFirst({
+            where: eq(schema.userNotificationPreferences.userId, replyAuthor.userId),
           });
 
-          if (replyAuthorOnesignalToken) {
-            sendOnesignalNotification(app, [replyAuthorOnesignalToken.playerId], 'Your reply was liked', 'Someone liked your reply', {});
+          const shouldNotifyPosts = replyAuthorPreferences?.notifyPosts ?? true;
+          const shouldNotifyPush = replyAuthorPreferences?.notifyPush ?? true;
+
+          if (shouldNotifyPosts && shouldNotifyPush) {
+            const replyAuthorOnesignalToken = await app.db.query.userOnesignalTokens.findFirst({
+              where: eq(schema.userOnesignalTokens.userId, replyAuthor.userId),
+            });
+
+            if (replyAuthorOnesignalToken) {
+              sendOnesignalNotification(app, [replyAuthorOnesignalToken.playerId], 'Your reply was liked', 'Someone liked your reply', {});
+            }
           }
         }
       }
