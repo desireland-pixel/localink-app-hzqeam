@@ -517,7 +517,7 @@ export function registerAuthRoutes(app: App) {
 
       // Send password reset email
       const { resend } = await import('@specific-dev/framework');
-      const resetLink = `${'https://lokalinc.de'}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+      const resetLink = `${'https://lokalinc.de'}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
 
       resend.emails.send({
         from: 'LokaLinc <noreply@lokalinc.de>',
