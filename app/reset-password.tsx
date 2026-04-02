@@ -16,7 +16,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, typography, spacing, borderRadius } from "@/styles/commonStyles";
 import { IconSymbol } from "@/components/IconSymbol";
-import { apiPost } from "@/utils/api";
+import { authClient } from "@/lib/auth";
 import Modal from "@/components/ui/Modal";
 
 export default function ResetPasswordScreen() {
@@ -63,26 +63,25 @@ export default function ResetPasswordScreen() {
     setError(null);
 
     try {
-      console.log('[ResetPassword] POST /api/auth/reset-password');
-      await apiPost('/api/auth/reset-password', { token, newPassword });
-      console.log('[ResetPassword] Password reset successful');
-      setSuccess(true);
-    } catch (err: any) {
-      console.error('[ResetPassword] Reset password error:', err);
-      const msg = err?.message || '';
-      let userMsg = "Failed to reset password. Please try again.";
-      if (msg.includes('expired') || msg.includes('invalid')) {
-        userMsg = "This reset link has expired or is invalid. Please request a new one.";
-      } else if (msg.includes('400') || msg.includes('422')) {
-        try {
-          const jsonMatch = msg.match(/\{.*\}/s);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            userMsg = parsed.message || parsed.error || userMsg;
-          }
-        } catch (_) {}
+      console.log('[ResetPassword] authClient.resetPassword called');
+      const { error: resetError } = await authClient.resetPassword({
+        newPassword,
+        token: token as string,
+      });
+      if (resetError) {
+        console.error('[ResetPassword] Reset password error:', resetError);
+        const msg = resetError.message || '';
+        let userMsg = "Failed to reset password. Please try again.";
+        if (msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('invalid')) {
+          userMsg = "This reset link has expired or is invalid. Please request a new one.";
+        } else if (msg) {
+          userMsg = msg;
+        }
+        setError(userMsg);
+      } else {
+        console.log('[ResetPassword] Password reset successful');
+        setSuccess(true);
       }
-      setError(userMsg);
     } finally {
       setLoading(false);
     }
