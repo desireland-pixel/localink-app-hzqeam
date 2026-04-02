@@ -255,6 +255,24 @@ export function registerAuthRoutes(app: App) {
         throw profileError;
       }
 
+      // Send welcome email (fire and forget)
+      resend.emails.send({
+        from: 'LokaLinc <noreply@lokalinc.de>',
+        to: email,
+        subject: 'Welcome to LokaLinc 🎉',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Welcome to LokaLinc!</h2>
+            <p>Hi ${name},</p>
+            <p>Your account has been created successfully. We're excited to have you on board!</p>
+            <p>LokaLinc helps you connect with your local community — find sublets, travel companions, and join discussions.</p>
+            <p>If you have any questions, feel free to reach out to our support team.</p>
+            <p>— The LokaLinc Team</p>
+          </div>
+        `,
+      });
+      app.logger.info({ email }, 'Welcome email sent after signup');
+
       // Generate OTP for email verification
       const otp = generateOtp();
       const expiresAt = new Date();

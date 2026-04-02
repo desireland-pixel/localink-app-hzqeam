@@ -37,6 +37,31 @@ const beforeAuthHook = createAuthMiddleware(async (ctx) => {
   }
 });
 
+// Create after hook to send password reset success email
+const afterAuthHook = createAuthMiddleware(async (ctx) => {
+  if (ctx.path === "/reset-password") {
+    const user = ctx.context.newSession?.user;
+    if (user) {
+      // Send password reset success email (fire and forget)
+      resend.emails.send({
+        from: 'LokaLinc <noreply@lokalinc.de>',
+        to: user.email,
+        subject: 'Your LokaLinc password has been updated',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Password Changed Successfully</h2>
+            <p>Hi ${user.name},</p>
+            <p>Your LokaLinc password has been updated successfully.</p>
+            <p>If you didn't make this change, please contact our support team immediately.</p>
+            <p>— The LokaLinc Team</p>
+          </div>
+        `,
+      });
+      app.logger.info({ userId: user.id }, 'Password reset success email sent');
+    }
+  }
+});
+
 // Configure Better Auth with email and password support
 // Note: Email verification is handled by custom OTP system to prevent duplicate emails
 app.withAuth({
@@ -81,6 +106,7 @@ app.withAuth({
   },
   hooks: {
     before: beforeAuthHook,
+    after: afterAuthHook,
   },
 });
 
