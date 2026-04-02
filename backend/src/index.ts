@@ -14,6 +14,7 @@ import { registerShareRoutes } from './routes/share.js';
 import { registerCommunityRoutes } from './routes/community.js';
 import { registerPushTokenRoutes } from './routes/push-tokens.js';
 import { registerOnesignalRoutes } from './routes/onesignal.js';
+import { registerNotificationPreferencesRoutes } from './routes/notification-preferences.js';
 import { startCleanupJob } from './utils/cleanup-job.js';
 
 const schema = { ...appSchema, ...authSchema };
@@ -37,7 +38,7 @@ const beforeAuthHook = createAuthMiddleware(async (ctx) => {
   }
 });
 
-// Create after hook to send password reset success email
+// Create after hook for password reset success email and sign-up default preferences
 const afterAuthHook = createAuthMiddleware(async (ctx) => {
   if (ctx.path === "/reset-password") {
     const user = ctx.context.newSession?.user;
@@ -58,6 +59,23 @@ const afterAuthHook = createAuthMiddleware(async (ctx) => {
         `,
       });
       app.logger.info({ userId: user.id }, 'Password reset success email sent');
+    }
+  } else if (ctx.path === "/sign-up/email") {
+    const user = ctx.context.newSession?.user;
+    if (user) {
+      // Create default notification preferences for new user (INSERT ... ON CONFLICT DO NOTHING)
+      try {
+        await app.db.insert(appSchema.userNotificationPreferences).values({
+          userId: user.id,
+          notifyEmail: true,
+          notifyPush: true,
+          notifyMessages: true,
+          notifyPosts: true,
+        }).onConflictDoNothing();
+        app.logger.info({ userId: user.id }, 'Default notification preferences created for new user');
+      } catch (error) {
+        app.logger.warn({ err: error, userId: user.id }, 'Failed to create default notification preferences');
+      }
     }
   }
 });
@@ -124,6 +142,7 @@ registerShareRoutes(app);
 registerCommunityRoutes(app);
 registerPushTokenRoutes(app);
 registerOnesignalRoutes(app);
+registerNotificationPreferencesRoutes(app);
 
 // Start cleanup job for soft-deleted posts
 startCleanupJob(app);

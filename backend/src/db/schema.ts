@@ -276,3 +276,20 @@ export const pushTokensRelations = relations(pushTokens, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+// User notification preferences
+export const userNotificationPreferences = pgTable('user_notification_preferences', {
+  userId: text('user_id').primaryKey().references(() => user.id, { onDelete: 'cascade' }),
+  notifyEmail: boolean('notify_email').default(true).notNull(),
+  notifyPush: boolean('notify_push').default(true).notNull(),
+  notifyMessages: boolean('notify_messages').default(true).notNull(),
+  notifyPosts: boolean('notify_posts').default(true).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
+});
+
+export const userNotificationPreferencesRelations = relations(userNotificationPreferences, ({ one }) => ({
+  user: one(user, {
+    fields: [userNotificationPreferences.userId],
+    references: [user.id],
+  }),
+}));
