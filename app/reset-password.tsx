@@ -22,7 +22,8 @@ import Modal from "@/components/ui/Modal";
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const { token } = useLocalSearchParams<{ token: string }>();
-
+  console.log('[ResetPassword] token value:', token)
+  
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
