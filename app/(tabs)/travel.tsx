@@ -9,6 +9,7 @@ import { authenticatedGet, authenticatedPost, authenticatedDelete, apiGet } from
 import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY, getCityCode } from '@/utils/cities';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
+import { StatusBar } from 'expo-status-bar';
 
 interface TravelPost {
   id: string;
@@ -408,6 +409,7 @@ export default function TravelScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar style="dark" />
       <View style={styles.pageHeader}>
         <Text style={styles.pageTitle}>Travel</Text>
         <View style={styles.pageHeaderCenter}>

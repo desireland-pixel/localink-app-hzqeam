@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius } from '@/styles/commonStyles';
 import Modal from '@/components/ui/Modal';
+import { StatusBar } from 'expo-status-bar';
 
 export default function ProfileScreen() {
   const { user, profile, signOut } = useAuth();
@@ -32,6 +33,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar style="dark" />
       <View style={styles.header}>
         <Text style={styles.title}>Profile</Text>
       </View>
@@ -152,30 +154,6 @@ export default function ProfileScreen() {
                 color={colors.text} 
               />
               <Text style={styles.menuItemText}>Notifications</Text>
-            </View>
-            <IconSymbol 
-              ios_icon_name="chevron.right" 
-              android_material_icon_name="chevron-right" 
-              size={20} 
-              color={colors.textSecondary} 
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => {
-              console.log('[ProfileScreen] Navigate to notification preferences');
-              router.push('/notifications');
-            }}
-          >
-            <View style={styles.menuItemLeft}>
-              <IconSymbol 
-                ios_icon_name="bell.badge.fill" 
-                android_material_icon_name="notifications-active" 
-                size={22} 
-                color={colors.text} 
-              />
-              <Text style={styles.menuItemText}>Notification Preferences</Text>
             </View>
             <IconSymbol 
               ios_icon_name="chevron.right" 

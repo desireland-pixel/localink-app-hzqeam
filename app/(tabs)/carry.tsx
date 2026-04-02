@@ -8,6 +8,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { authenticatedGet, authenticatedPost, authenticatedDelete, apiGet } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { useAuth } from '@/contexts/AuthContext';
+import { StatusBar } from 'expo-status-bar';
 
 interface CommunityTopic {
   id: string;
@@ -294,6 +295,7 @@ export default function CommunityScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar style="dark" />
       {/* Page Header: Community | City | Sort */}
       <View style={styles.pageHeader}>
         <Text style={styles.pageTitle}>Community</Text>

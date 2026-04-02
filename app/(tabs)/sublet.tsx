@@ -10,6 +10,7 @@ import { authenticatedGet, authenticatedPost, authenticatedDelete, apiGet } from
 import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '@/utils/cities';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
+import { StatusBar } from 'expo-status-bar';
 
 interface Sublet {
   id: string;
@@ -312,6 +313,7 @@ export default function SubletScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar style="dark" />
       <View style={styles.pageHeader}>
         <Text style={styles.pageTitle}>Sublet</Text>
         <View style={styles.pageHeaderCenter}>

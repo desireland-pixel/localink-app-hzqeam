@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Pressable, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +23,9 @@ interface Message {
     username?: string;
   };
 }
+
+type DateSeparator = { type: 'date_separator'; label: string; id: string };
+type ChatListItem = Message | DateSeparator;
 
 interface Conversation {
   id: string;
@@ -325,6 +328,38 @@ export default function ChatScreen() {
     }
   };
 
+  const formatDateLabel = (dateString: string): string => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    const sameYear = date.getFullYear() === today.getFullYear();
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: sameYear ? undefined : 'numeric',
+    });
+  };
+
+  const chatItems = useMemo((): ChatListItem[] => {
+    const result: ChatListItem[] = [];
+    for (let i = 0; i < messages.length; i++) {
+      result.push(messages[i]);
+      const currentDate = new Date(messages[i].createdAt).toDateString();
+      const nextDate = messages[i + 1] ? new Date(messages[i + 1].createdAt).toDateString() : null;
+      if (currentDate !== nextDate) {
+        result.push({
+          type: 'date_separator',
+          label: formatDateLabel(messages[i].createdAt),
+          id: `sep-${currentDate}`,
+        });
+      }
+    }
+    return result;
+  }, [messages]);
+
   const timeDisplay = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -421,6 +456,17 @@ export default function ChatScreen() {
     );
   };
 
+  const renderItem = ({ item }: { item: ChatListItem }) => {
+    if ('type' in item && item.type === 'date_separator') {
+      return (
+        <View style={styles.dateSeparatorContainer}>
+          <Text style={styles.dateSeparatorText}>{item.label}</Text>
+        </View>
+      );
+    }
+    return renderMessage({ item: item as Message });
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -465,9 +511,9 @@ export default function ChatScreen() {
         <FlatList
           inverted
           ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
+          data={chatItems}
+          renderItem={renderItem}
+          keyExtractor={(item) => ('type' in item && item.type === 'date_separator' ? item.id : (item as Message).id)}
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
           keyboardShouldPersistTaps="handled"
@@ -715,5 +761,19 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.5,
+  },
+  dateSeparatorContainer: {
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  dateSeparatorText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    backgroundColor: colors.card,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    overflow: 'hidden',
   },
 });

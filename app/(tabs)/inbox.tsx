@@ -8,6 +8,7 @@ import { authenticatedGet, authenticatedDelete, BACKEND_URL, getBearerToken } fr
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { IconSymbol } from '@/components/IconSymbol';
+import { StatusBar } from 'expo-status-bar';
 
 interface Conversation {
   id: string;
@@ -246,6 +247,7 @@ export default function InboxScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar style="dark" />
       <View style={styles.header}>
         <Text style={styles.title}>Inbox</Text>
       </View>
