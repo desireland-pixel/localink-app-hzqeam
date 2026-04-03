@@ -616,10 +616,13 @@ export default function TravelScreen() {
             let isExpired = false;
 
             // Determine expiry date
-            const expiryDateStr =
+            const rawExpiryDateStr =
               post.type === 'offering'
                 ? post.travelDate
                 : post.travelDateTo || post.travelDate;
+
+            // Strip time component to handle both "YYYY-MM-DD" and "YYYY-MM-DDT00:00:00.000Z"
+            const expiryDateStr = rawExpiryDateStr?.split('T')[0];
             
             if (expiryDateStr) {
 
