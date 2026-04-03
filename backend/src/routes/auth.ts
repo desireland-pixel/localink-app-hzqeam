@@ -626,8 +626,38 @@ export function registerAuthRoutes(app: App) {
       const { hash } = await import('@node-rs/argon2');
       const hashedPassword = await hash(newPassword);
 
+      // Log the hash format (first 7 chars) to confirm it's a valid argon2 hash
+      const hashPrefix = hashedPassword.substring(0, 7);
+      app.logger.info(
+        {
+          userId: tokenRow.userId,
+          hashFormat: hashPrefix,
+          hashLength: hashedPassword.length,
+          isArgon2: hashedPassword.startsWith('$argon2')
+        },
+        'Password hashed successfully with argon2'
+      );
+
+      // Log the current account state before update
+      const accountBefore = await app.db.query.account.findFirst({
+        where: and(
+          eq(authSchema.account.userId, tokenRow.userId),
+          eq(authSchema.account.providerId, 'credential')
+        ),
+      });
+
+      app.logger.debug(
+        {
+          userId: tokenRow.userId,
+          accountId: accountBefore?.id,
+          providerId: accountBefore?.providerId,
+          hasPassword: !!accountBefore?.password
+        },
+        'Account state before password reset'
+      );
+
       // Update the account with new password
-      await app.db
+      const updateResult = await app.db
         .update(authSchema.account)
         .set({ password: hashedPassword, updatedAt: new Date() })
         .where(
@@ -635,14 +665,43 @@ export function registerAuthRoutes(app: App) {
             eq(authSchema.account.userId, tokenRow.userId),
             eq(authSchema.account.providerId, 'credential')
           )
-        );
+        )
+        .returning();
+
+      app.logger.info(
+        {
+          userId: tokenRow.userId,
+          updatedRows: updateResult.length,
+          updatedAccountId: updateResult[0]?.id
+        },
+        'Account password updated successfully'
+      );
+
+      // Log the updated account state for verification
+      const accountAfter = await app.db.query.account.findFirst({
+        where: and(
+          eq(authSchema.account.userId, tokenRow.userId),
+          eq(authSchema.account.providerId, 'credential')
+        ),
+      });
+
+      app.logger.debug(
+        {
+          userId: tokenRow.userId,
+          accountId: accountAfter?.id,
+          newHashPrefix: accountAfter?.password?.substring(0, 7),
+          newHashLength: accountAfter?.password?.length,
+          isArgon2: accountAfter?.password?.startsWith('$argon2')
+        },
+        'Account state after password reset'
+      );
 
       // Delete the used token
       await app.db
         .delete(schema.passwordResetTokens)
         .where(eq(schema.passwordResetTokens.id, tokenRow.id));
 
-      app.logger.info({ userId: tokenRow.userId }, 'Password reset successfully');
+      app.logger.info({ userId: tokenRow.userId, tokenId: tokenRow.id }, 'Password reset token deleted');
       return { success: true };
     } catch (error) {
       app.logger.error({ err: error }, 'Password reset error');
