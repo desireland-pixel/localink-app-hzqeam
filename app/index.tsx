@@ -1,40 +1,56 @@
 
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useSegments } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors, typography, spacing } from '@/styles/commonStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Segment names that are public (no auth required).
+// These match the file names in the app/ directory without the leading slash.
+const PUBLIC_SEGMENTS = ['reset-password', 'auth', 'verify-otp', 'auth-popup', 'auth-callback'];
+
 export default function IndexScreen() {
   const router = useRouter();
   const { user, loading, profileLoading } = useAuth();
+  // useSegments returns the current route path as an array, e.g. ['reset-password']
+  // or ['(tabs)', 'sublet']. This is synchronous and always up-to-date.
+  const segments = useSegments();
 
   useEffect(() => {
-    console.log('[IndexScreen] Auth state:', { 
-      user: user?.id, 
-      loading, 
+    console.log('[IndexScreen] Auth state:', {
+      user: user?.id,
+      loading,
       profileLoading,
+      segments,
     });
-    
+
     if (loading || profileLoading) {
       console.log('[IndexScreen] Still loading...');
       return;
     }
 
-    // Use setTimeout to ensure navigation happens after render
+    // If expo-router has already navigated to a public screen (e.g. via deep link),
+    // do not redirect — the user is exactly where they should be.
+    const currentSegment = segments[0];
+    const isOnPublicRoute = PUBLIC_SEGMENTS.includes(currentSegment as string);
+    if (isOnPublicRoute) {
+      console.log('[IndexScreen] Already on public route, skipping redirect:', currentSegment);
+      return;
+    }
+
     const timer = setTimeout(() => {
       if (!user) {
         console.log('[IndexScreen] No user, redirecting to auth');
         router.replace('/auth');
       } else {
-        // User is authenticated - go directly to home page, no profile completion check
         console.log('[IndexScreen] User authenticated, redirecting to home');
         router.replace('/(tabs)/sublet');
       }
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [user, loading, profileLoading, router]);
+  }, [user, loading, profileLoading, segments, router]);
 
   const isLoading = loading || profileLoading;
 
@@ -48,8 +64,7 @@ export default function IndexScreen() {
             resizeMode="contain"
           />
           <Text style={styles.title}>LokaLinc</Text>
-          
-<Text style={styles.tagline}>Living and Moving together</Text>
+          <Text style={styles.tagline}>Living and Moving together</Text>
         </View>
         {isLoading && (
           <View style={styles.loadingContainer}>

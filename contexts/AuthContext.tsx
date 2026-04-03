@@ -284,6 +284,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
 
     const subscription = Linking.addEventListener("url", (event) => {
+      // Don't re-initialize auth for public routes (e.g. reset-password deep links)
+      // — doing so would clear auth state and trigger a redirect to /auth
+      const publicPaths = ["/reset-password", "/verify-otp"];
+      const isPublic = publicPaths.some((p) => event.url.includes(p));
+      if (isPublic) {
+        console.log("[AuthContext] Deep link to public route, skipping auth refresh:", event.url);
+        return;
+      }
       console.log("[AuthContext] Deep link received, refreshing user session");
       setTimeout(() => initializeAuth(), 500);
     });
