@@ -351,7 +351,7 @@ title: shareData.title,
   const handleStartChat = async (targetUserId: string) => {
     console.log('CommunityDetailsScreen: Starting chat with user', targetUserId);
     try {
-      const response = await authenticatedPost<{ conversationId: string }>(
+      const response = await authenticatedPost<{ id: string; conversationId?: string }>(
         '/api/conversations',
         {
           recipientId: targetUserId,
@@ -360,9 +360,10 @@ title: shareData.title,
         }
       );
       
-      console.log('handleStartChat response:', response)
-      console.log('CommunityDetailsScreen: Chat started, conversationId', response.conversationId);
-      router.push(`/chat/${response.conversationId}`);
+      console.log('handleStartChat response:', response);
+      const conversationId = response.conversationId || response.id;
+      console.log('CommunityDetailsScreen: Chat started, conversationId', conversationId);
+      router.push(`/chat/${conversationId}`);
     } catch (err) {
       console.error('CommunityDetailsScreen: Error starting chat', err);
       setError('Could not start chat. Please try again.');
