@@ -221,7 +221,7 @@ export default function ProfileScreen() {
             <View style={styles.menuItemLeft}>
               <IconSymbol 
                 ios_icon_name="info.circle.fill" 
-                android_material_icon_name="information" 
+                android_material_icon_name="info" 
                 size={22} 
                 color={colors.text} 
               />
