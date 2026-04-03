@@ -517,7 +517,7 @@ export function registerAuthRoutes(app: App) {
 
       // Send password reset email
       const { resend } = await import('@specific-dev/framework');
-      const resetLink = `${'https://lokalinc.de'}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
+      const resetLink = `https://v62p9djytsnjn7bn84db7u9vrfsn26gr.app.specular.dev/api/auth/reset-redirect?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
 
       resend.emails.send({
         from: 'LokaLinc <noreply@lokalinc.de>',
@@ -595,6 +595,58 @@ export function registerAuthRoutes(app: App) {
         These Terms are governed by the laws of the Federal Republic of Germany.
       `
     };
+  });
+
+  // Hybrid redirect for password reset deep linking
+  app.fastify.get('/api/auth/reset-redirect', {
+    schema: {
+      description: 'Hybrid redirect endpoint for password reset - opens app via deep link or shows fallback page',
+      tags: ['auth'],
+      querystring: {
+        type: 'object',
+        required: ['token', 'email'],
+        properties: {
+          token: { type: 'string', description: 'Password reset token' },
+          email: { type: 'string', format: 'email', description: 'User email address' },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { token, email } = request.query as { token: string; email: string };
+    app.logger.info({ email }, 'Password reset redirect accessed');
+
+    if (!token || !email) {
+      app.logger.warn({}, 'Reset redirect missing required parameters');
+      return reply.status(400).send({ error: 'Missing token or email parameter' });
+    }
+
+    const deepLinkUrl = `lokalinc://reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="0;url=${deepLinkUrl}">
+  <title>LokaLinc – Reset Password</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f5f5f5; }
+    .card { background: #fff; border-radius: 12px; padding: 40px 32px; text-align: center; max-width: 360px; box-shadow: 0 2px 16px rgba(0,0,0,0.08); }
+    h1 { font-size: 22px; color: #1a1a1a; margin: 0 0 8px; }
+    p { color: #666; font-size: 15px; margin: 0 0 24px; }
+    a { display: inline-block; background: #1a1a1a; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 15px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Opening LokaLinc app...</h1>
+    <p>You should be redirected automatically. If not, tap the button below.</p>
+    <a href="${deepLinkUrl}">Tap here to open the app</a>
+  </div>
+</body>
+</html>`;
+
+    app.logger.info({ email }, 'Password reset redirect page served');
+    return reply.type('text/html').send(htmlContent);
   });
 
   // Check if username is available
