@@ -5,7 +5,6 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors, typography, spacing } from '@/styles/commonStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { NotificationBell } from "@/components/NotificationBell";
 export default function IndexScreen() {
   const router = useRouter();
   const { user, loading, profileLoading } = useAuth();
@@ -49,7 +48,6 @@ export default function IndexScreen() {
             resizeMode="contain"
           />
           <Text style={styles.title}>LokaLinc</Text>
-                    <NotificationBell />
           
 <Text style={styles.tagline}>Living and Moving together</Text>
         </View>
