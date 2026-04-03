@@ -735,6 +735,28 @@ describe("API Integration Tests", () => {
     expect(replyId).toBeDefined();
   });
 
+  test("Create reply to non-existent topic returns 404", async () => {
+    const res = await authenticatedApi("/api/community/topics/00000000-0000-0000-0000-000000000000/replies", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: "This reply should fail because the topic doesn't exist.",
+      }),
+    });
+    await expectStatus(res, 404);
+  });
+
+  test("Create reply with invalid topic UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/community/topics/invalid-uuid/replies", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: "Test reply",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   test("Update own community reply", async () => {
     const res = await authenticatedApi(`/api/community/replies/${replyId}`, authToken, {
       method: "PUT",
@@ -744,6 +766,28 @@ describe("API Integration Tests", () => {
       }),
     });
     await expectStatus(res, 200);
+  });
+
+  test("Update non-existent community reply returns 404", async () => {
+    const res = await authenticatedApi("/api/community/replies/00000000-0000-0000-0000-000000000000", authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: "Updated content",
+      }),
+    });
+    await expectStatus(res, 404);
+  });
+
+  test("Update reply with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/community/replies/invalid-uuid", authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: "Updated content",
+      }),
+    });
+    await expectStatus(res, 400);
   });
 
   test("Like community reply - toggle like", async () => {
@@ -756,11 +800,35 @@ describe("API Integration Tests", () => {
     expect(typeof data.likeCount).toBe("number");
   });
 
+  test("Like non-existent community reply returns 404", async () => {
+    const res = await authenticatedApi("/api/community/replies/00000000-0000-0000-0000-000000000000/like", authToken, {
+      method: "POST",
+    });
+    await expectStatus(res, 404);
+  });
+
+  test("Like reply with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/community/replies/invalid-uuid/like", authToken, {
+      method: "POST",
+    });
+    await expectStatus(res, 400);
+  });
+
   test("Get unread replies count for topic", async () => {
     const res = await authenticatedApi(`/api/community/topics/${communityTopicId}/unread-replies`, authToken);
     await expectStatus(res, 200);
     const data = await res.json();
     expect(typeof data.unreadCount).toBe("number");
+  });
+
+  test("Get unread replies for non-existent topic returns 404", async () => {
+    const res = await authenticatedApi("/api/community/topics/00000000-0000-0000-0000-000000000000/unread-replies", authToken);
+    await expectStatus(res, 404);
+  });
+
+  test("Get unread replies with invalid topic UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/community/topics/invalid-uuid/unread-replies", authToken);
+    await expectStatus(res, 400);
   });
 
   test("Mark all replies as read for topic", async () => {
@@ -772,11 +840,39 @@ describe("API Integration Tests", () => {
     expect(data.success).toBe(true);
   });
 
+  test("Mark replies as read for non-existent topic returns 404", async () => {
+    const res = await authenticatedApi("/api/community/topics/00000000-0000-0000-0000-000000000000/mark-replies-read", authToken, {
+      method: "POST",
+    });
+    await expectStatus(res, 404);
+  });
+
+  test("Mark replies as read with invalid topic UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/community/topics/invalid-uuid/mark-replies-read", authToken, {
+      method: "POST",
+    });
+    await expectStatus(res, 400);
+  });
+
   test("Delete own community reply", async () => {
     const res = await authenticatedApi(`/api/community/replies/${replyId}`, authToken, {
       method: "DELETE",
     });
     await expectStatus(res, 200);
+  });
+
+  test("Delete non-existent community reply returns 404", async () => {
+    const res = await authenticatedApi("/api/community/replies/00000000-0000-0000-0000-000000000000", authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 404);
+  });
+
+  test("Delete reply with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/community/replies/invalid-uuid", authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 400);
   });
 
   test("Get community unread topics count", async () => {
@@ -881,6 +977,11 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400);
   });
 
+  test("Get comments for non-existent post returns 404", async () => {
+    const res = await api("/api/community/00000000-0000-0000-0000-000000000000/comments");
+    await expectStatus(res, 404);
+  });
+
   test("Add a comment to a community post", async () => {
     // Create a topic for commenting
     const topicRes = await authenticatedApi("/api/community/topics", authToken, {
@@ -904,6 +1005,28 @@ describe("API Integration Tests", () => {
       }),
     });
     await expectStatus(res, 200);
+  });
+
+  test("Add comment to non-existent post returns 404", async () => {
+    const res = await authenticatedApi("/api/community/00000000-0000-0000-0000-000000000000/comments", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: "This comment should fail because the post doesn't exist.",
+      }),
+    });
+    await expectStatus(res, 404);
+  });
+
+  test("Add comment with invalid post UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/community/invalid-uuid/comments", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: "Test comment",
+      }),
+    });
+    await expectStatus(res, 400);
   });
 
   // ============ Conversations ============

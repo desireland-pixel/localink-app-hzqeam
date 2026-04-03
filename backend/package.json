@@ -20,6 +20,7 @@
     "@fastify/websocket": "^11.2.0",
     "@neondatabase/serverless": "^1.0.2",
     "@specific-dev/framework": "1.33.0",
+    "bcryptjs": "^3.0.3",
     "better-auth": "^1.4.18",
     "commander": "^12.1.0",
     "drizzle-orm": "^0.44.7",
