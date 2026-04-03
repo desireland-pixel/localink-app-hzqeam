@@ -9,7 +9,7 @@ import { sendPushNotification as sendOnesignalNotification } from '../utils/ones
 
 interface CreateConversationBody {
   postId: string;
-  postType: 'sublet' | 'travel';
+  postType: 'sublet' | 'travel' | 'community';
   recipientId: string;
 }
 
@@ -124,16 +124,19 @@ export function registerConversationRoutes(app: App) {
       // Get all unique post IDs and their types
       const subletIds = new Set<string>();
       const travelPostIds = new Set<string>();
+      const communityTopicIds = new Set<string>();
       conversations.forEach(conv => {
         if (conv.postType === 'sublet') {
           subletIds.add(conv.postId);
         } else if (conv.postType === 'travel') {
           travelPostIds.add(conv.postId);
+        } else if (conv.postType === 'community') {
+          communityTopicIds.add(conv.postId);
         }
       });
 
-      // Fetch all sublets and travel posts in parallel
-      const [subletsList, travelPostsList] = await Promise.all([
+      // Fetch all sublets, travel posts, and community topics in parallel
+      const [subletsList, travelPostsList, communityTopicsList] = await Promise.all([
         subletIds.size > 0
           ? app.db.query.sublets.findMany({
               where: inArray(schema.sublets.id, Array.from(subletIds)),
@@ -144,10 +147,16 @@ export function registerConversationRoutes(app: App) {
               where: inArray(schema.travelPosts.id, Array.from(travelPostIds)),
             })
           : Promise.resolve([]),
+        communityTopicIds.size > 0
+          ? app.db.query.discussionTopics.findMany({
+              where: inArray(schema.discussionTopics.id, Array.from(communityTopicIds)),
+            })
+          : Promise.resolve([]),
       ]);
 
       const subletsMap = new Map(subletsList.map(s => [s.id, s]));
       const travelPostsMap = new Map(travelPostsList.map(t => [t.id, t]));
+      const communityTopicsMap = new Map(communityTopicsList.map(c => [c.id, c]));
 
       // Format response with last message and other participant info
       const formatted = conversations.map(conv => {
@@ -185,6 +194,15 @@ export function registerConversationRoutes(app: App) {
               id: travelPost.id,
               title: `${travelPost.fromCity} → ${travelPost.toCity}`,
               type: 'travel' as const,
+            };
+          }
+        } else if (conv.postType === 'community') {
+          const topic = communityTopicsMap.get(conv.postId);
+          if (topic) {
+            post = {
+              id: topic.id,
+              title: topic.title,
+              type: 'community' as const,
             };
           }
         }
@@ -226,7 +244,7 @@ export function registerConversationRoutes(app: App) {
         required: ['postId', 'postType', 'recipientId'],
         properties: {
           postId: { type: 'string', format: 'uuid' },
-          postType: { type: 'string', enum: ['sublet', 'travel'] },
+          postType: { type: 'string', enum: ['sublet', 'travel', 'community'] },
           recipientId: { type: 'string' },
         },
         additionalProperties: true,
@@ -240,7 +258,7 @@ export function registerConversationRoutes(app: App) {
             participant1Id: { type: 'string' },
             participant2Id: { type: 'string' },
             postId: { type: 'string', format: 'uuid' },
-            postType: { type: 'string', enum: ['sublet', 'travel'] },
+            postType: { type: 'string', enum: ['sublet', 'travel', 'community'] },
             lastMessageAt: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
             hasSentMessages: { type: 'boolean' },
             createdAt: { type: 'string', format: 'date-time' },
@@ -257,6 +275,20 @@ export function registerConversationRoutes(app: App) {
     app.logger.info({ userId: session.user.id, postId, postType, recipientId }, 'Creating conversation');
 
     try {
+      // Validate post exists based on post type
+      if (postType === 'community') {
+        const topic = await app.db.query.discussionTopics.findFirst({
+          where: and(
+            eq(schema.discussionTopics.id, postId),
+            isNull(schema.discussionTopics.deletedAt)
+          ),
+        });
+        if (!topic) {
+          app.logger.warn({ postId }, 'Community topic not found');
+          return reply.status(404).send({ error: 'Community topic not found' });
+        }
+      }
+
       // Check if conversation already exists between these users for this post
       const existing = await app.db.query.conversations.findFirst({
         where: and(
@@ -361,7 +393,7 @@ export function registerConversationRoutes(app: App) {
         where: eq(schema.profiles.userId, otherParticipantId),
       });
 
-      // Fetch post details based on postType (only if not deleted)
+      // Fetch post details based on postType
       let post = null;
       if (conversation.postType === 'sublet' && conversation.postId) {
         const sublet = await app.db.query.sublets.findFirst({
@@ -389,6 +421,17 @@ export function registerConversationRoutes(app: App) {
             id: travelPost.id,
             title: `${travelPost.fromCity} → ${travelPost.toCity}`,
             type: 'travel' as const,
+          };
+        }
+      } else if (conversation.postType === 'community' && conversation.postId) {
+        const topic = await app.db.query.discussionTopics.findFirst({
+          where: eq(schema.discussionTopics.id, conversation.postId),
+        });
+        if (topic) {
+          post = {
+            id: topic.id,
+            title: topic.title,
+            type: 'community' as const,
           };
         }
       }
@@ -494,7 +537,7 @@ export function registerConversationRoutes(app: App) {
         where: eq(schema.profiles.userId, otherParticipantId),
       });
 
-      // Fetch post details based on postType (only if not deleted)
+      // Fetch post details based on postType
       let post = null;
       if (conversation.postType === 'sublet' && conversation.postId) {
         const sublet = await app.db.query.sublets.findFirst({
@@ -522,6 +565,17 @@ export function registerConversationRoutes(app: App) {
             id: travelPost.id,
             title: `${travelPost.fromCity} → ${travelPost.toCity}`,
             type: 'travel' as const,
+          };
+        }
+      } else if (conversation.postType === 'community' && conversation.postId) {
+        const topic = await app.db.query.discussionTopics.findFirst({
+          where: eq(schema.discussionTopics.id, conversation.postId),
+        });
+        if (topic) {
+          post = {
+            id: topic.id,
+            title: topic.title,
+            type: 'community' as const,
           };
         }
       }
