@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "LokaLinc",
-    "slug": "lokalinc-app",
+    "slug": "lokalinc",
     "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
