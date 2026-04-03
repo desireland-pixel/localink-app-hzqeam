@@ -348,6 +348,25 @@ title: shareData.title,
     }
   };
 
+  const handleStartChat = async (targetUserId: string) => {
+    console.log('CommunityDetailsScreen: Starting chat with user', targetUserId);
+    try {
+      const response = await authenticatedPost<{ conversationId: string }>(
+        '/api/conversations',
+        {
+          participantId: targetUserId,
+          postId: id,
+          postType: 'community',
+        }
+      );
+      console.log('CommunityDetailsScreen: Chat started, conversationId', response.conversationId);
+      router.push(`/chat/${response.conversationId}`);
+    } catch (err) {
+      console.error('CommunityDetailsScreen: Error starting chat', err);
+      setError('Could not start chat. Please try again.');
+    }
+  };
+
   const handleDeleteComment = async () => {
     if (!commentToDelete) return;
     setDeletingComment(true);
@@ -485,7 +504,13 @@ title: shareData.title,
 
             <View style={styles.metaRow}>
               <View style={styles.authorDateContainer}>
-                <Text style={styles.authorText}>{authorName}</Text>
+                {isOwnPost ? (
+                  <Text style={styles.authorText}>{authorName}</Text>
+                ) : (
+                  <TouchableOpacity onPress={() => handleStartChat(topic.user.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                    <Text style={[styles.authorText, styles.authorTextClickable]}>{authorName}</Text>
+                  </TouchableOpacity>
+                )}
                 <Text style={styles.dateSeparator}> • </Text>
                 <Text style={styles.dateText}>{createdDate}</Text>
                 <Text style={styles.dateSeparator}> • </Text>
@@ -528,7 +553,13 @@ title: shareData.title,
                     ]}
                   >
                     <View style={styles.replyTopRow}>
-                      <Text style={styles.replyAuthor}>{replyAuthor}</Text>
+                      {isOwnComment ? (
+                        <Text style={styles.replyAuthor}>{replyAuthor}</Text>
+                      ) : (
+                        <TouchableOpacity onPress={() => handleStartChat(reply.user.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                          <Text style={[styles.replyAuthor, styles.replyAuthorClickable]}>{replyAuthor}</Text>
+                        </TouchableOpacity>
+                      )}
                       <Text style={styles.replyDateSeparator}> • </Text>
                       <Text style={styles.replyDate}>{replyDate}</Text>
                       {isOwnComment && (
@@ -793,6 +824,10 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     fontSize: 12,
   },
+  authorTextClickable: {
+    color: colors.primary,
+    textDecorationLine: 'underline',
+  },
   dateSeparator: {
     ...typography.bodySmall,
     color: colors.textLight,
@@ -847,6 +882,10 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textLight,
     fontSize: 11,
+  },
+  replyAuthorClickable: {
+    color: colors.primary,
+    textDecorationLine: 'underline',
   },
   replyDateSeparator: {
     ...typography.bodySmall,

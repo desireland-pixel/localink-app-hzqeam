@@ -37,7 +37,7 @@ interface Conversation {
     name: string;
     username?: string;
   };
-  post?: { id: string; title: string; type: 'sublet' | 'travel' } | null;
+  post?: { id: string; title: string; type: 'sublet' | 'travel' | 'community' } | null;
 }
 
 export default function ChatScreen() {
@@ -325,6 +325,8 @@ export default function ChatScreen() {
       router.push(`/sublet/${postId}`);
     } else if (postType === 'travel') {
       router.push(`/travel/${postId}`);
+    } else if (postType === 'community') {
+      router.push(`/community/${postId}`);
     }
   };
 
@@ -480,7 +482,10 @@ export default function ChatScreen() {
   const participantName = conversation?.otherParticipant?.username || conversation?.otherParticipant?.name || 'Chat';
   const isPostDeleted = conversation !== null && !conversation?.post;
   const postTitle = conversation?.post?.title || (isPostDeleted ? 'Deleted post' : '');
-  const postEmoji = conversation?.post?.type === 'sublet' ? '🏠' : conversation?.post?.type === 'travel' ? '✈️' : (isPostDeleted ? '🗑️' : '');
+  const postEmoji = conversation?.post?.type === 'sublet' ? '🏠' 
+    : conversation?.post?.type === 'travel' ? '✈️' 
+    : conversation?.post?.type === 'community' ? '💬' 
+    : (isPostDeleted ? '🗑️' : '');
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
