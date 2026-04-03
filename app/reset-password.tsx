@@ -16,7 +16,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, typography, spacing, borderRadius } from "@/styles/commonStyles";
 import { IconSymbol } from "@/components/IconSymbol";
-import { authClient } from "@/lib/auth";
 import Modal from "@/components/ui/Modal";
 
 export default function ResetPasswordScreen() {
@@ -64,24 +63,36 @@ export default function ResetPasswordScreen() {
     setError(null);
 
     try {
-      console.log('[ResetPassword] authClient.resetPassword called');
-      const { error: resetError } = await authClient.resetPassword({
-        newPassword,
-        token: token as string,
-      });
-      if (resetError) {
-        console.error('[ResetPassword] Reset password error:', resetError);
-        const msg = resetError.message || '';
-        let userMsg = "Failed to reset password. Please try again.";
-        if (msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('invalid')) {
-          userMsg = "This reset link has expired or is invalid. Please request a new one.";
-        } else if (msg) {
-          userMsg = msg;
+      console.log('[ResetPassword] POST /api/auth/do-reset-password called');
+      const response = await fetch(
+        'https://v62p9djytsnjn7bn84db7u9vrfsn26gr.app.specular.dev/api/auth/do-reset-password',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: token as string, newPassword }),
         }
+      );
+      if (!response.ok) {
+        const text = await response.text();
+        let userMsg = "Failed to reset password. Please try again.";
+        try {
+          const json = JSON.parse(text);
+          if (json.error) userMsg = json.error;
+        } catch {
+          // non-JSON error body
+        }
+        console.error('[ResetPassword] Reset password error:', response.status, text);
         setError(userMsg);
       } else {
-        console.log('[ResetPassword] Password reset successful');
-        setSuccess(true);
+        const json = await response.json();
+        if (json.success) {
+          console.log('[ResetPassword] Password reset successful');
+          setSuccess(true);
+        } else {
+          const userMsg = json.error || "Failed to reset password. Please try again.";
+          console.error('[ResetPassword] Reset password failed:', userMsg);
+          setError(userMsg);
+        }
       }
     } finally {
       setLoading(false);
