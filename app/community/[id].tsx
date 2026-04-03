@@ -359,6 +359,8 @@ title: shareData.title,
           postType: 'community',
         }
       );
+      
+      console.log('handleStartChat response:', response)
       console.log('CommunityDetailsScreen: Chat started, conversationId', response.conversationId);
       router.push(`/chat/${response.conversationId}`);
     } catch (err) {
