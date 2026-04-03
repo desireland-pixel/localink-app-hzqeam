@@ -1,6 +1,6 @@
 import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import * as authSchema from '../db/auth-schema.js';
 import crypto from 'crypto';
@@ -545,6 +545,107 @@ export function registerAuthRoutes(app: App) {
     } catch (error) {
       app.logger.error({ err: error, email }, 'Failed to send password reset email');
       return reply.status(500).send({ error: 'Failed to send password reset email' });
+    }
+  });
+
+  // Password reset endpoint - uses password_reset_tokens table
+  app.fastify.post('/api/auth/do-reset-password', {
+    schema: {
+      description: 'Reset password using a password reset token',
+      tags: ['auth'],
+      body: {
+        type: 'object',
+        required: ['token', 'newPassword'],
+        properties: {
+          token: { type: 'string', description: 'Password reset token (UUID)' },
+          newPassword: { type: 'string', description: 'New password' },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          required: ['success'],
+          properties: {
+            success: { type: 'boolean' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { token, newPassword } = request.body as { token: string; newPassword: string };
+    app.logger.info({}, 'Password reset attempt');
+
+    try {
+      // Validate inputs
+      if (!token || !newPassword) {
+        app.logger.warn({}, 'Password reset failed - missing required fields');
+        return reply.status(400).send({ error: 'Token and new password are required' });
+      }
+
+      // Look up the token in password_reset_tokens
+      let tokenRow;
+      try {
+        tokenRow = await app.db.query.passwordResetTokens.findFirst({
+          where: eq(schema.passwordResetTokens.token, token as any),
+        });
+      } catch (error) {
+        // Could be invalid UUID format
+        app.logger.warn({ err: error }, 'Invalid token format');
+        return reply.status(400).send({ error: 'Invalid or expired token' });
+      }
+
+      if (!tokenRow) {
+        app.logger.warn({}, 'Password reset failed - token not found');
+        return reply.status(400).send({ error: 'Invalid or expired token' });
+      }
+
+      // Check if token has expired
+      if (new Date() > tokenRow.expiresAt) {
+        app.logger.warn({ tokenId: tokenRow.id }, 'Password reset failed - token expired');
+        // Delete the expired token
+        await app.db
+          .delete(schema.passwordResetTokens)
+          .where(eq(schema.passwordResetTokens.id, tokenRow.id));
+        return reply.status(400).send({ error: 'Invalid or expired token' });
+      }
+
+      // Hash the new password
+      const bcrypt = await import('bcryptjs');
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update the account with new password
+      await app.db
+        .update(authSchema.account)
+        .set({ password: hashedPassword, updatedAt: new Date() })
+        .where(
+          and(
+            eq(authSchema.account.userId, tokenRow.userId),
+            eq(authSchema.account.providerId, 'credential')
+          )
+        );
+
+      // Delete the used token
+      await app.db
+        .delete(schema.passwordResetTokens)
+        .where(eq(schema.passwordResetTokens.id, tokenRow.id));
+
+      app.logger.info({ userId: tokenRow.userId }, 'Password reset successfully');
+      return { success: true };
+    } catch (error) {
+      app.logger.error({ err: error }, 'Password reset error');
+      return reply.status(500).send({ error: 'Internal server error' });
     }
   });
 

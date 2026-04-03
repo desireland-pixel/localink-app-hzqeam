@@ -556,6 +556,16 @@ export function registerCommunityRoutes(app: App) {
     app.logger.info({ postId }, 'Fetching comments for community post');
 
     try {
+      // Verify that the topic exists
+      const topic = await app.db.query.discussionTopics.findFirst({
+        where: eq(schema.discussionTopics.id, postId),
+      });
+
+      if (!topic) {
+        app.logger.warn({ postId }, 'Topic not found for comments');
+        return reply.status(404).send({ error: 'Community post not found' });
+      }
+
       const replies = await app.db
         .select({
           id: schema.discussionReplies.id,
