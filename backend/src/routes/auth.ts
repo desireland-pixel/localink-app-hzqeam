@@ -484,7 +484,29 @@ export function registerAuthRoutes(app: App) {
         type: 'object',
         required: ['email'],
         properties: {
-          email: { type: 'string', format: 'email' },
+          email: { type: 'string', format: 'email', description: 'User email address' },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          required: ['success', 'message'],
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+          },
+        },
+        404: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
         },
       },
     },
@@ -769,6 +791,18 @@ export function registerAuthRoutes(app: App) {
         properties: {
           token: { type: 'string', description: 'Password reset token' },
           email: { type: 'string', format: 'email', description: 'User email address' },
+        },
+      },
+      response: {
+        200: {
+          description: 'HTML page with deep link redirect',
+          type: 'string',
+        },
+        400: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+          },
         },
       },
     },
