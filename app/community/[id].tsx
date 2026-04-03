@@ -354,7 +354,7 @@ title: shareData.title,
       const response = await authenticatedPost<{ conversationId: string }>(
         '/api/conversations',
         {
-          participantId: targetUserId,
+          recipientId: targetUserId,
           postId: id,
           postType: 'community',
         }
