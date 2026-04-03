@@ -287,12 +287,29 @@ export function registerConversationRoutes(app: App) {
           app.logger.warn({ postId }, 'Community topic not found');
           return reply.status(404).send({ error: 'Community topic not found' });
         }
+      } else if (postType === 'sublet') {
+        const sublet = await app.db.query.sublets.findFirst({
+          where: eq(schema.sublets.id, postId),
+        });
+        if (!sublet) {
+          app.logger.warn({ postId }, 'Sublet not found');
+          return reply.status(404).send({ error: 'Sublet not found' });
+        }
+      } else if (postType === 'travel') {
+        const travelPost = await app.db.query.travelPosts.findFirst({
+          where: eq(schema.travelPosts.id, postId),
+        });
+        if (!travelPost) {
+          app.logger.warn({ postId }, 'Travel post not found');
+          return reply.status(404).send({ error: 'Travel post not found' });
+        }
       }
 
       // Check if conversation already exists between these users for this post
       const existing = await app.db.query.conversations.findFirst({
         where: and(
           eq(schema.conversations.postId, postId),
+          eq(schema.conversations.postType, postType),
           or(
             and(
               eq(schema.conversations.participant1Id, session.user.id),
