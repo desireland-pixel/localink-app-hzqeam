@@ -228,7 +228,7 @@ export default function InboxScreen() {
   const postTypeEmoji = (type: string) => {
     if (type === 'sublet') return '🏠';
     if (type === 'travel') return '✈️';
-    return '📝';
+    return '💬';
   };
 
   // Show loading spinner only on initial load
