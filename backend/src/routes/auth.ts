@@ -5,6 +5,7 @@ import * as schema from '../db/schema.js';
 import * as authSchema from '../db/auth-schema.js';
 import crypto from 'crypto';
 import { resend, APIError } from '@specific-dev/framework';
+import bcryptjs from 'bcryptjs';
 
 interface VerifyOtpBody {
   email: string;
@@ -621,9 +622,9 @@ export function registerAuthRoutes(app: App) {
         return reply.status(400).send({ error: 'Invalid or expired token' });
       }
 
-      // Hash the new password
-      const bcrypt = await import('bcryptjs');
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      // Hash the new password using Better Auth's default algorithm (argon2)
+      const { hash } = await import('@node-rs/argon2');
+      const hashedPassword = await hash(newPassword);
 
       // Update the account with new password
       await app.db
