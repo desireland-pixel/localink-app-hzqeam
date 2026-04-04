@@ -644,11 +644,11 @@ export function registerAuthRoutes(app: App) {
         return reply.status(400).send({ error: 'Invalid or expired token' });
       }
 
-      // Use Better Auth's password adapter to hash the password
-      const passwordAdapter = (app.auth as any).options?.passwordAdapter || (app.auth as any).passwordAdapter;
+      // Hash the new password using Better Auth's built-in password hashing
+      const passwordAdapter = (app.auth as any).options.passwordAdapter;
 
-      if (!passwordAdapter?.hash) {
-        app.logger.error({ userId: tokenRow.userId }, 'Password adapter not found');
+      if (!passwordAdapter || typeof passwordAdapter.hash !== 'function') {
+        app.logger.error({ userId: tokenRow.userId }, 'Password adapter not available');
         return reply.status(500).send({ error: 'Password reset failed' });
       }
 
@@ -656,14 +656,9 @@ export function registerAuthRoutes(app: App) {
       try {
         hashedPassword = await passwordAdapter.hash(newPassword);
       } catch (hashError) {
-        app.logger.error({ err: hashError, userId: tokenRow.userId }, 'Failed to hash password with Better Auth adapter');
+        app.logger.error({ err: hashError, userId: tokenRow.userId }, 'Failed to hash password');
         return reply.status(500).send({ error: 'Password reset failed' });
       }
-
-      app.logger.info(
-        { userId: tokenRow.userId, hashLength: hashedPassword.length },
-        'Password hashed successfully using Better Auth'
-      );
 
       // Update the account with new password using Better Auth's hash
       const updateResult = await app.db
