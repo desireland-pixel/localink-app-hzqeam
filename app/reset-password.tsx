@@ -65,7 +65,7 @@ export default function ResetPasswordScreen() {
     try {
       console.log('[ResetPassword] POST /api/auth/do-reset-password called');
       const response = await fetch(
-        'https://v62p9djytsnjn7bn84db7u9vrfsn26gr.app.specular.dev/api/auth/do-reset-password',
+        'https://prod-proj-dpluqp3d5nexthtfrcpmq-liwg5h36mq-ey.a.run.app/api/auth/do-reset-password',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

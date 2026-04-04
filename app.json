@@ -60,7 +60,7 @@
       "router": {
         "origin": "https://8ktzqvc7jybkjvj4cr9gwmp8qp4v5q3y.app.specular.dev"
       },
-      "backendUrl": "https://v62p9djytsnjn7bn84db7u9vrfsn26gr.app.specular.dev",
+      "backendUrl": "https://prod-proj-dpluqp3d5nexthtfrcpmq-liwg5h36mq-ey.a.run.app",
       "oneSignalAppId": "cb93c36b-43e2-4a76-9575-6ad75bf14a75"
     },
     "notification": {
