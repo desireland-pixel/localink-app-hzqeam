@@ -156,6 +156,12 @@ export function registerCommunityRoutes(app: App) {
 
       const topic = topicResult[0];
 
+      // Return 404 for deleted topics
+      if (topic.status === 'deleted') {
+        app.logger.warn({ topicId: id }, 'Discussion topic is deleted');
+        return reply.status(404).send({ error: 'Discussion topic not found' });
+      }
+
       // Fetch replies with like counts and like status for current user
       const replies = await app.db
         .select({

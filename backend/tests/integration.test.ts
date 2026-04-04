@@ -237,6 +237,11 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
+  test("Verify deleted sublet returns 404", async () => {
+    const res = await api(`/api/sublets/${subletId}`);
+    await expectStatus(res, 404);
+  });
+
   test("Delete non-existent sublet returns 404", async () => {
     const res = await authenticatedApi("/api/sublets/00000000-0000-0000-0000-000000000000", authToken, {
       method: "DELETE",
@@ -360,6 +365,11 @@ describe("API Integration Tests", () => {
       method: "DELETE",
     });
     await expectStatus(res, 200);
+  });
+
+  test("Verify deleted travel post returns 404", async () => {
+    const res = await api(`/api/travel-posts/${travelPostId}`);
+    await expectStatus(res, 404);
   });
 
   test("Delete travel post by invalid UUID format returns 400", async () => {
@@ -901,6 +911,11 @@ describe("API Integration Tests", () => {
       method: "DELETE",
     });
     await expectStatus(res, 200);
+  });
+
+  test("Verify deleted community topic returns 404", async () => {
+    const res = await api(`/api/community/topics/${communityTopicId}`);
+    await expectStatus(res, 404);
   });
 
   test("Delete community topic by invalid UUID format returns 400", async () => {
