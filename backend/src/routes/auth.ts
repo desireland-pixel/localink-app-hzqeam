@@ -5,7 +5,7 @@ import * as schema from '../db/schema.js';
 import * as authSchema from '../db/auth-schema.js';
 import crypto from 'crypto';
 import { resend, APIError } from '@specific-dev/framework';
-import bcryptjs from 'bcryptjs';
+import { hashPassword } from 'better-auth/crypto';
 
 interface VerifyOtpBody {
   email: string;
@@ -644,17 +644,10 @@ export function registerAuthRoutes(app: App) {
         return reply.status(400).send({ error: 'Invalid or expired token' });
       }
 
-      // Hash the new password using Better Auth's built-in password hashing
-      const passwordAdapter = (app.auth as any).options.passwordAdapter;
-
-      if (!passwordAdapter || typeof passwordAdapter.hash !== 'function') {
-        app.logger.error({ userId: tokenRow.userId }, 'Password adapter not available');
-        return reply.status(500).send({ error: 'Password reset failed' });
-      }
-
+      // Hash the new password using Better Auth's hashPassword utility
       let hashedPassword: string;
       try {
-        hashedPassword = await passwordAdapter.hash(newPassword);
+        hashedPassword = await hashPassword(newPassword);
       } catch (hashError) {
         app.logger.error({ err: hashError, userId: tokenRow.userId }, 'Failed to hash password');
         return reply.status(500).send({ error: 'Password reset failed' });
