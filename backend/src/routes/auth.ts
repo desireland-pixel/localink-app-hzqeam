@@ -645,7 +645,17 @@ export function registerAuthRoutes(app: App) {
       }
 
       // Hash the new password using Better Auth's configured password adapter
-      const hashedPassword = await (app.auth as any).adapter?.hash?.(newPassword);
+      const passwordAdapter =
+        (app.auth as any).options?.passwordAdapter ||
+        (app.auth as any).options?.password ||
+        (app.auth as any).passwordAdapter;
+
+      if (!passwordAdapter?.hash) {
+        app.logger.error({ userId: tokenRow.userId }, 'Password adapter not found');
+        return reply.status(500).send({ error: 'Password reset failed' });
+      }
+
+      const hashedPassword = await passwordAdapter.hash(newPassword);
 
       if (!hashedPassword) {
         app.logger.error({ userId: tokenRow.userId }, 'Failed to hash password with Better Auth adapter');
