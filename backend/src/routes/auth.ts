@@ -644,48 +644,28 @@ export function registerAuthRoutes(app: App) {
         return reply.status(400).send({ error: 'Invalid or expired token' });
       }
 
-      // Hash the new password using argon2 (Better Auth's default algorithm)
-      const { hash } = await import('@node-rs/argon2');
-      let hashedPassword: string;
+      // Use Better Auth's password adapter to hash the password
+      const passwordAdapter = (app.auth as any).options?.passwordAdapter || (app.auth as any).passwordAdapter;
 
-      try {
-        hashedPassword = await hash(newPassword);
-      } catch (hashError) {
-        app.logger.error({ err: hashError, userId: tokenRow.userId }, 'Failed to hash password');
+      if (!passwordAdapter?.hash) {
+        app.logger.error({ userId: tokenRow.userId }, 'Password adapter not found');
         return reply.status(500).send({ error: 'Password reset failed' });
       }
 
-      // Log the hash format (first 10 chars) to confirm it's a valid argon2 hash
-      const hashPrefix = hashedPassword.substring(0, 10);
+      let hashedPassword: string;
+      try {
+        hashedPassword = await passwordAdapter.hash(newPassword);
+      } catch (hashError) {
+        app.logger.error({ err: hashError, userId: tokenRow.userId }, 'Failed to hash password with Better Auth adapter');
+        return reply.status(500).send({ error: 'Password reset failed' });
+      }
+
       app.logger.info(
-        {
-          userId: tokenRow.userId,
-          hashFormat: hashPrefix,
-          hashLength: hashedPassword.length,
-          isArgon2: hashedPassword.startsWith('$argon2')
-        },
-        'Password hashed successfully with argon2'
+        { userId: tokenRow.userId, hashLength: hashedPassword.length },
+        'Password hashed successfully using Better Auth'
       );
 
-      // Log the current account state before update
-      const accountBefore = await app.db.query.account.findFirst({
-        where: and(
-          eq(authSchema.account.userId, tokenRow.userId),
-          eq(authSchema.account.providerId, 'credential')
-        ),
-      });
-
-      app.logger.debug(
-        {
-          userId: tokenRow.userId,
-          accountId: accountBefore?.id,
-          providerId: accountBefore?.providerId,
-          hasPassword: !!accountBefore?.password
-        },
-        'Account state before password reset'
-      );
-
-      // Update the account with new password
+      // Update the account with new password using Better Auth's hash
       const updateResult = await app.db
         .update(authSchema.account)
         .set({ password: hashedPassword, updatedAt: new Date() })
@@ -697,32 +677,14 @@ export function registerAuthRoutes(app: App) {
         )
         .returning();
 
+      if (!updateResult || updateResult.length === 0) {
+        app.logger.error({ userId: tokenRow.userId }, 'Failed to update account password');
+        return reply.status(500).send({ error: 'Password reset failed' });
+      }
+
       app.logger.info(
-        {
-          userId: tokenRow.userId,
-          updatedRows: updateResult.length,
-          updatedAccountId: updateResult[0]?.id
-        },
+        { userId: tokenRow.userId, accountId: updateResult[0]?.id },
         'Account password updated successfully'
-      );
-
-      // Log the updated account state for verification
-      const accountAfter = await app.db.query.account.findFirst({
-        where: and(
-          eq(authSchema.account.userId, tokenRow.userId),
-          eq(authSchema.account.providerId, 'credential')
-        ),
-      });
-
-      app.logger.debug(
-        {
-          userId: tokenRow.userId,
-          accountId: accountAfter?.id,
-          newHashPrefix: accountAfter?.password?.substring(0, 7),
-          newHashLength: accountAfter?.password?.length,
-          isArgon2: accountAfter?.password?.startsWith('$argon2')
-        },
-        'Account state after password reset'
       );
 
       // Delete the used token
