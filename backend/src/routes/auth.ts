@@ -644,20 +644,23 @@ export function registerAuthRoutes(app: App) {
         return reply.status(400).send({ error: 'Invalid or expired token' });
       }
 
-      // Hash the new password using Better Auth's default algorithm (argon2)
-      const { hash } = await import('@node-rs/argon2');
-      const hashedPassword = await hash(newPassword);
+      // Hash the new password using Better Auth's configured password adapter
+      const hashedPassword = await (app.auth as any).adapter?.hash?.(newPassword);
 
-      // Log the hash format (first 7 chars) to confirm it's a valid argon2 hash
+      if (!hashedPassword) {
+        app.logger.error({ userId: tokenRow.userId }, 'Failed to hash password with Better Auth adapter');
+        return reply.status(500).send({ error: 'Password reset failed' });
+      }
+
+      // Log the hash format (first 7 chars) to confirm it's a valid hash
       const hashPrefix = hashedPassword.substring(0, 7);
       app.logger.info(
         {
           userId: tokenRow.userId,
           hashFormat: hashPrefix,
-          hashLength: hashedPassword.length,
-          isArgon2: hashedPassword.startsWith('$argon2')
+          hashLength: hashedPassword.length
         },
-        'Password hashed successfully with argon2'
+        'Password hashed successfully using Better Auth'
       );
 
       // Log the current account state before update
