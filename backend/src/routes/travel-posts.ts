@@ -407,6 +407,12 @@ export function registerTravelPostRoutes(app: App) {
 
       const post = result[0];
 
+      // Return 404 for deleted travel posts
+      if (post.status === 'deleted') {
+        app.logger.warn({ travelPostId: id }, 'Travel post is deleted');
+        return reply.status(404).send({ error: 'Travel post not found' });
+      }
+
       // Convert dates to strings in YYYY-MM-DD format from database
       const travelDate = String(post.travelDate);
       const travelDateTo = post.travelDateTo ? String(post.travelDateTo) : null;

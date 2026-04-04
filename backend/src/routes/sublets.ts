@@ -247,6 +247,12 @@ export function registerSubletRoutes(app: App) {
 
       const sublet = result[0];
 
+      // Return 404 for deleted sublets
+      if (sublet.status === 'deleted') {
+        app.logger.warn({ subletId: id }, 'Sublet is deleted');
+        return reply.status(404).send({ error: 'Sublet not found' });
+      }
+
       // Dates come as strings from database in YYYY-MM-DD format
       const fromDate = String(sublet.availableFrom);
       const toDate = String(sublet.availableTo);
