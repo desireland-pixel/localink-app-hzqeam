@@ -994,4 +994,67 @@ export function registerConversationRoutes(app: App) {
       return reply.status(500).send({ error: 'Failed to delete message' });
     }
   });
+
+  // Delete a conversation
+  app.fastify.delete('/api/conversations/:id', {
+    schema: {
+      description: 'Delete a conversation (user must be a participant)',
+      tags: ['conversations'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+        },
+        required: ['id'],
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await requireAuth(request, reply);
+    if (!session) return;
+
+    const { id } = request.params as { id: string };
+    app.logger.info({ userId: session.user.id, conversationId: id }, 'Deleting conversation');
+
+    try {
+      // Verify user is a participant in the conversation
+      const conversation = await app.db.query.conversations.findFirst({
+        where: eq(schema.conversations.id, id),
+      });
+
+      if (!conversation) {
+        app.logger.warn({ conversationId: id }, 'Conversation not found');
+        return reply.status(404).send({ error: 'Conversation not found' });
+      }
+
+      // Check if user is a participant
+      if (conversation.participant1Id !== session.user.id && conversation.participant2Id !== session.user.id) {
+        app.logger.warn({ userId: session.user.id, conversationId: id }, 'Unauthorized - user is not a participant');
+        return reply.status(403).send({ error: 'You are not a participant in this conversation' });
+      }
+
+      // Delete all messages for this conversation first
+      await app.db
+        .delete(schema.messages)
+        .where(eq(schema.messages.conversationId, id));
+
+      // Delete the conversation
+      await app.db
+        .delete(schema.conversations)
+        .where(eq(schema.conversations.id, id));
+
+      app.logger.info({ conversationId: id, userId: session.user.id }, 'Conversation deleted successfully');
+      return { success: true };
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id, conversationId: id }, 'Failed to delete conversation');
+      return reply.status(500).send({ error: 'Failed to delete conversation' });
+    }
+  });
 }
