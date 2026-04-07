@@ -113,7 +113,6 @@ export default function PostCommunityTopicScreen() {
             <TouchableOpacity 
               style={styles.categoryButton}
               onPress={() => setShowCategoryPicker(!showCategoryPicker)}
-              disabled={isEditing}
             >
               <Text style={[styles.categoryButtonText, !category && styles.categoryButtonPlaceholder]}>
                 {category || 'Select category...'}
