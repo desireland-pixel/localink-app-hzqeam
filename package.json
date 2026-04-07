@@ -50,6 +50,7 @@
     "expo-web-browser": "^15.0.6",
     "leaflet": "^1.9.4",
     "onesignal-expo-plugin": "^2.4.0",
+    "posthog-react-native": "^4.40.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-leaflet": "^4.2.1",

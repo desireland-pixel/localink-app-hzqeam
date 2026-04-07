@@ -6,6 +6,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost, authenticatedPatch, authenticatedDelete } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { capture } from '@/utils/analytics';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -64,6 +65,7 @@ export default function TravelDetailsScreen() {
       const data = await authenticatedGet<TravelPost>(`/api/travel-posts/${id}`);
       setTravelPost(data);
       console.log('TravelDetailsScreen: Fetched travel post', data?.id);
+      capture('view_post', { post_type: 'travel', post_id: id });
       
       // Check if favorited
       const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=travel`);
@@ -88,6 +90,7 @@ export default function TravelDetailsScreen() {
     if (!travelPost || contacting) return;
     
     console.log('TravelDetailsScreen: Contact traveler');
+    capture('start_chat', { post_type: 'travel', post_id: id, target_user_id: travelPost.userId });
     setContacting(true);
 
     try {
@@ -126,6 +129,7 @@ export default function TravelDetailsScreen() {
   const handleShare = async () => {
     if (!travelPost) return;
     console.log('TravelDetailsScreen: Share post', id);
+    capture('share_post', { post_type: 'travel', post_id: id });
     
     try {
       const shareData = await authenticatedGet<{ shareUrl: string; title: string; description: string }>(
@@ -184,6 +188,9 @@ ${shareData.shareUrl}`,
     
     const wasFavorited = isFavorited;
     setIsFavorited(!wasFavorited);
+    if (!wasFavorited) {
+      capture('favorite_post', { post_type: 'travel', post_id: id });
+    }
     
     try {
       if (wasFavorited) {

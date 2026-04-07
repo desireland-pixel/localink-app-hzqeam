@@ -2,7 +2,7 @@
 import "react-native-reanimated";
 import React, { useEffect } from "react";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { SystemBars } from "react-native-edge-to-edge";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -18,12 +18,29 @@ import { WidgetProvider } from "@/contexts/WidgetContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { colors } from "@/styles/commonStyles";
+import { capture } from "@/utils/analytics";
 
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
   initialRouteName: "index",
 };
+
+function AnalyticsProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    capture('app_open');
+  }, []);
+
+  useEffect(() => {
+    if (pathname) {
+      capture('screen_view', { screen: pathname });
+    }
+  }, [pathname]);
+
+  return <>{children}</>;
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -76,7 +93,8 @@ export default function RootLayout() {
         <NotificationProvider>
           <WidgetProvider>
             <GestureHandlerRootView style={{ flex: 1 }}>
-              <Stack>
+              <AnalyticsProvider>
+                <Stack>
                 <Stack.Screen name="index" options={{ headerShown: false }} />
                 <Stack.Screen name="auth" options={{ headerShown: false }} />
                 <Stack.Screen name="reset-password" options={{ headerShown: false }} />
@@ -237,8 +255,9 @@ export default function RootLayout() {
                   }} 
                 />
                 <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
-              </Stack>
-              <SystemBars style="auto" />
+                </Stack>
+                <SystemBars style="auto" />
+              </AnalyticsProvider>
             </GestureHandlerRootView>
           </WidgetProvider>
         </NotificationProvider>

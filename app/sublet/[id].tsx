@@ -7,6 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost, authenticatedPatch, authenticatedDelete } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { capture } from '@/utils/analytics';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -62,6 +63,7 @@ export default function SubletDetailsScreen() {
       const data = await authenticatedGet<Sublet>(`/api/sublets/${id}`);
       setSublet(data);
       console.log('SubletDetailsScreen: Fetching sublet', data?.id);
+      capture('view_post', { post_type: 'sublet', post_id: id });
       
       // Check if favorited
       const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=sublet`);
@@ -87,6 +89,7 @@ export default function SubletDetailsScreen() {
   const handleContact = async () => {
     if (!sublet) return;
     console.log('SubletDetailsScreen: Contact user', sublet.userId);
+    capture('start_chat', { post_type: 'sublet', post_id: id, target_user_id: sublet.userId });
     
     try {
       const postId = typeof id === 'string' ? id : String(id);
@@ -122,6 +125,7 @@ export default function SubletDetailsScreen() {
   const handleShare = async () => {
     if (!sublet) return;
     console.log('SubletDetailsScreen: Share post', id);
+    capture('share_post', { post_type: 'sublet', post_id: id });
     
     try {
       const shareData = await authenticatedGet<{ shareUrl: string; title: string; description: string }>(
@@ -187,6 +191,9 @@ ${shareData.shareUrl}`,
     
     const wasFavorited = isFavorited;
     setIsFavorited(!wasFavorited);
+    if (!wasFavorited) {
+      capture('favorite_post', { post_type: 'sublet', post_id: id });
+    }
     
     try {
       if (wasFavorited) {

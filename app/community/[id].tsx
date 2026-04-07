@@ -6,6 +6,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost, authenticatedPut, authenticatedDelete } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { capture } from '@/utils/analytics';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -121,6 +122,7 @@ export default function CommunityDetailsScreen() {
       
       setTopic(data);
       console.log('CommunityDetailsScreen: Fetched topic', data?.id);
+      capture('view_post', { post_type: 'community', post_id: id, category: data.category });
 
       // Restore liked state: prefer API field, fall back to AsyncStorage
       const apiLiked = (data as any).liked ?? (data as any).is_liked;
@@ -198,6 +200,7 @@ export default function CommunityDetailsScreen() {
     if (!topic) return;
   
     console.log('CommunityDetailsScreen: Share topic', id);
+    capture('share_post', { post_type: 'community', post_id: id });
   
     try {
       const shareData = await authenticatedGet<{
@@ -267,6 +270,9 @@ title: shareData.title,
     
     const wasFavorited = isFavorited;
     setIsFavorited(!wasFavorited);
+    if (!wasFavorited) {
+      capture('favorite_post', { post_type: 'community', post_id: id });
+    }
     
     try {
       if (wasFavorited) {
@@ -350,6 +356,7 @@ title: shareData.title,
 
   const handleStartChat = async (targetUserId: string) => {
     console.log('CommunityDetailsScreen: Starting chat with user', targetUserId);
+    capture('start_chat', { post_type: 'community', post_id: id, target_user_id: targetUserId });
     try {
       const response = await authenticatedPost<{ id: string; conversationId?: string }>(
         '/api/conversations',

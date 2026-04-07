@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 import * as Linking from "expo-linking";
 import { authClient, setBearerToken, clearAuthTokens } from "@/lib/auth";
 import { authenticatedGet, getBearerToken, BACKEND_URL } from "@/utils/api";
+import { identify, getPostHog } from "@/utils/analytics";
 
 // OneSignal is only available on native — import conditionally to avoid web crashes
 let OneSignal: typeof import("react-native-onesignal").OneSignal | null = null;
@@ -206,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data?.user) {
         console.log('[AuthContext] User session found:', data.user.id);
         setUserRef.current(data.user as User);
+        identify(data.user.id, { email: data.user.email, name: data.user.name });
         await fetchProfileStandalone();
         // Register OneSignal player ID on session restore (startup or refresh)
         registerOneSignalPlayerId(token);
@@ -370,6 +372,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data?.user) {
         console.log('[AuthContext] Setting user from login response:', data.user.id);
         setUser(data.user as User);
+        identify(data.user.id, { email: data.user.email, name: data.user.name });
         await fetchProfileStandalone();
       } else {
         console.log('[AuthContext] No user in response, fetching from session');
@@ -445,6 +448,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("[AuthContext] Sign out failed (API):", error);
     } finally {
+      getPostHog().reset();
       setUser(null);
       setProfile(null);
       setUnreadCount(0);

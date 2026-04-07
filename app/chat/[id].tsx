@@ -6,6 +6,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost, authenticatedDelete, BACKEND_URL, getBearerToken } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { capture } from '@/utils/analytics';
 import Modal from '@/components/ui/Modal';
 import { IconSymbol } from '@/components/IconSymbol';
 
@@ -265,6 +266,8 @@ export default function ChatScreen() {
   const handleSend = async () => {
     if (!newMessage.trim() || sending) return;
 
+    console.log('ChatScreen: Sending message in conversation', id);
+    capture('send_message', { conversation_id: id });
     setSending(true);
     const messageText = newMessage.trim();
     setNewMessage('');
