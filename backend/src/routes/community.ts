@@ -5,6 +5,7 @@ import * as schema from '../db/schema.js';
 import { generateShortId } from '../utils/short-id.js';
 import { sendPushNotification } from '../utils/push-notifications.js';
 import { sendPushNotification as sendOnesignalNotification } from '../utils/onesignal.js';
+import { capture } from '../analytics.js';
 
 interface DiscussionTopicFilters {
   category?: string;
@@ -247,6 +248,12 @@ export function registerCommunityRoutes(app: App) {
         .returning();
 
       app.logger.info({ topicId: topic.id, userId: session.user.id }, 'Discussion topic created successfully');
+      capture(session.user.id, 'post_created', {
+        post_type: 'community',
+        post_id: topic.id,
+        category: topic.category,
+        location: topic.location,
+      });
       return topic;
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id }, 'Failed to create discussion topic');
@@ -420,6 +427,11 @@ export function registerCommunityRoutes(app: App) {
       }
 
       app.logger.info({ replyId: newReply.id, topicId: id, userId: session.user.id }, 'Discussion reply created successfully');
+      capture(session.user.id, 'comment_added', {
+        post_type: 'community',
+        topic_id: id,
+        reply_id: newReply.id,
+      });
       return newReply;
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, topicId: id }, 'Failed to create discussion reply');
@@ -826,6 +838,11 @@ export function registerCommunityRoutes(app: App) {
         .where(eq(schema.discussionTopics.id, id));
 
       app.logger.info({ topicId: id, userId: session.user.id }, 'Discussion topic soft deleted successfully');
+      capture(session.user.id, 'post_deleted', {
+        post_type: 'community',
+        post_id: id,
+        category: topic.category,
+      });
       return { success: true, message: 'Topic deleted successfully' };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, topicId: id }, 'Failed to delete discussion topic');

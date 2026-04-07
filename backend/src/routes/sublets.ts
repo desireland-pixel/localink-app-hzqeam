@@ -5,6 +5,7 @@ import * as schema from '../db/schema.js';
 import { generateShortId } from '../utils/short-id.js';
 import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '../utils/date-format.js';
 import { regenerateSignedUrls } from '../utils/image-url-regenerator.js';
+import { capture } from '../analytics.js';
 
 interface SubletFilters {
   city?: string; // Independent city filter
@@ -376,6 +377,15 @@ export function registerSubletRoutes(app: App) {
         .returning();
 
       app.logger.info({ subletId: sublet.id, userId: session.user.id }, 'Sublet created successfully');
+
+      // Capture analytics event (fire-and-forget)
+      capture(session.user.id, 'post_created', {
+        post_type: 'sublet',
+        post_id: sublet.id,
+        city: sublet.city,
+        category: 'sublet',
+      });
+
       // Format dates in response
       return {
         ...sublet,
@@ -590,6 +600,14 @@ export function registerSubletRoutes(app: App) {
         .where(eq(schema.sublets.id, id));
 
       app.logger.info({ subletId: id, userId: session.user.id }, 'Sublet soft deleted successfully');
+
+      // Capture analytics event (fire-and-forget)
+      capture(session.user.id, 'post_deleted', {
+        post_type: 'sublet',
+        post_id: id,
+        category: 'sublet',
+      });
+
       return { success: true };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, subletId: id }, 'Failed to delete sublet');
