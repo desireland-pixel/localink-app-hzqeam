@@ -5,6 +5,7 @@ import * as schema from '../db/schema.js';
 import { formatDateToDDMMYYYY } from '../utils/date-format.js';
 import { formatTravelPostTitle, getTravelPostTypeEmojis } from '../utils/travel-post-formatter.js';
 import { regenerateSignedUrls } from '../utils/image-url-regenerator.js';
+import { capture } from '../analytics.js';
 
 interface CreateFavoriteBody {
   postId: string;
@@ -67,6 +68,10 @@ export function registerFavoriteRoutes(app: App) {
         .returning();
 
       app.logger.info({ favoriteId: favorite.id, userId: session.user.id }, 'Favorite created successfully');
+      capture(session.user.id, 'favorite_created', {
+        postId: favorite.postId,
+        postType: favorite.postType,
+      });
       reply.status(201);
       return {
         success: true,

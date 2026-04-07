@@ -8,6 +8,7 @@ import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '../utils/date-forma
 import { formatTravelPostTitle, getTravelPostTypeEmojis } from '../utils/travel-post-formatter.js';
 import { regenerateSignedUrls } from '../utils/image-url-regenerator.js';
 import { formatIncentiveAmount, getIncentiveDisclaimer } from '../utils/incentive-formatter.js';
+import { capture } from '../analytics.js';
 
 interface TravelPostFilters {
   fromCity?: string; // Independent from/to city filter
@@ -594,6 +595,15 @@ export function registerTravelPostRoutes(app: App) {
 
       app.logger.info({ travelPostId: post.id, userId: session.user.id }, 'Travel post created successfully');
 
+      // Capture analytics event (fire-and-forget)
+      capture(session.user.id, 'post_created', {
+        post_type: 'travel',
+        post_id: post.id,
+        from_city: post.fromCity,
+        to_city: post.toCity,
+        category: 'travel',
+      });
+
       reply.status(201);
       return {
         travelPostId: post.id,
@@ -821,6 +831,14 @@ export function registerTravelPostRoutes(app: App) {
         .where(eq(schema.travelPosts.id, id));
 
       app.logger.info({ travelPostId: id, userId: session.user.id }, 'Travel post soft deleted successfully');
+
+      // Capture analytics event (fire-and-forget)
+      capture(session.user.id, 'post_deleted', {
+        post_type: 'travel',
+        post_id: id,
+        category: 'travel',
+      });
+
       return { success: true };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id, travelPostId: id }, 'Failed to delete travel post');

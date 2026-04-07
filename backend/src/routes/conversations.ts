@@ -6,6 +6,7 @@ import { user } from '../db/auth-schema.js';
 import { wsManager } from '../websocket-manager.js';
 import { sendPushNotification } from '../utils/push-notifications.js';
 import { sendPushNotification as sendOnesignalNotification } from '../utils/onesignal.js';
+import { capture } from '../analytics.js';
 
 interface CreateConversationBody {
   postId: string;
@@ -780,6 +781,9 @@ export function registerConversationRoutes(app: App) {
       };
 
       app.logger.info({ messageId: message.id, conversationId: id, userId: session.user.id }, 'Message sent successfully');
+      capture(session.user.id, 'message_sent', {
+        conversationId: id,
+      });
 
       // Broadcast message to both participants via WebSocket
       const recipientId = conversation.participant1Id === session.user.id
