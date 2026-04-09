@@ -8,6 +8,8 @@ import { authenticatedGet, authenticatedPatch, authenticatedPut, authenticatedDe
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import Modal from '@/components/ui/Modal';
 import { IconSymbol } from '@/components/IconSymbol';
+import { useScreenTracking } from '@/utils/useScreenTracking';
+import { SCREEN_NAMES } from '@/utils/analytics';
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
@@ -45,6 +47,7 @@ interface Post {
 }
 
 export default function MyPostsScreen() {
+  useScreenTracking(SCREEN_NAMES.MY_POSTS);
   const router = useRouter();
   const params = useLocalSearchParams();
   const [refreshing, setRefreshing] = useState(false);

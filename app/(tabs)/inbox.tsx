@@ -9,6 +9,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { IconSymbol } from '@/components/IconSymbol';
 import { StatusBar } from 'expo-status-bar';
+import { useScreenTracking } from '@/utils/useScreenTracking';
+import { SCREEN_NAMES } from '@/utils/analytics';
 
 interface Conversation {
   id: string;
@@ -37,6 +39,7 @@ interface Conversation {
 }
 
 export default function InboxScreen() {
+  useScreenTracking(SCREEN_NAMES.INBOX);
   const router = useRouter();
   const { user, fetchUnreadCount } = useAuth();
   const wsRef = useRef<WebSocket | null>(null);

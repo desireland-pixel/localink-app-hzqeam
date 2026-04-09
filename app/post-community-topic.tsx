@@ -7,6 +7,8 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 import { authenticatedPost, authenticatedPut } from '@/utils/api';
 import Modal from '@/components/ui/Modal';
 import { CitySearchInput } from '@/components/CitySearchInput';
+import { useScreenTracking } from '@/utils/useScreenTracking';
+import { SCREEN_NAMES } from '@/utils/analytics';
 
 const CATEGORIES = [
   'General',
@@ -20,6 +22,7 @@ const CATEGORIES = [
 ];
 
 export default function PostCommunityTopicScreen() {
+  useScreenTracking(SCREEN_NAMES.COMMUNITY_POST);
   const router = useRouter();
   const params = useLocalSearchParams();
   const [category, setCategory] = useState('');

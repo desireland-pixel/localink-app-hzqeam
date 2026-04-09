@@ -8,6 +8,8 @@ import { authenticatedPost, authenticatedPut } from '@/utils/api';
 import Modal from '@/components/ui/Modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDateToDDMMYYYY, dateToISOString, parseDateFromDDMMYYYY } from '@/utils/cities';
+import { useScreenTracking } from '@/utils/useScreenTracking';
+import { SCREEN_NAMES } from '@/utils/analytics';
 
 type TravelMode = 'offering' | 'seeking-companionship' | 'seeking-ally' | null;
 
@@ -37,6 +39,7 @@ const TRAVEL_CITIES = [
 const COMPANIONSHIP_FOR_OPTIONS = ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others'];
 
 export default function PostTravelScreen() {
+  useScreenTracking(SCREEN_NAMES.TRAVEL_POST);
   const router = useRouter();
   const params = useLocalSearchParams();
   const [travelMode, setTravelMode] = useState<TravelMode>(null);

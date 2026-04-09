@@ -7,6 +7,8 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 import { authenticatedGet, authenticatedDelete } from '@/utils/api';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
+import { useScreenTracking } from '@/utils/useScreenTracking';
+import { SCREEN_NAMES } from '@/utils/analytics';
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
@@ -58,6 +60,7 @@ interface FavoritePost {
 }
 
 export default function FavouritesScreen() {
+  useScreenTracking(SCREEN_NAMES.FAVOURITES);
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);

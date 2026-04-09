@@ -18,7 +18,8 @@ import { WidgetProvider } from "@/contexts/WidgetContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { colors } from "@/styles/commonStyles";
-import { capture } from "@/utils/analytics";
+import { capture, startSession, endSession, checkSessionTimeout, getSessionId } from "@/utils/analytics";
+import { AppState } from "react-native";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -28,9 +29,27 @@ export const unstable_settings = {
 
 function AnalyticsProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const backgroundedAtRef = React.useRef<number | null>(null);
 
   useEffect(() => {
-    capture('app_open');
+    startSession();
+    capture('app_open', { session_id: getSessionId() });
+
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'background' || nextState === 'inactive') {
+        backgroundedAtRef.current = Date.now();
+        endSession();
+      } else if (nextState === 'active') {
+        if (backgroundedAtRef.current !== null) {
+          checkSessionTimeout(backgroundedAtRef.current);
+          backgroundedAtRef.current = null;
+        } else {
+          if (!getSessionId()) startSession();
+        }
+      }
+    });
+
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {

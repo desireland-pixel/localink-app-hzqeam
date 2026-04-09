@@ -8,6 +8,8 @@ import { authenticatedPost, authenticatedPut, BACKEND_URL, getBearerToken } from
 import Modal from '@/components/ui/Modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { CitySearchInput } from '@/components/CitySearchInput';
+import { useScreenTracking } from '@/utils/useScreenTracking';
+import { SCREEN_NAMES } from '@/utils/analytics';
 import { formatDateToDDMMYYYY, dateToISOString, parseDateFromDDMMYYYY } from '@/utils/cities';
 import * as ImagePicker from 'expo-image-picker';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -15,6 +17,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 type SubletType = 'offering' | 'seeking' | null;
 
 export default function PostSubletScreen() {
+  useScreenTracking(SCREEN_NAMES.SUBLET_POST);
   const router = useRouter();
   const params = useLocalSearchParams();
   const [subletType, setSubletType] = useState<SubletType>(null);

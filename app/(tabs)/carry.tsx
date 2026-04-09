@@ -9,6 +9,8 @@ import { authenticatedGet, authenticatedPost, authenticatedDelete, apiGet } from
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { useAuth } from '@/contexts/AuthContext';
 import { StatusBar } from 'expo-status-bar';
+import { useScreenTracking } from '@/utils/useScreenTracking';
+import { SCREEN_NAMES } from '@/utils/analytics';
 
 interface CommunityTopic {
   id: string;
@@ -45,6 +47,7 @@ const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } =
 type SortOption = 'Newest' | 'Trending' | 'Oldest';
 
 export default function CommunityScreen() {
+  useScreenTracking(SCREEN_NAMES.COMMUNITY);
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user, fetchCommunityUnreadCount } = useAuth();

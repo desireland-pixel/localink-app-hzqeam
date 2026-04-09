@@ -11,6 +11,8 @@ import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '@/utils/cities';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { StatusBar } from 'expo-status-bar';
+import { useScreenTracking } from '@/utils/useScreenTracking';
+import { SCREEN_NAMES } from '@/utils/analytics';
 
 interface Sublet {
   id: string;
@@ -42,6 +44,7 @@ Users are exclusively responsible for ensuring compliance with applicable rental
 No verification of listings is performed, and no responsibility is assumed for the legality, accuracy, or execution of subletting arrangements.`;
 
 export default function SubletScreen() {
+  useScreenTracking(SCREEN_NAMES.SUBLET);
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();

@@ -6,7 +6,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost, authenticatedPut, authenticatedDelete } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { capture } from '@/utils/analytics';
+import { capture, SCREEN_NAMES } from '@/utils/analytics';
+import { useScreenTracking } from '@/utils/useScreenTracking';
 import Modal from '@/components/ui/Modal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -58,6 +59,7 @@ interface CommunityTopic {
 }
 
 export default function CommunityDetailsScreen() {
+  useScreenTracking(SCREEN_NAMES.COMMUNITY_DETAIL);
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user, fetchCommunityUnreadCount } = useAuth();

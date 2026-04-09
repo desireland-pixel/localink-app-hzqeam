@@ -8,6 +8,8 @@ import { authenticatedGet, authenticatedPost, authenticatedDelete, apiGet } from
 import { useAuth } from '@/contexts/AuthContext';
 import { IconSymbol } from '@/components/IconSymbol';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
+import { useScreenTracking } from '@/utils/useScreenTracking';
+import { SCREEN_NAMES } from '@/utils/analytics';
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
@@ -44,6 +46,7 @@ interface CommunityTopic {
 type SortOption = 'Newest' | 'Trending' | 'Oldest';
 
 export default function CommunityScreen() {
+  useScreenTracking(SCREEN_NAMES.HOME);
   const router = useRouter();
   const { user } = useAuth();
   const [topics, setTopics] = useState<CommunityTopic[]>([]);

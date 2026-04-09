@@ -10,6 +10,8 @@ import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY, getCityCode } from '@/util
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 import { StatusBar } from 'expo-status-bar';
+import { useScreenTracking } from '@/utils/useScreenTracking';
+import { SCREEN_NAMES } from '@/utils/analytics';
 
 interface TravelPost {
   id: string;
@@ -44,6 +46,7 @@ Users are solely responsible for compliance with all applicable laws, airline po
 No responsibility or liability is assumed for loss, damage, delay, disputes, or legal consequences arising from arrangements made between users.`;
 
 export default function TravelScreen() {
+  useScreenTracking(SCREEN_NAMES.TRAVEL);
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();

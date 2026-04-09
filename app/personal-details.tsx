@@ -8,8 +8,11 @@ import { authenticatedPut } from '@/utils/api';
 import { CitySearchInput } from '@/components/CitySearchInput';
 import { useRouter } from 'expo-router';
 import Modal from '@/components/ui/Modal';
+import { useScreenTracking } from '@/utils/useScreenTracking';
+import { SCREEN_NAMES } from '@/utils/analytics';
 
 export default function PersonalDetailsScreen() {
+  useScreenTracking(SCREEN_NAMES.PERSONAL_DETAILS);
   const router = useRouter();
   const { user, profile, refreshProfile } = useAuth();
   const [name, setName] = useState('');

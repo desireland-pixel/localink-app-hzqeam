@@ -4,6 +4,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from '
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
+import { useScreenTracking } from '@/utils/useScreenTracking';
+import { SCREEN_NAMES } from '@/utils/analytics';
 
 const CATEGORIES = [
   'General',
@@ -17,6 +19,7 @@ const CATEGORIES = [
 ];
 
 export default function CommunityFiltersScreen() {
+  useScreenTracking(SCREEN_NAMES.COMMUNITY_FILTERS);
   const router = useRouter();
   const params = useLocalSearchParams();
   // Preserve city filter from the community page (city filter is independent)

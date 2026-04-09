@@ -6,7 +6,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost, authenticatedDelete, BACKEND_URL, getBearerToken } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { capture } from '@/utils/analytics';
+import { capture, SCREEN_NAMES } from '@/utils/analytics';
+import { useScreenTracking } from '@/utils/useScreenTracking';
 import Modal from '@/components/ui/Modal';
 import { IconSymbol } from '@/components/IconSymbol';
 
@@ -42,6 +43,7 @@ interface Conversation {
 }
 
 export default function ChatScreen() {
+  useScreenTracking(SCREEN_NAMES.CHAT);
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user, fetchUnreadCount } = useAuth();

@@ -6,8 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
+import { useScreenTracking } from '@/utils/useScreenTracking';
+import { SCREEN_NAMES } from '@/utils/analytics';
 
 export default function TravelFiltersScreen() {
+  useScreenTracking(SCREEN_NAMES.TRAVEL_FILTERS);
   const router = useRouter();
   const params = useLocalSearchParams();
   // Preserve from/to city filters from the travel page (they are independent)
