@@ -28,7 +28,7 @@ export default function DataPrivacyScreen() {
           <Text style={styles.bulletPoint}>• Profile information (city)</Text>
           <Text style={styles.bulletPoint}>• User-generated content (posts, messages, photos)</Text>
           <Text style={styles.bulletPoint}>• Communication data (support requests, inquiries)</Text>
-          <Text style={styles.bulletPoint}>• Technical data (IP address, device information, log data, timestamps)</Text>
+          <Text style={styles.bulletPoint}>• Technical data (IP address, device information, log data, timestamps, usage data such as app interactions)</Text>
         </View>
 
         <View style={styles.section}>
@@ -47,19 +47,22 @@ export default function DataPrivacyScreen() {
           <Text style={styles.paragraph}>
             The platform is hosted by external service providers. Data is stored on secure infrastructure within the European Union or in jurisdictions offering adequate data protection safeguards pursuant to Art. 44 et seq. GDPR.
           </Text>
+          <Text style={styles.paragraph}>
+            Some service providers may process data outside the European Union. In such cases, appropriate safeguards such as Standard Contractual Clauses (SCCs) are applied.
+          </Text>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>5. Communication Content</Text>
           <Text style={styles.paragraph}>
-            Messages, posts and other user-generated content are stored on service provider. Access by administrators is restricted and may occur only where necessary for security, abuse prevention, technical maintenance, or legal compliance.
+            Messages, posts, and other user-generated content are stored on service providers. Access by administrators is restricted and may occur only where necessary for security, abuse prevention, technical maintenance, or legal compliance.
           </Text>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>6. Data Retention</Text>
           <Text style={styles.paragraph}>
-            Personal data is retained for the duration of the user relationship. Upon verified deletion request, account data is erased within 30 days unless statutory retention obligations require otherwise.
+            Personal data is retained for the duration of the user relationship. Upon verified deletion request, account data is erased within 30 days unless statutory retention obligations require otherwise. Users can request account deletion via the support email.
           </Text>
         </View>
 
@@ -71,6 +74,9 @@ export default function DataPrivacyScreen() {
           <Text style={styles.bulletPoint}>• To service providers under data processing agreements (Art. 28 GDPR)</Text>
           <Text style={styles.bulletPoint}>• To competent authorities where legally required</Text>
           <Text style={styles.bulletPoint}>• To other users where inherent to platform functionality</Text>
+          <Text style={styles.paragraph}>
+            We do not use personal data for third-party advertising or cross-app tracking.
+          </Text>
         </View>
 
         <View style={styles.section}>
@@ -91,7 +97,17 @@ export default function DataPrivacyScreen() {
           </Text>
         </View>
 
-        <Text style={styles.lastUpdated}>Last updated: March 2026</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>10. Analytics</Text>
+          <Text style={styles.paragraph}>
+            We use analytics tools to understand how users interact with the platform, including app usage, feature interactions, and general engagement patterns. This information helps us improve functionality, usability, and overall user experience. The data collected may include interactions within the app and general technical information, and may be associated with a user account.
+          </Text>
+          <Text style={styles.paragraph}>
+            We do not use analytics data for advertising purposes or cross-service tracking.
+          </Text>
+        </View>
+
+        <Text style={styles.lastUpdated}>Last updated: April 2026</Text>
         <Text style={styles.lastUpdated}>This policy complies with the EU General Data Protection Regulation (GDPR)</Text>
       </ScrollView>
     </SafeAreaView>

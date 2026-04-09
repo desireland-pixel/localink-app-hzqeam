@@ -88,11 +88,6 @@ export default function PersonalDetailsScreen() {
     }
   };
 
-  const handleEditPassword = () => {
-    console.log('PersonalDetailsScreen: Navigate to edit password');
-    router.push('/edit-password');
-  };
-
   const handleFaqsPress = () => {
     console.log('PersonalDetailsScreen: Navigate to FAQs');
     router.push('/faqs');

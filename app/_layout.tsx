@@ -117,14 +117,6 @@ export default function RootLayout() {
                   }} 
                 />
                 <Stack.Screen 
-                  name="edit-password" 
-                  options={{ 
-                    headerShown: true,
-                    title: 'Edit Password',
-                    headerBackTitle: 'Back'
-                  }} 
-                />
-                <Stack.Screen 
                   name="favourites" 
                   options={{ 
                     headerShown: true,

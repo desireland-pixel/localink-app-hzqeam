@@ -24,8 +24,9 @@ import React, {
   ReactNode,
 } from "react";
 import { Platform } from "react-native";
-import { OneSignal, NotificationWillDisplayEvent } from "react-native-onesignal";
+import { OneSignal, NotificationWillDisplayEvent, OpenedEvent } from "react-native-onesignal";
 import Constants from "expo-constants";
+import { router } from "expo-router";
 
 // Import auth hook for user targeting (validated at setup time)
 import { useAuth } from "./AuthContext";
@@ -125,9 +126,22 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       };
       OneSignal.Notifications.addEventListener("permissionChange", permissionHandler);
 
+      // Handle notification clicks — deep link into chat if chatId/conversationId present
+      const clickHandler = (event: OpenedEvent) => {
+        const data = event.notification.additionalData as Record<string, unknown> | undefined;
+        console.log("[OneSignal] Notification clicked:", JSON.stringify(data));
+        const chatId = data?.chatId ?? data?.conversationId;
+        if (chatId) {
+          console.log("[OneSignal] Deep linking to chat:", chatId);
+          router.push({ pathname: "/chat/[id]", params: { id: String(chatId) } });
+        }
+      };
+      OneSignal.Notifications.addEventListener("click", clickHandler);
+
       return () => {
         OneSignal.Notifications.removeEventListener("foregroundWillDisplay", foregroundHandler);
         OneSignal.Notifications.removeEventListener("permissionChange", permissionHandler);
+        OneSignal.Notifications.removeEventListener("click", clickHandler);
       };
     } catch (error) {
       console.error("[OneSignal] Failed to initialize:", error);
