@@ -1,5 +1,4 @@
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { useRouter, useSegments } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,15 +6,20 @@ import { colors, typography, spacing } from '@/styles/commonStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Segment names that are public (no auth required).
-// These match the file names in the app/ directory without the leading slash.
 const PUBLIC_SEGMENTS = ['reset-password', 'auth', 'verify-otp', 'auth-popup', 'auth-callback'];
+
+// Segment names where an authenticated user is already in the right place
+// (e.g. arrived via deep link). Do not redirect away from these.
+const AUTHENTICATED_SEGMENTS = ['(tabs)', 'sublet', 'travel', 'community', 'chat'];
 
 export default function IndexScreen() {
   const router = useRouter();
   const { user, loading, profileLoading } = useAuth();
-  // useSegments returns the current route path as an array, e.g. ['reset-password']
-  // or ['(tabs)', 'sublet']. This is synchronous and always up-to-date.
   const segments = useSegments();
+  // Guard: only redirect once per app session. Prevents the 20-min session
+  // refresh in AuthContext from re-firing router.replace and destroying the
+  // navigation stack (which breaks the back button on all subsequent screens).
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
     console.log('[IndexScreen] Auth state:', {
@@ -30,14 +34,31 @@ export default function IndexScreen() {
       return;
     }
 
-    // If expo-router has already navigated to a public screen (e.g. via deep link),
-    // do not redirect — the user is exactly where they should be.
+    // Only redirect once — never again after the first redirect.
+    if (hasRedirected.current) {
+      console.log('[IndexScreen] Already redirected, skipping');
+      return;
+    }
+
     const currentSegment = segments[0];
+
+    // If already on a public route (e.g. deep link to reset-password), stay.
     const isOnPublicRoute = PUBLIC_SEGMENTS.includes(currentSegment as string);
     if (isOnPublicRoute) {
       console.log('[IndexScreen] Already on public route, skipping redirect:', currentSegment);
       return;
     }
+
+    // If already on an authenticated content screen (e.g. deep link to
+    // /community/[id] or /sublet/[id]), do not redirect away.
+    const isAlreadyInApp = AUTHENTICATED_SEGMENTS.includes(currentSegment as string);
+    if (isAlreadyInApp) {
+      console.log('[IndexScreen] Already on authenticated route, skipping redirect:', currentSegment);
+      hasRedirected.current = true;
+      return;
+    }
+
+    hasRedirected.current = true;
 
     const timer = setTimeout(() => {
       if (!user) {

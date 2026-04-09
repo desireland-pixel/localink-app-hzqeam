@@ -108,7 +108,6 @@ export default function RootLayout() {
                     headerBackTitle: 'Back'
                   }} 
                 />
-                <Stack.Screen name="create-profile" options={{ headerShown: false }} />
                 <Stack.Screen 
                   name="personal-details" 
                   options={{ 
