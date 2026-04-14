@@ -156,64 +156,66 @@ export default function PersonalDetailsScreen() {
         style={styles.keyboardView}
         keyboardVerticalOffset={Platform.OS === 'android' ? 0 : 0}
       >
-      <ScrollView style={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <Text style={styles.label}>Full Name *</Text>
-        <TextInput
-          style={[styles.input, styles.inputDisabled]}
-          placeholder="Enter your full name"
-          placeholderTextColor={colors.textLight}
-          value={name}
-          editable={false}
-        />
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View>
+          <Text style={styles.label}>Full Name *</Text>
+          <TextInput
+            style={[styles.input, styles.inputDisabled]}
+            placeholder="Enter your full name"
+            placeholderTextColor={colors.textLight}
+            value={name}
+            editable={false}
+          />
 
-        <Text style={styles.label}>Username *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your username"
-          placeholderTextColor={colors.textLight}
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-          editable={!loading}
-        />
+          <Text style={styles.label}>Username *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your username"
+            placeholderTextColor={colors.textLight}
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+            editable={!loading}
+          />
 
-        <Text style={styles.label}>City *</Text>
-        <CitySearchInput
-          value={city}
-          onChangeText={setCity}
-          placeholder="Search city..."
-        />
+          <Text style={styles.label}>City *</Text>
+          <CitySearchInput
+            value={city}
+            onChangeText={setCity}
+            placeholder="Search city..."
+          />
 
-        <Text style={styles.label}>Email *</Text>
-        <TextInput
-          style={[styles.input, styles.inputDisabled]}
-          placeholder="Email address"
-          placeholderTextColor={colors.textLight}
-          value={email}
-          editable={false}
-        />
+          <Text style={styles.label}>Email *</Text>
+          <TextInput
+            style={[styles.input, styles.inputDisabled]}
+            placeholder="Email address"
+            placeholderTextColor={colors.textLight}
+            value={email}
+            editable={false}
+          />
 
-        <Text style={styles.label}>Password *</Text>
-        <TextInput
-          style={[styles.input, styles.inputDisabled]}
-          placeholder="••••••••"
-          placeholderTextColor={colors.textLight}
-          value="••••••••"
-          editable={false}
-          secureTextEntry={true}
-        />
+          <Text style={styles.label}>Password *</Text>
+          <TextInput
+            style={[styles.input, styles.inputDisabled]}
+            placeholder="••••••••"
+            placeholderTextColor={colors.textLight}
+            value="••••••••"
+            editable={false}
+            secureTextEntry={true}
+          />
 
-        <TouchableOpacity
-          style={[styles.button, (!isSaveEnabled || loading) && styles.buttonDisabled]}
-          onPress={handleSave}
-          disabled={!isSaveEnabled || loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.buttonText}>Save Changes</Text>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, (!isSaveEnabled || loading) && styles.buttonDisabled]}
+            onPress={handleSave}
+            disabled={!isSaveEnabled || loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.buttonText}>Save Changes</Text>
+            )}
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.deleteAccountSection}>
           <TouchableOpacity
@@ -305,6 +307,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
+  },
+  contentContainer: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    paddingBottom: spacing.xl,
   },
   label: {
     ...typography.bodySmall,
