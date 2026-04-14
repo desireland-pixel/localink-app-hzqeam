@@ -100,9 +100,10 @@ export function registerUserDeletionRoutes(app: App) {
           <p>We've received your request to delete your LokaLinc account.</p>
           <p>Your account and all associated data will be <strong>permanently deleted on ${formattedDate}</strong> — 7 days from now.</p>
           <p>During this 7-day window, your data is retained for legal and compliance reasons. No action is needed from you.</p>
-          <p>If this was a mistake, please contact our support team at <a href="mailto:support@lokalinc.nl">support@lokalinc.nl</a> as soon as possible.</p>
+          <p>If this was a mistake, please contact our support team at <a href="mailto:support@lokalinc.de">support@lokalinc.de</a> as soon as possible.</p>
           <p>Thank you for being part of the LokaLinc community.</p>
           <p>— The LokaLinc Team</p>
+					<p>- https://lokalinc.de</p>
         `,
       });
 
