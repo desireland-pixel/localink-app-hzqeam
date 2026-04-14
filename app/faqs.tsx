@@ -91,7 +91,7 @@ const faqs: FAQ[] = [
   },
   {
     question: 'How can I delete my account?',
-    answer: 'You can contact us at support@lokalinc.de via your registered email with the subject "Account Deletation Request". We will process your request within 7 working days. For more details: Visit https://lokalinc.de/support',
+    answer: 'You can delete your account directly from the app. Go to your Profile → Personal Details, scroll to the bottom, and tap \'Delete Account\'. You will be asked to confirm by typing DELETE. Once confirmed, your account will be scheduled for deletion and you will receive a confirmation email. Your account and all associated data will be permanently deleted within 7 days. This period is required for legal and compliance reasons. If you believe this was a mistake, please contact our support team as soon as possible.',
   },
   {
     question: 'How can I contact to give feedback?',
