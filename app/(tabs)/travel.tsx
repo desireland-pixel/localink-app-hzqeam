@@ -284,6 +284,7 @@ export default function TravelScreen() {
     }
     
     return sorted;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [posts, selectedFrom, selectedTo, sortOption, searchQuery]);
 
   const toggleFavorite = async (postId: string) => {
