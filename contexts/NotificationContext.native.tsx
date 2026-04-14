@@ -170,7 +170,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     } catch (error) {
       console.error("[OneSignal] Failed to update user:", error);
     }
-  }, [user?.id]);
+  }, [user]);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (isWeb) return false;

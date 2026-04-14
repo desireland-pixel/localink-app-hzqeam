@@ -282,7 +282,7 @@ export default function TravelScreen() {
     }
     
     return sorted;
-  }, [posts, selectedFrom, selectedTo, sortOption, searchQuery]);
+  }, [posts, selectedFrom, selectedTo, sortOption, searchQuery, COUNTRY_CITIES]);
 
   const toggleFavorite = async (postId: string) => {
     console.log('TravelScreen: Toggle favorite', postId);
