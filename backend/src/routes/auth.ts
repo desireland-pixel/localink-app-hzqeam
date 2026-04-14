@@ -285,6 +285,7 @@ export function registerAuthRoutes(app: App) {
             </div>
             <p style="color: #6B7280;">This code will expire in 10 minutes.</p>
             <p style="color: #6B7280;">If you didn't create this account, please ignore this email.</p>
+						
 						<p>- The LokaLinc Team</p>
 						<p>- https://lokalinc.de</p>
           </div>
