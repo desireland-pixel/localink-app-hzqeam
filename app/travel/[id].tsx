@@ -427,28 +427,23 @@ ${shareData.shareUrl}`,
           </View>
         </View>
 
-        {!isOwnPost && (
-          <View style={[styles.footer, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
-            <TouchableOpacity 
-              style={[styles.contactButton, contacting && styles.contactButtonDisabled]} 
-              onPress={handleContact}
-              disabled={contacting}
-            >
-              {contacting ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.contactButtonText}>Contact</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {isOwnPost && (
-          <View style={styles.ownPostNotice}>
-            <Text style={styles.ownPostText}>This is your post</Text>
-          </View>
-        )}
       </ScrollView>
+
+      {!isOwnPost && (
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.contactButton, contacting && styles.contactButtonDisabled]}
+            onPress={handleContact}
+            disabled={contacting}
+          >
+            {contacting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.contactButtonText}>Contact</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
 
       <Modal
         visible={!!error}
@@ -672,9 +667,9 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    backgroundColor: colors.background,
   },
   contactButton: {
     backgroundColor: colors.primary,
