@@ -13,6 +13,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useScreenTracking } from '@/utils/useScreenTracking';
 import { SCREEN_NAMES } from '@/utils/analytics';
 
+// Country-to-cities mapping for expanded country filtering (static, defined outside component)
+const COUNTRY_CITIES: { [country: string]: string[] } = {
+  'India': ['Ahmedabad', 'Bengaluru', 'Chennai', 'Delhi', 'Goa', 'Hyderabad', 'Kochi', 'Kolkata', 'Mumbai', 'Thiruvananthapuram'],
+  'Germany': ['Berlin', 'Cologne', 'Düsseldorf', 'Frankfurt', 'Hamburg', 'Hannover', 'Munich', 'Stuttgart'],
+};
+
 interface TravelPost {
   id: string;
   userId: string;
@@ -191,11 +197,7 @@ export default function TravelScreen() {
     }, [fetchPosts, fetchFavorites])
   );
 
-  // Country-to-cities mapping for expanded country filtering
-  const COUNTRY_CITIES: { [country: string]: string[] } = {
-    'India': ['Ahmedabad', 'Bengaluru', 'Chennai', 'Delhi', 'Goa', 'Hyderabad', 'Kochi', 'Kolkata', 'Mumbai', 'Thiruvananthapuram'],
-    'Germany': ['Berlin', 'Cologne', 'Düsseldorf', 'Frankfurt', 'Hamburg', 'Hannover', 'Munich', 'Stuttgart'],
-  };
+
 
   // Returns all city names that match the selection (expands country to its cities)
   const getMatchingCities = (selection: string): string[] => {
@@ -282,7 +284,7 @@ export default function TravelScreen() {
     }
     
     return sorted;
-  }, [posts, selectedFrom, selectedTo, sortOption, searchQuery, COUNTRY_CITIES]);
+  }, [posts, selectedFrom, selectedTo, sortOption, searchQuery]);
 
   const toggleFavorite = async (postId: string) => {
     console.log('TravelScreen: Toggle favorite', postId);
