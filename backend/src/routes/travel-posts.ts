@@ -84,12 +84,12 @@ async function autoCloseExpiredTravelPosts(app: App): Promise<void> {
     .where(and(
       eq(schema.travelPosts.status, 'active'),
        or(
-				 -- No range: expire after travelDate
+				 // No range: expire after travelDate
 				 and(
 		       isNull(schema.travelPosts.travelDateTo),
            lt(schema.travelPosts.travelDate, todayString)
 				 ),	 
-   			-- Range exists: expire on travelDateTo
+   			 // Range exists: expire on travelDateTo
 				 and(
 		       isNotNull(schema.travelPosts.travelDateTo),
 		       lte(schema.travelPosts.travelDateTo, todayString)
