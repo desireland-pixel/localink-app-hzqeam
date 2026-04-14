@@ -216,10 +216,6 @@ export default function PersonalDetailsScreen() {
         </TouchableOpacity>
 
         <View style={styles.deleteAccountSection}>
-          <Text style={styles.deleteAccountTitle}>Delete Account</Text>
-          <Text style={styles.deleteAccountDescription}>
-            Permanently delete your account and all associated data. This action cannot be undone.
-          </Text>
           <TouchableOpacity
             style={styles.deleteAccountButton}
             onPress={handleDeleteAccountPress}
@@ -242,7 +238,7 @@ export default function PersonalDetailsScreen() {
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Delete Account</Text>
             <Text style={styles.modalWarning}>
-              This action is permanent and cannot be undone. Your account will be scheduled for deletion. All your data (posts, messages, favourites) will be permanently deleted within 7 days.
+              Are you sure you want to delete your account? This action is permanent and cannot be undone. You will lose access immediately. All your data (posts, messages, favourites) will be permanently deleted within 7 days.
             </Text>
 
             <Text style={styles.modalInputLabel}>
