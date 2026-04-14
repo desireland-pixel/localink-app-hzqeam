@@ -1,15 +1,26 @@
 import type { App } from '../index.js';
 import { lte, or, eq, and, inArray, isNotNull } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
+import * as authSchema from '../db/auth-schema.js';
 
 /**
  * Cleanup job that runs daily to permanently delete soft-deleted posts
- * after 30 days and clean up associated data
+ * after 30 days and clean up associated data, and purge accounts scheduled for deletion
  */
 export async function startCleanupJob(app: App): Promise<void> {
+  // Run startup purge after 10 seconds
+  setTimeout(async () => {
+    await runAccountPurge(app);
+  }, 10 * 1000);
+
   // Run cleanup every 24 hours
   setInterval(async () => {
     await runCleanup(app);
+  }, 24 * 60 * 60 * 1000);
+
+  // Run account purge every 24 hours
+  setInterval(async () => {
+    await runAccountPurge(app);
   }, 24 * 60 * 60 * 1000);
 
   app.logger.info({}, 'Cleanup job started - runs every 24 hours');
@@ -214,5 +225,72 @@ async function cleanupCommunityPosts(app: App, thirtyDaysAgoIso: string): Promis
     app.logger.info({ count: postsToDelete.length }, 'Cleaned up community posts');
   } catch (error) {
     app.logger.error({ err: error }, 'Failed to cleanup community posts');
+  }
+}
+
+async function runAccountPurge(app: App): Promise<void> {
+  try {
+    const now = new Date();
+    const usersToDelete = await app.db
+      .select({ id: authSchema.user.id, email: authSchema.user.email })
+      .from(authSchema.user)
+      .where(
+        and(
+          isNotNull(authSchema.user.scheduledDeletionAt),
+          lte(authSchema.user.scheduledDeletionAt, now as any)
+        )
+      );
+
+    if (usersToDelete.length === 0) {
+      return;
+    }
+
+    for (const user of usersToDelete) {
+      try {
+        // Delete in order of dependencies
+        await app.db.delete(schema.replyLikes).where(eq(schema.replyLikes.userId, user.id));
+        await app.db.delete(schema.discussionReplies).where(eq(schema.discussionReplies.userId, user.id));
+        await app.db.delete(schema.discussionTopics).where(eq(schema.discussionTopics.userId, user.id));
+        await app.db.delete(schema.favorites).where(eq(schema.favorites.userId, user.id));
+        await app.db.delete(schema.messages).where(eq(schema.messages.senderId, user.id));
+
+        // Delete conversations where user is participant
+        await app.db
+          .delete(schema.conversations)
+          .where(
+            or(
+              eq(schema.conversations.participant1Id, user.id),
+              eq(schema.conversations.participant2Id, user.id)
+            )
+          );
+
+        await app.db.delete(schema.pushTokens).where(eq(schema.pushTokens.userId, user.id));
+        await app.db.delete(schema.userOnesignalTokens).where(eq(schema.userOnesignalTokens.userId, user.id));
+        await app.db.delete(schema.userNotificationPreferences).where(eq(schema.userNotificationPreferences.userId, user.id));
+        await app.db.delete(schema.sublets).where(eq(schema.sublets.userId, user.id));
+        await app.db.delete(schema.travelPosts).where(eq(schema.travelPosts.userId, user.id));
+        await app.db.delete(schema.profiles).where(eq(schema.profiles.userId, user.id));
+        await app.db.delete(schema.passwordResetTokens).where(eq(schema.passwordResetTokens.userId, user.id));
+
+        // Delete OTP verifications by email
+        await app.db.delete(schema.otpVerifications).where(eq(schema.otpVerifications.email, user.email));
+
+        // Delete auth tables
+        await app.db.delete(authSchema.session).where(eq(authSchema.session.userId, user.id));
+        await app.db.delete(authSchema.account).where(eq(authSchema.account.userId, user.id));
+        await app.db.delete(authSchema.verification).where(eq(authSchema.verification.identifier, user.id));
+
+        // Delete the user
+        await app.db.delete(authSchema.user).where(eq(authSchema.user.id, user.id));
+
+        app.logger.info({ userId: user.id, userEmail: user.email }, '[PURGE] Deleted user');
+      } catch (error) {
+        app.logger.error({ err: error, userId: user.id, userEmail: user.email }, '[PURGE] Failed to delete user');
+      }
+    }
+
+    app.logger.info({ count: usersToDelete.length }, `[PURGE] Completed. Deleted ${usersToDelete.length} user(s).`);
+  } catch (error) {
+    app.logger.error({ err: error }, '[PURGE] Account purge job failed');
   }
 }
