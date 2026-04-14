@@ -285,6 +285,8 @@ export function registerAuthRoutes(app: App) {
             </div>
             <p style="color: #6B7280;">This code will expire in 10 minutes.</p>
             <p style="color: #6B7280;">If you didn't create this account, please ignore this email.</p>
+						<p>- The LokaLinc Team</p>
+						<p>- https://lokalinc.de</p>
           </div>
         `,
       });
@@ -373,6 +375,7 @@ export function registerAuthRoutes(app: App) {
             <p>LokaLinc helps you connect with your local community — find sublets, travel companions, and join discussions.</p>
             <p>If you have any questions, feel free to reach out to our support team.</p>
             <p>— The LokaLinc Team</p>
+						<p>- https://lokalinc.de</p>
           </div>
         `,
       });
@@ -463,6 +466,8 @@ export function registerAuthRoutes(app: App) {
             </div>
             <p style="color: #6B7280;">This code will expire in 10 minutes.</p>
             <p style="color: #6B7280;">If you didn't request this code, please ignore this email.</p>
+						<p>- The LokaLinc Team</p>
+						<p>- https://lokalinc.de</p>
           </div>
         `,
       });
@@ -559,6 +564,8 @@ export function registerAuthRoutes(app: App) {
             <p style="color: #4F46E5; word-break: break-all;">${resetLink}</p>
             <p style="color: #6B7280;">This link will expire in 10 minutes.</p>
             <p style="color: #6B7280;">If you didn't request this, please ignore this email.</p>
+						<p>- The LokaLinc Team</p>
+						<p>- https://lokalinc.de</p>
           </div>
         `,
       });
