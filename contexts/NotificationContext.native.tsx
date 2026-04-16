@@ -24,9 +24,8 @@ import React, {
   ReactNode,
 } from "react";
 import { Platform } from "react-native";
-import { OneSignal, NotificationWillDisplayEvent, OpenedEvent } from "react-native-onesignal";
+import { OneSignal, NotificationWillDisplayEvent } from "react-native-onesignal";
 import Constants from "expo-constants";
-import { router } from "expo-router";
 
 // Import auth hook for user targeting (validated at setup time)
 import { useAuth } from "./AuthContext";
@@ -126,39 +125,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       };
       OneSignal.Notifications.addEventListener("permissionChange", permissionHandler);
 
-      // Handle notification clicks — deep link into chat or post detail screens
-      const clickHandler = (event: OpenedEvent) => {
-        const data = event.notification.additionalData as Record<string, unknown> | undefined;
-        console.log("[OneSignal] Notification clicked:", JSON.stringify(data));
-
-        const type = data?.type;
-
-        if (type === "post_match") {
-          const postId = data?.post_id;
-          const postType = data?.post_type;
-          console.log("[OneSignal] Deep linking to post match:", postType, postId);
-          if (postType === "sublet" && postId) {
-            router.push({ pathname: "/sublet/[id]", params: { id: String(postId) } });
-          } else if (postType === "travel" && postId) {
-            router.push({ pathname: "/travel/[id]", params: { id: String(postId) } });
-          } else {
-            console.warn("[OneSignal] post_match notification missing post_id or unknown post_type:", postType);
-          }
-          return;
-        }
-
-        const chatId = data?.chatId ?? data?.conversationId;
-        if (chatId) {
-          console.log("[OneSignal] Deep linking to chat:", chatId);
-          router.push({ pathname: "/chat/[id]", params: { id: String(chatId) } });
-        }
-      };
-      OneSignal.Notifications.addEventListener("click", clickHandler);
-
       return () => {
         OneSignal.Notifications.removeEventListener("foregroundWillDisplay", foregroundHandler);
         OneSignal.Notifications.removeEventListener("permissionChange", permissionHandler);
-        OneSignal.Notifications.removeEventListener("click", clickHandler);
       };
     } catch (error) {
       console.error("[OneSignal] Failed to initialize:", error);
@@ -177,17 +146,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         if (__DEV__) {
           console.log("[OneSignal] Linked user ID:", user.id);
         }
-        const userWithEmail = user as { id?: string; email?: string };
-        if (userWithEmail.email) {
-          OneSignal.User.addEmail(userWithEmail.email);
-        }
       } else {
         OneSignal.logout();
       }
     } catch (error) {
       console.error("[OneSignal] Failed to update user:", error);
     }
-  }, [user]);
+  }, [user?.id]);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (isWeb) return false;

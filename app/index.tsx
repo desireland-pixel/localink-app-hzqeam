@@ -4,6 +4,7 @@ import { useRouter, useSegments } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors, typography, spacing } from '@/styles/commonStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NotificationBell } from "@/components/NotificationBell";
 
 // Segment names that are public (no auth required).
 const PUBLIC_SEGMENTS = ['reset-password', 'auth', 'verify-otp', 'auth-popup', 'auth-callback'];
@@ -85,7 +86,9 @@ export default function IndexScreen() {
             resizeMode="contain"
           />
           <Text style={styles.title}>LokaLinc</Text>
-          <Text style={styles.tagline}>Living and Moving together</Text>
+                    <NotificationBell />
+          
+<Text style={styles.tagline}>Living and Moving together</Text>
         </View>
         {isLoading && (
           <View style={styles.loadingContainer}>
