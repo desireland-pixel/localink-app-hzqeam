@@ -1304,6 +1304,57 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
+  test("Delete a conversation", async () => {
+    // Create a new conversation specifically for deletion test
+    const postRes = await authenticatedApi("/api/travel-posts", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        fromCity: "Vienna",
+        toCity: "Prague",
+        travelDate: "2027-03-15",
+        companionshipConsent: true,
+      }),
+    });
+    const postData = await postRes.json();
+    const postId = postData.id || postData.travelPostId;
+
+    const convRes = await authenticatedApi("/api/conversations", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId,
+        postType: "travel",
+        recipientId: authUser.id,
+      }),
+    });
+    await expectStatus(convRes, 200);
+    const convData = await convRes.json();
+    const convToDeleteId = convData.id;
+
+    const res = await authenticatedApi(`/api/conversations/${convToDeleteId}`, authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+  });
+
+  test("Delete non-existent conversation returns 404", async () => {
+    const res = await authenticatedApi("/api/conversations/00000000-0000-0000-0000-000000000000", authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 404);
+  });
+
+  test("Delete conversation with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/conversations/invalid-uuid", authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 400);
+  });
+
   test("Delete a message from a conversation", async () => {
     if (!conversationId || !messageId) {
       // Create conversation and message
@@ -1594,6 +1645,127 @@ describe("API Integration Tests", () => {
       }),
     });
     await expectStatus(res, 401);
+  });
+
+  // ============ User Account Management ============
+
+  test("Schedule account deletion", async () => {
+    const res = await authenticatedApi("/api/user/delete-account", authToken, {
+      method: "POST",
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.message).toBeDefined();
+  });
+
+  test("Cancel account deletion", async () => {
+    // First schedule deletion
+    await authenticatedApi("/api/user/delete-account", authToken, {
+      method: "POST",
+    });
+
+    // Then cancel it
+    const res = await authenticatedApi("/api/user/cancel-delete-account", authToken, {
+      method: "POST",
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.message).toBeDefined();
+  });
+
+  test("Delete account without authentication returns 401", async () => {
+    const res = await api("/api/user/delete-account", {
+      method: "POST",
+    });
+    await expectStatus(res, 401);
+  });
+
+  test("Cancel account deletion without authentication returns 401", async () => {
+    const res = await api("/api/user/cancel-delete-account", {
+      method: "POST",
+    });
+    await expectStatus(res, 401);
+  });
+
+  // ============ Matches ============
+
+  test("Get current user's match notifications", async () => {
+    const res = await authenticatedApi("/api/matches", authToken);
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(Array.isArray(data)).toBe(true);
+  });
+
+  test("Get matches with pagination", async () => {
+    const res = await authenticatedApi("/api/matches?limit=10&offset=0", authToken);
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(Array.isArray(data)).toBe(true);
+  });
+
+  test("Trigger matching for a sublet post", async () => {
+    // Create a sublet to trigger matching on
+    const createRes = await authenticatedApi("/api/sublets", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        title: "Match trigger test sublet",
+        city: "Berlin",
+        availableFrom: "2026-06-01",
+        availableTo: "2026-08-31",
+        rent: "1500",
+        independentArrangementConsent: true,
+      }),
+    });
+    await expectStatus(createRes, 200);
+    const createData = await createRes.json();
+    const postId = createData.id;
+
+    const res = await authenticatedApi("/api/matches/trigger", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId,
+        postType: "sublet",
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.message).toBeDefined();
+  });
+
+  test("Trigger matching for a travel post", async () => {
+    // Create a travel post to trigger matching on
+    const createRes = await authenticatedApi("/api/travel-posts", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        fromCity: "Paris",
+        toCity: "London",
+        travelDate: "2026-07-15",
+        companionshipConsent: true,
+      }),
+    });
+    await expectStatus(createRes, 200);
+    const createData = await createRes.json();
+    const postId = createData.id || createData.travelPostId;
+
+    const res = await authenticatedApi("/api/matches/trigger", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId,
+        postType: "travel",
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
   });
 
   // ============ Admin Endpoints ============

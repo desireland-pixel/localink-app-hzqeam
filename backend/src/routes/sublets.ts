@@ -6,6 +6,7 @@ import { generateShortId } from '../utils/short-id.js';
 import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '../utils/date-format.js';
 import { regenerateSignedUrls } from '../utils/image-url-regenerator.js';
 import { capture } from '../analytics.js';
+import { runMatchingForPost } from '../utils/matching.js';
 
 interface SubletFilters {
   city?: string; // Independent city filter
@@ -377,6 +378,11 @@ export function registerSubletRoutes(app: App) {
         .returning();
 
       app.logger.info({ subletId: sublet.id, userId: session.user.id }, 'Sublet created successfully');
+
+      // Trigger matching asynchronously (fire-and-forget)
+      runMatchingForPost(app, sublet.id, 'sublet').catch(error => {
+        app.logger.error({ err: error, subletId: sublet.id }, 'Error running matching for sublet');
+      });
 
       // Capture analytics event (fire-and-forget)
       capture(session.user.id, 'post_created', {

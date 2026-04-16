@@ -79,10 +79,7 @@ export function registerUserDeletionRoutes(app: App) {
         })
         .where(eq(authSchema.user.id, userId));
 
-      // Delete all sessions for this user
-      await app.db
-        .delete(authSchema.session)
-        .where(eq(authSchema.session.userId, userId));
+      // Note: Don't delete sessions - user should still be able to cancel deletion
 
       app.logger.info(
         { userId, deletionDate: deletionDate.toISOString() },

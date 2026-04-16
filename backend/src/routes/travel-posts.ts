@@ -9,6 +9,7 @@ import { formatTravelPostTitle, getTravelPostTypeEmojis } from '../utils/travel-
 import { regenerateSignedUrls } from '../utils/image-url-regenerator.js';
 import { formatIncentiveAmount, getIncentiveDisclaimer } from '../utils/incentive-formatter.js';
 import { capture } from '../analytics.js';
+import { runMatchingForPost } from '../utils/matching.js';
 
 interface TravelPostFilters {
   fromCity?: string; // Independent from/to city filter
@@ -592,6 +593,11 @@ export function registerTravelPostRoutes(app: App) {
         .returning();
 
       app.logger.info({ travelPostId: post.id, userId: session.user.id }, 'Travel post created successfully');
+
+      // Trigger matching asynchronously (fire-and-forget)
+      runMatchingForPost(app, post.id, 'travel').catch(error => {
+        app.logger.error({ err: error, travelPostId: post.id }, 'Error running matching for travel post');
+      });
 
       // Capture analytics event (fire-and-forget)
       capture(session.user.id, 'post_created', {

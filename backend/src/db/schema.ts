@@ -293,3 +293,25 @@ export const userNotificationPreferencesRelations = relations(userNotificationPr
     references: [user.id],
   }),
 }));
+
+// Match notifications for smart matching feature
+export const matchNotifications = pgTable('match_notifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  postId: uuid('post_id').notNull(),
+  postType: text('post_type', { enum: ['sublet', 'travel'] }).notNull(),
+  matchedPostId: uuid('matched_post_id').notNull(),
+  matchedPostType: text('matched_post_type', { enum: ['sublet', 'travel'] }).notNull(),
+  notifiedUserId: text('notified_user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  pushSent: boolean('push_sent').default(false).notNull(),
+  pushSentAt: timestamp('push_sent_at', { withTimezone: true }),
+  emailSent: boolean('email_sent').default(false).notNull(),
+  emailSentAt: timestamp('email_sent_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const matchNotificationsRelations = relations(matchNotifications, ({ one }) => ({
+  notifiedUser: one(user, {
+    fields: [matchNotifications.notifiedUserId],
+    references: [user.id],
+  }),
+}));

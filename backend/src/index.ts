@@ -16,7 +16,9 @@ import { registerPushTokenRoutes } from './routes/push-tokens.js';
 import { registerOnesignalRoutes } from './routes/onesignal.js';
 import { registerNotificationPreferencesRoutes } from './routes/notification-preferences.js';
 import { registerUserDeletionRoutes } from './routes/user-deletion.js';
+import { registerMatchRoutes } from './routes/matches.js';
 import { startCleanupJob } from './utils/cleanup-job.js';
+import { startEmailDigestJob } from './utils/email-digest-job.js';
 
 const schema = { ...appSchema, ...authSchema };
 
@@ -145,9 +147,13 @@ registerPushTokenRoutes(app);
 registerOnesignalRoutes(app);
 registerNotificationPreferencesRoutes(app);
 registerUserDeletionRoutes(app);
+registerMatchRoutes(app);
 
 // Start cleanup job for soft-deleted posts
 startCleanupJob(app);
+
+// Start email digest cron job (Monday & Thursday at 9 AM UTC)
+startEmailDigestJob(app);
 
 await app.run();
 app.logger.info('LokaLinc API running');
