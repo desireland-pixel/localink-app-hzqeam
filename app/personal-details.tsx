@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 import { authenticatedPut, authenticatedPost } from '@/utils/api';
@@ -17,6 +17,7 @@ const DELETE_CONFIRM_WORD = 'DELETE';
 export default function PersonalDetailsScreen() {
   useScreenTracking(SCREEN_NAMES.PERSONAL_DETAILS);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user, profile, refreshProfile, signOut } = useAuth();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
@@ -151,73 +152,76 @@ export default function PersonalDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
-        style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'android' ? 0 : 0}
-      >
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <View>
-          <Text style={styles.label}>Full Name *</Text>
-          <TextInput
-            style={[styles.input, styles.inputDisabled]}
-            placeholder="Enter your full name"
-            placeholderTextColor={colors.textLight}
-            value={name}
-            editable={false}
-          />
+      <View style={styles.outerContainer}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+          style={styles.keyboardView}
+          keyboardVerticalOffset={Platform.OS === 'android' ? 0 : 0}
+        >
+          <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <View>
+              <Text style={styles.label}>Full Name *</Text>
+              <TextInput
+                style={[styles.input, styles.inputDisabled]}
+                placeholder="Enter your full name"
+                placeholderTextColor={colors.textLight}
+                value={name}
+                editable={false}
+              />
 
-          <Text style={styles.label}>Username *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your username"
-            placeholderTextColor={colors.textLight}
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-            editable={!loading}
-          />
+              <Text style={styles.label}>Username *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your username"
+                placeholderTextColor={colors.textLight}
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                editable={!loading}
+              />
 
-          <Text style={styles.label}>City *</Text>
-          <CitySearchInput
-            value={city}
-            onChangeText={setCity}
-            placeholder="Search city..."
-          />
+              <Text style={styles.label}>City *</Text>
+              <CitySearchInput
+                value={city}
+                onChangeText={setCity}
+                placeholder="Search city..."
+              />
 
-          <Text style={styles.label}>Email *</Text>
-          <TextInput
-            style={[styles.input, styles.inputDisabled]}
-            placeholder="Email address"
-            placeholderTextColor={colors.textLight}
-            value={email}
-            editable={false}
-          />
+              <Text style={styles.label}>Email *</Text>
+              <TextInput
+                style={[styles.input, styles.inputDisabled]}
+                placeholder="Email address"
+                placeholderTextColor={colors.textLight}
+                value={email}
+                editable={false}
+              />
 
-          <Text style={styles.label}>Password *</Text>
-          <TextInput
-            style={[styles.input, styles.inputDisabled]}
-            placeholder="••••••••"
-            placeholderTextColor={colors.textLight}
-            value="••••••••"
-            editable={false}
-            secureTextEntry={true}
-          />
+              <Text style={styles.label}>Password *</Text>
+              <TextInput
+                style={[styles.input, styles.inputDisabled]}
+                placeholder="••••••••"
+                placeholderTextColor={colors.textLight}
+                value="••••••••"
+                editable={false}
+                secureTextEntry={true}
+              />
 
-          <TouchableOpacity
-            style={[styles.button, (!isSaveEnabled || loading) && styles.buttonDisabled]}
-            onPress={handleSave}
-            disabled={!isSaveEnabled || loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.buttonText}>Save Changes</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+              <TouchableOpacity
+                style={[styles.button, (!isSaveEnabled || loading) && styles.buttonDisabled]}
+                onPress={handleSave}
+                disabled={!isSaveEnabled || loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.buttonText}>Save Changes</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
 
-        <View style={styles.deleteAccountSection}>
+        <View style={[styles.deleteAccountSection, { paddingBottom: insets.bottom > 0 ? insets.bottom : spacing.xl }]}>
           <TouchableOpacity
             style={styles.deleteAccountButton}
             onPress={handleDeleteAccountPress}
@@ -226,8 +230,7 @@ export default function PersonalDetailsScreen() {
             <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
 
       {/* Delete Account Confirmation Modal */}
       <Modal
@@ -297,6 +300,10 @@ export default function PersonalDetailsScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  outerContainer: {
     flex: 1,
     backgroundColor: colors.background,
   },
