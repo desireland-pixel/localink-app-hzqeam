@@ -126,10 +126,27 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       };
       OneSignal.Notifications.addEventListener("permissionChange", permissionHandler);
 
-      // Handle notification clicks — deep link into chat if chatId/conversationId present
+      // Handle notification clicks — deep link into chat or post detail screens
       const clickHandler = (event: OpenedEvent) => {
         const data = event.notification.additionalData as Record<string, unknown> | undefined;
         console.log("[OneSignal] Notification clicked:", JSON.stringify(data));
+
+        const type = data?.type;
+
+        if (type === "post_match") {
+          const postId = data?.post_id;
+          const postType = data?.post_type;
+          console.log("[OneSignal] Deep linking to post match:", postType, postId);
+          if (postType === "sublet" && postId) {
+            router.push({ pathname: "/sublet/[id]", params: { id: String(postId) } });
+          } else if (postType === "travel" && postId) {
+            router.push({ pathname: "/travel/[id]", params: { id: String(postId) } });
+          } else {
+            console.warn("[OneSignal] post_match notification missing post_id or unknown post_type:", postType);
+          }
+          return;
+        }
+
         const chatId = data?.chatId ?? data?.conversationId;
         if (chatId) {
           console.log("[OneSignal] Deep linking to chat:", chatId);

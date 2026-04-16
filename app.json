@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "LokaLinc",
-    "slug": "lokalinc",
+    "slug": "lokalinc-app",
     "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -34,7 +34,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.nakodacollection.app"
+      "package": "com.lokalinc.parth"
     },
     "web": {
       "favicon": "./assets/images/final_quest_240x240.png",
