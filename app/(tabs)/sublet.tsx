@@ -510,7 +510,7 @@ export default function SubletScreen() {
                       <Image 
                         source={{ uri: imageUrl }} 
                         style={styles.cardImage}
-                        cachePolicy="none"
+                        cachePolicy="memory-disk"
                         contentFit="cover"
                         transition={200}
                         placeholder={require('@/assets/images/Logo_LokaLinc.png')}

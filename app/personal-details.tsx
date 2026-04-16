@@ -361,6 +361,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     marginBottom: spacing.xl,
     paddingTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
@@ -380,7 +381,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: DANGER_COLOR,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: spacing.md,
     alignItems: 'center',
   },
   deleteAccountButtonText: {
