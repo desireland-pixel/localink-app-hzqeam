@@ -86,7 +86,6 @@ export default function IndexScreen() {
             resizeMode="contain"
           />
           <Text style={styles.title}>LokaLinc</Text>
-                    <NotificationBell />
           
 <Text style={styles.tagline}>Living and Moving together</Text>
         </View>
