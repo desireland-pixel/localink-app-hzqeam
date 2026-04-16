@@ -1311,8 +1311,8 @@ describe("API Integration Tests", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: "offering",
-        fromCity: "Vienna",
-        toCity: "Prague",
+        fromCity: "Berlin",
+        toCity: "Munich",
         travelDate: "2027-03-15",
         companionshipConsent: true,
       }),
@@ -1745,13 +1745,13 @@ describe("API Integration Tests", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: "offering",
-        fromCity: "Paris",
-        toCity: "London",
+        fromCity: "Stuttgart",
+        toCity: "Frankfurt",
         travelDate: "2026-07-15",
         companionshipConsent: true,
       }),
     });
-    await expectStatus(createRes, 200);
+    await expectStatus(createRes, 201);
     const createData = await createRes.json();
     const postId = createData.id || createData.travelPostId;
 
