@@ -416,13 +416,7 @@ export function registerCommunityRoutes(app: App) {
           }, topic.userId);
 
           // Send OneSignal notification to topic author (fire-and-forget)
-          const topicAuthorOnesignalToken = await app.db.query.userOnesignalTokens.findFirst({
-            where: eq(schema.userOnesignalTokens.userId, topic.userId),
-          });
-
-          if (topicAuthorOnesignalToken) {
-            sendOnesignalNotification(app, [topicAuthorOnesignalToken.playerId], 'New reply to your post', body.content.substring(0, 100), { topicId: id });
-          }
+          sendOnesignalNotification(app, [topic.userId], 'New reply to your post', body.content.substring(0, 100), { topicId: id });
         }
       }
 
@@ -932,13 +926,7 @@ export function registerCommunityRoutes(app: App) {
           const shouldNotifyPush = replyAuthorPreferences?.notifyPush ?? true;
 
           if (shouldNotifyPosts && shouldNotifyPush) {
-            const replyAuthorOnesignalToken = await app.db.query.userOnesignalTokens.findFirst({
-              where: eq(schema.userOnesignalTokens.userId, replyAuthor.userId),
-            });
-
-            if (replyAuthorOnesignalToken) {
-              sendOnesignalNotification(app, [replyAuthorOnesignalToken.playerId], 'Your reply was liked', 'Someone liked your reply', {});
-            }
+            sendOnesignalNotification(app, [replyAuthor.userId], 'Your reply was liked', 'Someone liked your reply', {});
           }
         }
       }

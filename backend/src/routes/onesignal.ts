@@ -25,56 +25,6 @@ interface SendEmailBody {
 export function registerOnesignalRoutes(app: App) {
   const requireAuth = app.requireAuth();
 
-  // Register OneSignal player ID
-  app.fastify.post('/api/onesignal/register', {
-    schema: {
-      description: 'Register OneSignal player ID for current user',
-      tags: ['onesignal'],
-      body: {
-        type: 'object',
-        required: ['playerId'],
-        properties: {
-          playerId: { type: 'string' },
-        },
-      },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-          },
-        },
-      },
-    },
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireAuth(request, reply);
-    if (!session) return;
-
-    const { playerId } = request.body as RegisterPlayerIdBody;
-    app.logger.info({ userId: session.user.id, playerId: playerId.substring(0, 20) + '...' }, 'Registering OneSignal player ID');
-
-    try {
-      await app.db
-        .insert(schema.userOnesignalTokens)
-        .values({
-          userId: session.user.id,
-          playerId,
-        })
-        .onConflictDoUpdate({
-          target: schema.userOnesignalTokens.userId,
-          set: {
-            playerId,
-          },
-        });
-
-      app.logger.info({ userId: session.user.id }, 'OneSignal player ID registered successfully');
-      return { success: true };
-    } catch (error) {
-      app.logger.error({ err: error, userId: session.user.id }, 'Failed to register OneSignal player ID');
-      return reply.status(500).send({ error: 'Failed to register OneSignal player ID' });
-    }
-  });
-
   // Send push notification to specific users (admin only)
   app.fastify.post('/api/admin/notifications/push', {
     schema: {
@@ -117,27 +67,17 @@ export function registerOnesignalRoutes(app: App) {
         return reply.status(403).send({ error: 'You do not have permission to send push notifications' });
       }
 
-      let sent = 0;
-
       if (userIds && userIds.length > 0) {
         // Send to specific users
-        const tokens = await app.db.query.userOnesignalTokens.findMany({
-          where: inArray(schema.userOnesignalTokens.userId, userIds),
-        });
-
-        const playerIds = tokens.map(t => t.playerId);
-        sent = playerIds.length;
-
-        if (playerIds.length > 0) {
-          sendPushNotification(app, playerIds, title, message);
-        }
+        await sendPushNotification(app, userIds, title, message);
+        app.logger.info({ userId: session.user.id, title, sent: userIds.length }, 'Push notification sent successfully');
+        return { success: true, sent: userIds.length };
       } else {
         // Send to all users
-        sendPushToAllUsers(app, title, message);
+        await sendPushToAllUsers(app, title, message);
+        app.logger.info({ userId: session.user.id, title }, 'Push notification sent to all users successfully');
+        return { success: true, sent: -1 };
       }
-
-      app.logger.info({ userId: session.user.id, title, sent }, 'Push notification sent successfully');
-      return { success: true, sent };
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id }, 'Failed to send push notification');
       return reply.status(500).send({ error: 'Failed to send push notification' });

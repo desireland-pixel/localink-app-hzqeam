@@ -820,13 +820,7 @@ export function registerConversationRoutes(app: App) {
         }, recipientId);
 
         // Send OneSignal notification to recipient (fire-and-forget)
-        const recipientOnesignalToken = await app.db.query.userOnesignalTokens.findFirst({
-          where: eq(schema.userOnesignalTokens.userId, recipientId),
-        });
-
-        if (recipientOnesignalToken) {
-          sendOnesignalNotification(app, [recipientOnesignalToken.playerId], `New message from ${senderName || 'Someone'}`, content.substring(0, 100), { conversationId: id });
-        }
+        sendOnesignalNotification(app, [recipientId], `New message from ${senderName || 'Someone'}`, content.substring(0, 100), { conversationId: id });
       }
 
       return reply.code(200).send(messageWithSender);

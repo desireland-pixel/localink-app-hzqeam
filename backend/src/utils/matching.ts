@@ -2,6 +2,7 @@ import type { App } from '../index.js';
 import { eq, and, or, lte, gte, isNull, ne, sql } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import * as authSchema from '../db/auth-schema.js';
+import { sendPushNotification } from './onesignal.js';
 
 export async function runMatchingForPost(app: App, postId: string, postType: 'sublet' | 'travel') {
   try {
@@ -244,66 +245,20 @@ async function insertMatchNotification(
   );
 
   // Send OneSignal push notification
-  await sendOneSignalPush(app, notifiedUserId, notificationBody, matchedPostId, matchedPostType, notification.id);
-}
+  const pushSent = await sendPushNotification(app, [notifiedUserId], 'New Match Found! 🎉', notificationBody, {
+    type: 'post_match',
+    post_id: matchedPostId,
+    post_type: matchedPostType,
+  });
 
-async function sendOneSignalPush(
-  app: App,
-  userId: string,
-  body: string,
-  matchedPostId: string,
-  matchedPostType: string,
-  notificationId: string,
-) {
-  const appId = process.env.ONESIGNAL_APP_ID;
-  const restApiKey = process.env.ONESIGNAL_REST_API_KEY;
-
-  if (!appId || !restApiKey) {
-    app.logger.warn({}, 'OneSignal env vars not configured, skipping push');
-    return;
-  }
-
-  try {
-    const response = await fetch('https://onesignal.com/api/v1/notifications', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${restApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        app_id: appId,
-        include_aliases: { external_id: [userId] },
-        target_channel: 'push',
-        headings: { en: 'New Match Found! 🎉' },
-        contents: { en: body },
-        data: {
-          type: 'post_match',
-          post_id: matchedPostId,
-          post_type: matchedPostType,
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      app.logger.warn(
-        { userId, status: response.status, error },
-        'OneSignal push failed',
-      );
-      return;
-    }
-
-    // Mark push as sent
+  // Mark push as sent if successful
+  if (pushSent) {
     await app.db
       .update(schema.matchNotifications)
       .set({
         pushSent: true,
         pushSentAt: new Date(),
       })
-      .where(eq(schema.matchNotifications.id, notificationId));
-
-    app.logger.info({ userId, notificationId }, 'OneSignal push sent successfully');
-  } catch (error) {
-    app.logger.error({ err: error, userId }, 'Error sending OneSignal push');
+      .where(eq(schema.matchNotifications.id, notification.id));
   }
 }
