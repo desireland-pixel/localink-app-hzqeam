@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "511325353917",
+    "project_id": "lokalinc-ca128",
+    "storage_bucket": "lokalinc-ca128.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:511325353917:android:e2cfc5acd01ebdb34e04d4",
+        "android_client_info": {
+          "package_name": "com.lokalinc.parth"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnpr3I6RIs4AivMr35tVXyYnSvo5soQtY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
