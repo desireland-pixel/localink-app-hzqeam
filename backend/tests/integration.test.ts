@@ -52,6 +52,16 @@ describe("API Integration Tests", () => {
     expect(typeof data.available).toBe("boolean");
   });
 
+  test("Password reset redirect with invalid token returns 400", async () => {
+    const res = await api("/api/auth/reset-redirect?token=invalid-token&email=test@example.com");
+    await expectStatus(res, 400);
+  });
+
+  test("Password reset redirect with missing email returns 400", async () => {
+    const res = await api("/api/auth/reset-redirect?token=00000000-0000-0000-0000-000000000000");
+    await expectStatus(res, 400);
+  });
+
   test("Get disclaimer status", async () => {
     const res = await authenticatedApi("/api/profile/disclaimers", authToken);
     await expectStatus(res, 200);
@@ -511,7 +521,7 @@ describe("API Integration Tests", () => {
         type: "offering",
         title: "Favorite test sublet",
         city: "Vienna",
-        availableFrom: "2026-05-01",
+        availableFrom: "2026-06-01",
         availableTo: "2026-07-31",
         rent: "1000",
         independentArrangementConsent: true,
@@ -542,8 +552,8 @@ describe("API Integration Tests", () => {
         type: "offering",
         title: "Check favorite test sublet",
         city: "Prague",
-        availableFrom: "2026-05-01",
-        availableTo: "2026-06-30",
+        availableFrom: "2026-06-01",
+        availableTo: "2026-07-30",
         rent: "900",
         independentArrangementConsent: true,
       }),
@@ -565,8 +575,8 @@ describe("API Integration Tests", () => {
         type: "offering",
         title: "Delete favorite test sublet",
         city: "Munich",
-        availableFrom: "2026-05-01",
-        availableTo: "2026-06-30",
+        availableFrom: "2026-06-01",
+        availableTo: "2026-07-30",
         rent: "1200",
         independentArrangementConsent: true,
       }),

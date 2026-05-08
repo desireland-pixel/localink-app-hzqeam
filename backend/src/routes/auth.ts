@@ -780,6 +780,31 @@ export function registerAuthRoutes(app: App) {
       return reply.status(400).send({ error: 'Missing token or email parameter' });
     }
 
+    // Validate the token exists and hasn't expired
+    try {
+      const tokenRow = await app.db.query.passwordResetTokens.findFirst({
+        where: eq(schema.passwordResetTokens.token, token as any),
+      });
+
+      if (!tokenRow) {
+        app.logger.warn({ email }, 'Password reset token not found');
+        return reply.status(400).send({ error: 'Invalid or expired token' });
+      }
+
+      // Check if token has expired
+      if (new Date() > tokenRow.expiresAt) {
+        app.logger.warn({ tokenId: tokenRow.id }, 'Password reset token expired');
+        // Delete the expired token
+        await app.db
+          .delete(schema.passwordResetTokens)
+          .where(eq(schema.passwordResetTokens.id, tokenRow.id));
+        return reply.status(400).send({ error: 'Invalid or expired token' });
+      }
+    } catch (error) {
+      app.logger.warn({ err: error }, 'Invalid token format');
+      return reply.status(400).send({ error: 'Invalid or expired token' });
+    }
+
     const deepLinkUrl = `lokalinc://reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
     const htmlContent = `<!DOCTYPE html>
 <html>

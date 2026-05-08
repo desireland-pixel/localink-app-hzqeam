@@ -74,19 +74,60 @@ async function sendDigestForUser(app: App, userId: string) {
     return;
   }
 
+  // Check notification preferences — skip if user has opted out of email
+  const prefs = await app.db.query.userNotificationPreferences.findFirst({
+    where: (p) => eq(p.userId, userId),
+  });
+  if (prefs && prefs.notifyEmail === false) {
+    app.logger.info({ userId }, 'User opted out of email notifications, skipping digest');
+    return;
+  }
+
+  const totalCount = notifications.length;
+
+  // Cap at 5 notifications for the email body
+  const capped = notifications.slice(0, 5);
+
+  // Enrich each notification with title and deep link
+  const enrichedNotifications: Array<{ title: string; deepLink: string; matchedPostType: string }> = [];
+
+  for (const notification of capped) {
+    let title = 'Post no longer available';
+    let deepLink = '';
+
+    if (notification.matchedPostType === 'sublet') {
+      deepLink = `lokalinc://sublet/${notification.matchedPostId}`;
+      const sublet = await app.db.query.sublets.findFirst({
+        where: (s) => eq(s.id, notification.matchedPostId),
+      });
+      if (sublet) {
+        title = sublet.title;
+      }
+    } else if (notification.matchedPostType === 'travel') {
+      deepLink = `lokalinc://travel/${notification.matchedPostId}`;
+      const travelPost = await app.db.query.travelPosts.findFirst({
+        where: (t) => eq(t.id, notification.matchedPostId),
+      });
+      if (travelPost) {
+        title = `${travelPost.fromCity} → ${travelPost.toCity}`;
+      }
+    }
+
+    enrichedNotifications.push({ title, deepLink, matchedPostType: notification.matchedPostType });
+  }
+
   // Build HTML email
-  const html = buildDigestHtml(notifications, user.name || 'User');
+  const html = buildDigestHtml(enrichedNotifications, user.name || 'User', totalCount);
 
   // Send email
   await resend.emails.send({
     from: 'LokaLinc <noreply@lokalinc.de>',
     to: user.email,
-    subject: `LokaLinc: You have ${notifications.length} new match${notifications.length > 1 ? 'es' : ''}!`,
+    subject: `Congratulations, You have ${totalCount} new match${totalCount > 1 ? 'es' : ''}!`,
     html,
   });
 
   // Mark all notifications as emailed
-  const notificationIds = notifications.map(n => n.id);
   await app.db
     .update(schema.matchNotifications)
     .set({
@@ -98,59 +139,57 @@ async function sendDigestForUser(app: App, userId: string) {
       eq(schema.matchNotifications.emailSent, false)
     ));
 
-  app.logger.info({ userId, notificationCount: notifications.length }, 'Digest email sent');
+  app.logger.info({ userId, notificationCount: totalCount }, 'Digest email sent');
 }
 
-function buildDigestHtml(notifications: any[], userName: string): string {
+function buildDigestHtml(
+  notifications: Array<{ title: string; deepLink: string; matchedPostType: string }>,
+  userName: string,
+  totalCount: number
+): string {
   const matchItems = notifications
-    .map(notification => {
-      let matchDescription = '';
-      if (notification.matchedPostType === 'sublet') {
-        matchDescription = 'A sublet listing';
-      } else if (notification.matchedPostType === 'travel') {
-        matchDescription = 'A travel post';
-      }
-
-      return `
-        <div style="margin-bottom: 15px; padding: 10px; border-left: 4px solid #10B981; background-color: #F0FDF4;">
-          <p style="margin: 5px 0; font-weight: bold; color: #1F2937;">New Match: ${matchDescription}</p>
-          <p style="margin: 5px 0; color: #4B5563; font-size: 14px;">
-            Your ${notification.postType} post has a potential match!
-          </p>
-          <p style="margin: 10px 0;">
-            <a href="https://8ktzqvc7jybkjvj4cr9gwmp8qp4v5q3y.app.specular.dev/matches"
-               style="background-color: #10B981; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block;">
-              View Match
-            </a>
-          </p>
-        </div>
-      `;
-    })
+    .map(({ title, deepLink }) => `
+      <div style="margin-bottom: 15px; padding: 10px; border-left: 4px solid #10B981; background-color: #F0FDF4;">
+        <p style="margin: 5px 0; font-weight: bold; color: #1F2937;">${title}</p>
+        <p style="margin: 5px 0; color: #4B5563; font-size: 14px;">Contact the post owner soon.</p>
+        <p style="margin: 10px 0;">
+          <a href="${deepLink}"
+             style="background-color: #10B981; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block;">
+            View Match
+          </a>
+        </p>
+      </div>
+    `)
     .join('');
 
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; padding: 20px;">
-      <h2 style="color: #1F2937; margin-bottom: 10px;">Hello ${userName}! 🎉</h2>
+
+      <h2 style="color: #1F2937; margin-bottom: 10px;">Hello ${userName},</h2>
       <p style="color: #4B5563; margin-bottom: 20px;">
-        Great news! You have ${notifications.length} new match${notifications.length > 1 ? 'es' : ''} on LokaLinc!
+        Great news! Your post has ${totalCount} new match${totalCount > 1 ? 'es' : ''} on LokaLinc! 🎉
       </p>
 
       <div style="background-color: #F9FAFB; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
         ${matchItems}
       </div>
 
-      <p style="color: #4B5563; margin-bottom: 10px;">
-        Visit your matches page to connect with these potential partners.
+      <p style="color: #4B5563; margin-bottom: 20px;">
+        There could be more matches. Use the filters in the app to find more.
       </p>
 
       <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #E5E7EB; color: #6B7280; font-size: 12px;">
-        <p>LokaLinc Team — Find Your Perfect Match!</p>
+        <p style="margin-bottom: 8px;">LokaLinc — Living and Moving Together</p>
+        <p style="margin-bottom: 8px;">
+          <a href="https://lokalinc.de" style="color: #10B981; text-decoration: none;">Visit Website</a>
+        </p>
         <p>
-          <a href="https://8ktzqvc7jybkjvj4cr9gwmp8qp4v5q3y.app.specular.dev/" style="color: #10B981; text-decoration: none;">
-            Visit LokaLinc
+          <a href="lokalinc://notifications" style="color: #9CA3AF; text-decoration: underline; font-size: 11px;">
+            Don't want these emails? Unsubscribe here
           </a>
         </p>
       </div>
+
     </div>
   `;
 }
