@@ -123,7 +123,6 @@ export function registerSubletRoutes(app: App) {
         conditions.push(eq(schema.sublets.cityRegistrationRequired, false));
       }
 
-      const limit = parseInt(filters.limit || '20');
       const offset = parseInt(filters.offset || '0');
 
       // Determine sort order
@@ -163,7 +162,6 @@ export function registerSubletRoutes(app: App) {
         .from(schema.sublets)
         .leftJoin(schema.profiles, eq(schema.sublets.userId, schema.profiles.userId))
         .where(and(...conditions))
-        .limit(limit)
         .offset(offset)
         .orderBy(orderByClause);
 

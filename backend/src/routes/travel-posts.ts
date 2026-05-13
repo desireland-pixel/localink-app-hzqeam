@@ -263,7 +263,6 @@ export function registerTravelPostRoutes(app: App) {
         );
       }
 
-      const limit = parseInt(filters.limit || '20');
       const offset = parseInt(filters.offset || '0');
 
       // Determine sort order
@@ -302,7 +301,6 @@ export function registerTravelPostRoutes(app: App) {
         .from(schema.travelPosts)
         .leftJoin(schema.profiles, eq(schema.travelPosts.userId, schema.profiles.userId))
         .where(and(...conditions))
-        .limit(limit)
         .offset(offset)
         .orderBy(...orderByClause);
 
