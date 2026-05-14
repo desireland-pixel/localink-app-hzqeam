@@ -26,6 +26,7 @@ import React, {
 import { Platform } from "react-native";
 import { OneSignal, NotificationWillDisplayEvent } from "react-native-onesignal";
 import Constants from "expo-constants";
+import { useRouter } from "expo-router";
 
 // Import auth hook for user targeting (validated at setup time)
 import { useAuth } from "./AuthContext";
@@ -70,6 +71,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const auth = useAuth() as Record<string, unknown> | null;
   const session = auth?.session as Record<string, unknown> | undefined;
   const user = (auth?.user ?? session?.user ?? null) as { id?: string } | null;
+
+  const router = useRouter();
 
   const [hasPermission, setHasPermission] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
@@ -125,9 +128,38 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       };
       OneSignal.Notifications.addEventListener("permissionChange", permissionHandler);
 
+      // Handle notification taps — navigate to the relevant screen
+      const clickHandler = (event: any) => {
+        const data = event?.notification?.additionalData as Record<string, string> | undefined;
+        console.log("[OneSignal] Notification tapped", data);
+        if (!data) return;
+
+        const { type, post_id, post_type, conversationId, topicId } = data;
+
+        if (type === "post_match" && post_id && post_type) {
+          console.log("[OneSignal] Navigating to post match", { post_type, post_id });
+          if (post_type === "sublet") {
+            router.push(`/sublet/${post_id}` as any);
+          } else if (post_type === "travel") {
+            router.push(`/travel/${post_id}` as any);
+          }
+        } else if (type === "chat_message" && conversationId) {
+          console.log("[OneSignal] Navigating to chat", { conversationId });
+          router.push(`/chat/${conversationId}` as any);
+        } else if (type === "community_reply" && topicId) {
+          console.log("[OneSignal] Navigating to community topic (reply)", { topicId });
+          router.push(`/community/${topicId}` as any);
+        } else if (type === "reply_liked" && topicId) {
+          console.log("[OneSignal] Navigating to community topic (liked)", { topicId });
+          router.push(`/community/${topicId}` as any);
+        }
+      };
+      OneSignal.Notifications.addEventListener("click", clickHandler);
+
       return () => {
         OneSignal.Notifications.removeEventListener("foregroundWillDisplay", foregroundHandler);
         OneSignal.Notifications.removeEventListener("permissionChange", permissionHandler);
+        OneSignal.Notifications.removeEventListener("click", clickHandler);
       };
     } catch (error) {
       console.error("[OneSignal] Failed to initialize:", error);
