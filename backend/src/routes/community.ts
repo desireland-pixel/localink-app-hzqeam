@@ -416,7 +416,7 @@ export function registerCommunityRoutes(app: App) {
           }, topic.userId);
 
           // Send OneSignal notification to topic author (fire-and-forget)
-          sendOnesignalNotification(app, [topic.userId], 'New reply to your post', body.content.substring(0, 100), { topicId: id });
+          sendOnesignalNotification(app, [topic.userId], 'New reply to your post', body.content.substring(0, 100), { type: 'community_reply', topicId: id });
         }
       }
 
@@ -926,7 +926,7 @@ export function registerCommunityRoutes(app: App) {
           const shouldNotifyPush = replyAuthorPreferences?.notifyPush ?? true;
 
           if (shouldNotifyPosts && shouldNotifyPush) {
-            sendOnesignalNotification(app, [replyAuthor.userId], 'Your reply was liked', 'Someone liked your reply', {});
+            sendOnesignalNotification(app, [replyAuthor.userId], 'Your reply was liked', 'Someone liked your reply', { type: 'reply_liked', replyId: replyId, topicId: reply_obj.topicId });
           }
         }
       }
