@@ -3,6 +3,148 @@ import { eq, and, or, lte, gte, isNull, ne, sql } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import * as authSchema from '../db/auth-schema.js';
 import { sendPushNotification } from './onesignal.js';
+import { COUNTRY_CITIES } from '../cities.js';
+
+/**
+ * Get city group: array containing the city (lowercased) plus all cities in the same country and the country name.
+ * If the city is not found in any country, returns only the city itself lowercased.
+ */
+function getCityGroup(city: string): string[] {
+  const lowercasedCity = city.toLowerCase();
+
+  // Check if city is in any country
+  for (const [country, cities] of Object.entries(COUNTRY_CITIES)) {
+    const citiesLower = cities.map(c => c.toLowerCase());
+    if (citiesLower.includes(lowercasedCity)) {
+      // Return all cities in the country + country name, all lowercased
+      return [
+        lowercasedCity,
+        ...citiesLower.filter(c => c !== lowercasedCity),
+        country.toLowerCase(),
+      ];
+    }
+  }
+
+  // City not found in any country, return just the city
+  return [lowercasedCity];
+}
+
+/**
+ * Check if two city groups overlap (share at least one element).
+ */
+function cityGroupsOverlap(a: string[], b: string[]): boolean {
+  return a.some(city => b.includes(city));
+}
+
+/**
+ * Insert a match notification with rate limiting, deduplication, and push notification support.
+ */
+async function insertMatchNotification(
+  app: App,
+  postId: string,
+  postType: 'sublet' | 'travel',
+  matchedPostId: string,
+  matchedPostType: 'sublet' | 'travel',
+  notifiedUserId: string,
+  notificationBody: string,
+) {
+  try {
+    // Deduplication: Skip if this exact pair already exists
+    const existing = await app.db.query.matchNotifications.findFirst({
+      where: and(
+        eq(schema.matchNotifications.postId, postId),
+        eq(schema.matchNotifications.matchedPostId, matchedPostId),
+      ),
+    });
+
+    if (existing) {
+      app.logger.debug({ postId, matchedPostId }, 'Match notification already exists');
+      return;
+    }
+
+    // Rate limiting: Count pushes sent to this user today (UTC)
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+
+    const pushCountToday = await app.db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(schema.matchNotifications)
+      .where(
+        and(
+          eq(schema.matchNotifications.notifiedUserId, notifiedUserId),
+          eq(schema.matchNotifications.pushSent, true),
+          gte(schema.matchNotifications.pushSentAt, today),
+          lte(schema.matchNotifications.pushSentAt, tomorrow),
+        ),
+      );
+
+    const pushLimit = 2;
+    const isRateLimited = (pushCountToday[0]?.count || 0) >= pushLimit;
+
+    // User preference check: Look up userNotificationPreferences
+    // If no preference row exists or notifyPush is not false, push is enabled
+    const userPreferences = await app.db.query.userNotificationPreferences.findFirst({
+      where: eq(schema.userNotificationPreferences.userId, notifiedUserId),
+    });
+
+    const isPushEnabled = userPreferences?.notifyPush !== false;
+
+    // Send push notification if enabled and not rate-limited
+    let pushSent = false;
+    let pushSentAt: Date | null = null;
+
+    if (isPushEnabled && !isRateLimited) {
+      try {
+        const result = await sendPushNotification(
+          app,
+          [notifiedUserId],
+          'New Match!',
+          notificationBody,
+          {
+            type: 'post_match',
+            post_id: matchedPostId,
+            post_type: matchedPostType,
+          },
+        );
+        pushSent = result;
+        if (pushSent) {
+          pushSentAt = new Date();
+        }
+      } catch (error) {
+        app.logger.warn(
+          { err: error, notifiedUserId, matchedPostId },
+          'Failed to send push notification, but continuing with record insertion',
+        );
+      }
+    }
+
+    // Insert record regardless of push success
+    const [notification] = await app.db
+      .insert(schema.matchNotifications)
+      .values({
+        postId,
+        postType,
+        matchedPostId,
+        matchedPostType,
+        notifiedUserId,
+        pushSent,
+        pushSentAt,
+      })
+      .returning();
+
+    app.logger.info(
+      { notificationId: notification.id, notifiedUserId, pushSent },
+      'Match notification created',
+    );
+  } catch (error) {
+    app.logger.error(
+      { err: error, postId, matchedPostId, notifiedUserId },
+      'Failed to insert match notification',
+    );
+  }
+}
 
 export async function runMatchingForPost(app: App, postId: string, postType: 'sublet' | 'travel') {
   try {
@@ -16,249 +158,202 @@ export async function runMatchingForPost(app: App, postId: string, postType: 'su
   }
 }
 
-async function matchSublet(app: App, subletId: string) {
-  // Get the sublet details
-  const sublet = await app.db.query.sublets.findFirst({
-    where: eq(schema.sublets.id, subletId),
-  });
-
-  if (!sublet) {
-    app.logger.warn({ subletId }, 'Sublet not found for matching');
-    return;
-  }
-
-  app.logger.info({ subletId, city: sublet.city }, 'Running matching for sublet');
-
-  // Find matching travel posts (all active ones, filter in memory for date overlap)
-  const allTravelPosts = await app.db
-    .select()
-    .from(schema.travelPosts)
-    .where(
-      and(
-        isNull(schema.travelPosts.deletedAt),
-        isNull(schema.travelPosts.closedAt),
-        eq(schema.travelPosts.status, 'active'),
-        ne(schema.travelPosts.userId, sublet.userId),
-      ),
-    );
-
-  for (const travelPost of allTravelPosts) {
-    // Check city match
-    const cityMatch =
-      travelPost.fromCity?.toLowerCase() === sublet.city.toLowerCase() ||
-      travelPost.toCity?.toLowerCase() === sublet.city.toLowerCase();
-
-    if (!cityMatch) continue;
-
-    // Check date overlap
-    const travelEnd = travelPost.travelDateTo || travelPost.travelDate;
-    const datesOverlap =
-      new Date(travelPost.travelDate) <= new Date(sublet.availableTo) &&
-      new Date(travelEnd) >= new Date(sublet.availableFrom);
-
-    if (datesOverlap) {
-      await insertMatchNotification(
-        app,
-        subletId,
-        'sublet',
-        travelPost.id,
-        'travel',
-        travelPost.userId,
-        `A sublet in ${sublet.city} matches your travel dates!`,
-      );
-    }
-  }
-
-  // Find matching sublet posts
-  const allSublets = await app.db
-    .select()
-    .from(schema.sublets)
-    .where(
-      and(
+/**
+ * Match sublets: offering matches seeking, seeking matches offering.
+ */
+async function matchSublet(app: App, newSubletId: string) {
+  try {
+    // Load the new sublet from sublets table (must not be deleted or closed)
+    const newSublet = await app.db.query.sublets.findFirst({
+      where: and(
+        eq(schema.sublets.id, newSubletId),
         isNull(schema.sublets.deletedAt),
         isNull(schema.sublets.closedAt),
-        eq(schema.sublets.status, 'active'),
-        ne(schema.sublets.userId, sublet.userId),
       ),
-    );
+    });
 
-  for (const otherSublet of allSublets) {
-    // Case-insensitive city comparison
-    if (otherSublet.city.toLowerCase() !== sublet.city.toLowerCase()) {
-      continue;
+    if (!newSublet) {
+      app.logger.warn({ newSubletId }, 'Sublet not found or deleted/closed for matching');
+      return;
     }
 
-    // Check date overlap
-    const datesOverlap =
-      new Date(otherSublet.availableFrom) <= new Date(sublet.availableTo) &&
-      new Date(otherSublet.availableTo) >= new Date(sublet.availableFrom);
+    app.logger.info({ subletId: newSubletId, city: newSublet.city }, 'Running matching for sublet');
 
-    if (datesOverlap) {
+    // Determine required type: offering matches seeking, seeking matches offering
+    const requiredType = newSublet.type === 'offering' ? 'seeking' : 'offering';
+
+    // Fetch candidate sublets: different user, correct type, status 'active', not deleted/closed
+    const candidateSublets = await app.db
+      .select()
+      .from(schema.sublets)
+      .where(
+        and(
+          ne(schema.sublets.userId, newSublet.userId),
+          eq(schema.sublets.type, requiredType),
+          eq(schema.sublets.status, 'active'),
+          isNull(schema.sublets.deletedAt),
+          isNull(schema.sublets.closedAt),
+          sql`LOWER(${schema.sublets.city}) = LOWER(${newSublet.city})`,
+        ),
+      );
+
+    for (const candidate of candidateSublets) {
+      // Rent check: If both have rent values, require ≤20% relative difference
+      if (newSublet.rent && candidate.rent) {
+        const newRentNum = parseFloat(newSublet.rent);
+        const candidateRentNum = parseFloat(candidate.rent);
+        const maxRent = Math.max(newRentNum, candidateRentNum);
+        const difference = Math.abs(newRentNum - candidateRentNum);
+        const relativeDifference = (difference / maxRent) * 100;
+
+        if (relativeDifference > 20) {
+          app.logger.debug(
+            { newSubletId, candidateId: candidate.id, relativeDifference },
+            'Rent difference exceeds 20%, skipping',
+          );
+          continue;
+        }
+      }
+
+      // Date overlap check
+      const datesOverlap =
+        new Date(newSublet.availableFrom) <= new Date(candidate.availableTo) &&
+        new Date(newSublet.availableTo) >= new Date(candidate.availableFrom);
+
+      if (!datesOverlap) {
+        app.logger.debug(
+          { newSubletId, candidateId: candidate.id },
+          'Date range does not overlap, skipping',
+        );
+        continue;
+      }
+
+      // Notify the candidate's owner
       await insertMatchNotification(
         app,
-        subletId,
+        newSubletId,
         'sublet',
-        otherSublet.id,
+        candidate.id,
         'sublet',
-        otherSublet.userId,
-        `Another sublet in ${sublet.city} overlaps with yours — connect!`,
+        candidate.userId,
+        `A sublet in ${newSublet.city} matches some of your requirements!`,
       );
     }
+  } catch (error) {
+    app.logger.error({ err: error, newSubletId }, 'Error matching sublet');
   }
 }
 
-async function matchTravelPost(app: App, travelPostId: string) {
-  // Get the travel post details
-  const travelPost = await app.db.query.travelPosts.findFirst({
-    where: eq(schema.travelPosts.id, travelPostId),
-  });
-
-  if (!travelPost) {
-    app.logger.warn({ travelPostId }, 'Travel post not found for matching');
-    return;
-  }
-
-  app.logger.info(
-    { travelPostId, from: travelPost.fromCity, to: travelPost.toCity },
-    'Running matching for travel post',
-  );
-
-  // Find matching sublet posts (all active ones, filter in memory for date overlap)
-  const allSublets = await app.db
-    .select()
-    .from(schema.sublets)
-    .where(
-      and(
-        isNull(schema.sublets.deletedAt),
-        isNull(schema.sublets.closedAt),
-        eq(schema.sublets.status, 'active'),
-        ne(schema.sublets.userId, travelPost.userId),
-      ),
-    );
-
-  for (const sublet of allSublets) {
-    // Check if city matches from or to city
-    const cityMatches =
-      sublet.city.toLowerCase() === travelPost.fromCity.toLowerCase() ||
-      sublet.city.toLowerCase() === travelPost.toCity.toLowerCase();
-
-    if (!cityMatches) continue;
-
-    // Check date overlap
-    const travelEnd = travelPost.travelDateTo || travelPost.travelDate;
-    const datesOverlap =
-      new Date(sublet.availableFrom) <= new Date(travelEnd) &&
-      new Date(sublet.availableTo) >= new Date(travelPost.travelDate);
-
-    if (datesOverlap) {
-      await insertMatchNotification(
-        app,
-        travelPostId,
-        'travel',
-        sublet.id,
-        'sublet',
-        sublet.userId,
-        `Someone's travel plans match your sublet in ${sublet.city}!`,
-      );
-    }
-  }
-
-  // Find matching travel posts (all active ones, filter in memory for date overlap)
-  const allTravelPosts = await app.db
-    .select()
-    .from(schema.travelPosts)
-    .where(
-      and(
+/**
+ * Match travel posts with type compatibility and city/country group overlap.
+ */
+async function matchTravelPost(app: App, newPostId: string) {
+  try {
+    // Load the new travel post from travelPosts table (must not be deleted or closed)
+    const newPost = await app.db.query.travelPosts.findFirst({
+      where: and(
+        eq(schema.travelPosts.id, newPostId),
         isNull(schema.travelPosts.deletedAt),
         isNull(schema.travelPosts.closedAt),
-        eq(schema.travelPosts.status, 'active'),
-        ne(schema.travelPosts.userId, travelPost.userId),
       ),
+    });
+
+    if (!newPost) {
+      app.logger.warn({ newPostId }, 'Travel post not found or deleted/closed for matching');
+      return;
+    }
+
+    app.logger.info(
+      { travelPostId: newPostId, from: newPost.fromCity, to: newPost.toCity },
+      'Running matching for travel post',
     );
 
-  for (const otherTravel of allTravelPosts) {
-    // Check if cities match
-    const citiesMatch =
-      otherTravel.fromCity.toLowerCase() === travelPost.fromCity.toLowerCase() &&
-      otherTravel.toCity.toLowerCase() === travelPost.toCity.toLowerCase();
+    // Get city groups for new post
+    const newFromGroup = getCityGroup(newPost.fromCity);
+    const newToGroup = getCityGroup(newPost.toCity);
 
-    if (!citiesMatch) continue;
+    // Fetch all active travel posts from other users (not deleted/closed)
+    const candidatePosts = await app.db
+      .select()
+      .from(schema.travelPosts)
+      .where(
+        and(
+          ne(schema.travelPosts.userId, newPost.userId),
+          eq(schema.travelPosts.status, 'active'),
+          isNull(schema.travelPosts.deletedAt),
+          isNull(schema.travelPosts.closedAt),
+        ),
+      );
 
-    // Check date overlap
-    const travelEnd = travelPost.travelDateTo || travelPost.travelDate;
-    const otherTravelEnd = otherTravel.travelDateTo || otherTravel.travelDate;
-    const datesOverlap =
-      new Date(otherTravel.travelDate) <= new Date(travelEnd) &&
-      new Date(otherTravelEnd) >= new Date(travelPost.travelDate);
+    for (const candidate of candidatePosts) {
+      // Type compatibility check
+      let isTypeCompatible = false;
 
-    if (datesOverlap) {
+      if (newPost.type === 'offering') {
+        // offering matches seeking or seeking-ally
+        isTypeCompatible =
+          candidate.type === 'seeking' || candidate.type === 'seeking-ally';
+      } else if (newPost.type === 'seeking') {
+        // seeking matches offering where canOfferCompanionship=true OR companionshipConsent=true
+        isTypeCompatible =
+          candidate.type === 'offering' &&
+          (candidate.canOfferCompanionship === true || candidate.companionshipConsent === true);
+      } else if (newPost.type === 'seeking-ally') {
+        // seeking-ally matches offering where allyConsent=true
+        isTypeCompatible = candidate.type === 'offering' && candidate.allyConsent === true;
+      }
+
+      if (!isTypeCompatible) {
+        app.logger.debug(
+          { newPostId, candidateId: candidate.id, newType: newPost.type, candidateType: candidate.type },
+          'Type incompatible, skipping',
+        );
+        continue;
+      }
+
+      // City/country group overlap: both fromCity and toCity must have overlapping groups
+      const candidateFromGroup = getCityGroup(candidate.fromCity);
+      const candidateToGroup = getCityGroup(candidate.toCity);
+
+      const fromCitiesOverlap = cityGroupsOverlap(newFromGroup, candidateFromGroup);
+      const toCitiesOverlap = cityGroupsOverlap(newToGroup, candidateToGroup);
+
+      if (!fromCitiesOverlap || !toCitiesOverlap) {
+        app.logger.debug(
+          { newPostId, candidateId: candidate.id, fromCitiesOverlap, toCitiesOverlap },
+          'City groups do not overlap, skipping',
+        );
+        continue;
+      }
+
+      // Date overlap: Using travelDate as start and travelDateTo (falling back to travelDate) as end
+      const newTravelEnd = newPost.travelDateTo || newPost.travelDate;
+      const candidateTravelEnd = candidate.travelDateTo || candidate.travelDate;
+
+      const datesOverlap =
+        new Date(candidate.travelDate) <= new Date(newTravelEnd) &&
+        new Date(candidateTravelEnd) >= new Date(newPost.travelDate);
+
+      if (!datesOverlap) {
+        app.logger.debug(
+          { newPostId, candidateId: candidate.id },
+          'Travel dates do not overlap, skipping',
+        );
+        continue;
+      }
+
+      // Notify the candidate's owner
       await insertMatchNotification(
         app,
-        travelPostId,
+        newPostId,
         'travel',
-        otherTravel.id,
+        candidate.id,
         'travel',
-        otherTravel.userId,
-        `Someone is travelling ${travelPost.fromCity} → ${travelPost.toCity} around the same time!`,
+        candidate.userId,
+        `Someone is travelling ${newPost.fromCity} → ${newPost.toCity} around the same time!`,
       );
     }
-  }
-}
-
-async function insertMatchNotification(
-  app: App,
-  postId: string,
-  postType: 'sublet' | 'travel',
-  matchedPostId: string,
-  matchedPostType: 'sublet' | 'travel',
-  notifiedUserId: string,
-  notificationBody: string,
-) {
-  // Check if notification already exists
-  const existing = await app.db.query.matchNotifications.findFirst({
-    where: and(
-      eq(schema.matchNotifications.postId, postId),
-      eq(schema.matchNotifications.matchedPostId, matchedPostId),
-    ),
-  });
-
-  if (existing) {
-    app.logger.debug({ postId, matchedPostId }, 'Match notification already exists');
-    return;
-  }
-
-  // Insert notification
-  const [notification] = await app.db
-    .insert(schema.matchNotifications)
-    .values({
-      postId,
-      postType,
-      matchedPostId,
-      matchedPostType,
-      notifiedUserId,
-    })
-    .returning();
-
-  app.logger.info(
-    { notificationId: notification.id, notifiedUserId },
-    'Match notification created',
-  );
-
-  // Send OneSignal push notification
-  const pushSent = await sendPushNotification(app, [notifiedUserId], 'New Match Found! 🎉', notificationBody, {
-    type: 'post_match',
-    post_id: matchedPostId,
-    post_type: matchedPostType,
-  });
-
-  // Mark push as sent if successful
-  if (pushSent) {
-    await app.db
-      .update(schema.matchNotifications)
-      .set({
-        pushSent: true,
-        pushSentAt: new Date(),
-      })
-      .where(eq(schema.matchNotifications.id, notification.id));
+  } catch (error) {
+    app.logger.error({ err: error, newPostId }, 'Error matching travel post');
   }
 }
