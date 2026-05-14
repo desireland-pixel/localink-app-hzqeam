@@ -820,7 +820,8 @@ export function registerConversationRoutes(app: App) {
         }, recipientId);
 
         // Send OneSignal notification to recipient (fire-and-forget)
-        sendOnesignalNotification(app, [recipientId], `New message from ${senderName || 'Someone'}`, content.substring(0, 100), { conversationId: id });
+        const senderDisplayName = senderProfile?.username || senderName || 'Someone';
+        sendOnesignalNotification(app, [recipientId], `New message from ${senderDisplayName}`, content.substring(0, 100), { type: 'chat_message', conversationId: id });
       }
 
       return reply.code(200).send(messageWithSender);
