@@ -166,7 +166,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router]);
 
   // Sync OneSignal external user ID with authenticated user
   useEffect(() => {
