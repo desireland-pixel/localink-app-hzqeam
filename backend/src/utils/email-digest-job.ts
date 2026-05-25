@@ -17,9 +17,11 @@ export function startEmailDigestJob(app: App) {
       }
     },
     null,
-    true, // Start the job right away
+    false, // Start the job right away
     'UTC'
   );
+
+  job.start();
 
   app.logger.info({}, 'Email digest cron job started (Monday & Thursday at 9 AM UTC)');
 }
@@ -96,7 +98,7 @@ async function sendDigestForUser(app: App, userId: string) {
     let deepLink = '';
 
     if (notification.matchedPostType === 'sublet') {
-      deepLink = `lokalinc://sublet/${notification.matchedPostId}`;
+      deepLink = `https://lokalinc.de/sublet/${notification.matchedPostId}`;
       const sublet = await app.db.query.sublets.findFirst({
         where: (s) => eq(s.id, notification.matchedPostId),
       });
@@ -104,7 +106,7 @@ async function sendDigestForUser(app: App, userId: string) {
         title = sublet.title;
       }
     } else if (notification.matchedPostType === 'travel') {
-      deepLink = `lokalinc://travel/${notification.matchedPostId}`;
+      deepLink = `https://lokalinc.de/travel/${notification.matchedPostId}`;
       const travelPost = await app.db.query.travelPosts.findFirst({
         where: (t) => eq(t.id, notification.matchedPostId),
       });
@@ -136,7 +138,8 @@ async function sendDigestForUser(app: App, userId: string) {
     })
     .where(and(
       eq(schema.matchNotifications.notifiedUserId, userId),
-      eq(schema.matchNotifications.emailSent, false)
+      eq(schema.matchNotifications.emailSent, false),
+      isNull(schema.matchNotifications.emailSentAt)
     ));
 
   app.logger.info({ userId, notificationCount: totalCount }, 'Digest email sent');

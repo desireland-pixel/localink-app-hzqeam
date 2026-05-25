@@ -52,6 +52,11 @@ describe("API Integration Tests", () => {
     expect(typeof data.available).toBe("boolean");
   });
 
+  test("Check username availability - missing username param returns 400", async () => {
+    const res = await api("/api/check-username");
+    await expectStatus(res, 400);
+  });
+
   test("Password reset redirect with invalid token returns 400", async () => {
     const res = await api("/api/auth/reset-redirect?token=invalid-token&email=test@example.com");
     await expectStatus(res, 400);
@@ -104,6 +109,96 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400);
   });
 
+  test("Request password reset - user not found returns 404", async () => {
+    const res = await api("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "nonexistent@example.com",
+      }),
+    });
+    await expectStatus(res, 404);
+  });
+
+  test("Request password reset - invalid email format returns 400", async () => {
+    const res = await api("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "not-an-email",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Reset password with invalid token returns 400", async () => {
+    const res = await api("/api/auth/do-reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: "invalid-token",
+        newPassword: "NewPassword123!",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Reset password missing required fields returns 400", async () => {
+    const res = await api("/api/auth/do-reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        // Missing token and newPassword
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Verify OTP with invalid email format returns 400", async () => {
+    const res = await api("/api/verify-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "invalid-email",
+        otp: "123456",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Verify OTP missing required fields returns 400", async () => {
+    const res = await api("/api/verify-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        // Missing email and otp
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Resend OTP with invalid email format returns 400", async () => {
+    const res = await api("/api/resend-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "not-a-valid-email",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Resend OTP missing email returns 400", async () => {
+    const res = await api("/api/resend-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        // Missing email
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   // ============ Cities ============
 
   test("Get all cities", async () => {
@@ -116,6 +211,13 @@ describe("API Integration Tests", () => {
 
   test("Get travel cities only", async () => {
     const res = await api("/api/cities?type=travel");
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(Array.isArray(data.cities)).toBe(true);
+  });
+
+  test("Get all type cities", async () => {
+    const res = await api("/api/cities?type=all");
     await expectStatus(res, 200);
     const data = await res.json();
     expect(Array.isArray(data.cities)).toBe(true);
@@ -137,6 +239,13 @@ describe("API Integration Tests", () => {
 
   test("Search cities with type filter", async () => {
     const res = await api("/api/cities/search?q=Berlin&type=all");
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(Array.isArray(data.cities)).toBe(true);
+  });
+
+  test("Search cities with travel type filter", async () => {
+    const res = await api("/api/cities/search?q=Berlin&type=travel");
     await expectStatus(res, 200);
     const data = await res.json();
     expect(Array.isArray(data.cities)).toBe(true);
@@ -168,6 +277,25 @@ describe("API Integration Tests", () => {
     expect(subletId).toBeDefined();
   });
 
+  test("Create sublet (seeking type)", async () => {
+    const res = await authenticatedApi("/api/sublets", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "seeking",
+        title: "Looking for apartment in Berlin",
+        city: "Berlin",
+        availableFrom: "2026-07-01",
+        availableTo: "2026-09-30",
+        rent: "1200",
+        independentArrangementConsent: true,
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.id).toBeDefined();
+  });
+
   test("Get all sublets", async () => {
     const res = await api("/api/sublets");
     await expectStatus(res, 200);
@@ -180,6 +308,31 @@ describe("API Integration Tests", () => {
 
   test("Get sublets filtered by type", async () => {
     const res = await api("/api/sublets?type=offering");
+    await expectStatus(res, 200);
+  });
+
+  test("Get sublets filtered by type seeking", async () => {
+    const res = await api("/api/sublets?type=seeking");
+    await expectStatus(res, 200);
+  });
+
+  test("Get sublets with date range filter", async () => {
+    const res = await api("/api/sublets?availableFrom=2026-06-01&availableTo=2026-08-31");
+    await expectStatus(res, 200);
+  });
+
+  test("Get sublets with rent filter", async () => {
+    const res = await api("/api/sublets?minRent=500&maxRent=2000");
+    await expectStatus(res, 200);
+  });
+
+  test("Get sublets filtered by city registration required", async () => {
+    const res = await api("/api/sublets?cityRegistrationRequired=yes");
+    await expectStatus(res, 200);
+  });
+
+  test("Get sublets sorted by newest", async () => {
+    const res = await api("/api/sublets?sort=newest");
     await expectStatus(res, 200);
   });
 
@@ -220,12 +373,45 @@ describe("API Integration Tests", () => {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: "Updated: Premium Manhattan Apartment",
+        title: "Updated: Premium Munich Apartment",
         rent: "1800",
         description: "Updated description with more details",
       }),
     });
     await expectStatus(res, 200);
+  });
+
+  test("Update sublet - deposit field", async () => {
+    const res = await authenticatedApi(`/api/sublets/${subletId}`, authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deposit: "500",
+      }),
+    });
+    await expectStatus(res, 200);
+  });
+
+  test("Update non-existent sublet returns 404", async () => {
+    const res = await authenticatedApi("/api/sublets/00000000-0000-0000-0000-000000000000", authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Updated title",
+      }),
+    });
+    await expectStatus(res, 404);
+  });
+
+  test("Update sublet with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/sublets/invalid-uuid", authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Updated title",
+      }),
+    });
+    await expectStatus(res, 400);
   });
 
   test("Get my sublets list", async () => {
@@ -238,6 +424,13 @@ describe("API Integration Tests", () => {
       method: "PATCH",
     });
     await expectStatus(res, 200);
+  });
+
+  test("Close non-existent sublet returns 404", async () => {
+    const res = await authenticatedApi("/api/sublets/00000000-0000-0000-0000-000000000000/close", authToken, {
+      method: "PATCH",
+    });
+    await expectStatus(res, 404);
   });
 
   test("Delete own sublet", async () => {
@@ -300,6 +493,77 @@ describe("API Integration Tests", () => {
     expect(travelPostId).toBeDefined();
   });
 
+  test("Create travel post (seeking type)", async () => {
+    const res = await authenticatedApi("/api/travel-posts", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "seeking",
+        fromCity: "Hamburg",
+        toCity: "Berlin",
+        travelDate: "2026-08-01",
+        seekingConsent: true,
+      }),
+    });
+    await expectStatus(res, 201);
+    const data = await res.json();
+    expect(data.id || data.travelPostId).toBeDefined();
+  });
+
+  test("Create travel post with companionship info", async () => {
+    const res = await authenticatedApi("/api/travel-posts", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "seeking",
+        fromCity: "Munich",
+        toCity: "Hamburg",
+        travelDate: "2026-08-15",
+        companionshipFor: "Mother",
+        canOfferCompanionship: true,
+        seekingConsent: true,
+      }),
+    });
+    await expectStatus(res, 201);
+    const data = await res.json();
+    expect(data.id || data.travelPostId).toBeDefined();
+  });
+
+  test("Create travel post with item carrying", async () => {
+    const res = await authenticatedApi("/api/travel-posts", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        fromCity: "Berlin",
+        toCity: "Hamburg",
+        travelDate: "2026-09-01",
+        canCarryItems: true,
+        item: "Laptop and documents",
+        companionshipConsent: true,
+      }),
+    });
+    await expectStatus(res, 201);
+    const data = await res.json();
+    expect(data.id || data.travelPostId).toBeDefined();
+  });
+
+  test("Create travel post with incentive amount", async () => {
+    const res = await authenticatedApi("/api/travel-posts", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "seeking",
+        fromCity: "Munich",
+        toCity: "Berlin",
+        travelDate: "2026-09-10",
+        incentiveAmount: 50.00,
+        seekingConsent: true,
+      }),
+    });
+    await expectStatus(res, 201);
+  });
+
   test("Get all travel posts", async () => {
     const res = await api("/api/travel-posts");
     await expectStatus(res, 200);
@@ -310,8 +574,38 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
-  test("Get travel posts filtered by role", async () => {
+  test("Get travel posts filtered by role offering", async () => {
     const res = await api("/api/travel-posts?role=offering");
+    await expectStatus(res, 200);
+  });
+
+  test("Get travel posts filtered by role seeking", async () => {
+    const res = await api("/api/travel-posts?role=seeking");
+    await expectStatus(res, 200);
+  });
+
+  test("Get travel posts filtered by date range", async () => {
+    const res = await api("/api/travel-posts?travelDateFrom=2026-06-01&travelDateTo=2026-08-31");
+    await expectStatus(res, 200);
+  });
+
+  test("Get travel posts filtered by travel date", async () => {
+    const res = await api("/api/travel-posts?travelDate=2026-07-15");
+    await expectStatus(res, 200);
+  });
+
+  test("Get travel posts filtered by incentive true", async () => {
+    const res = await api("/api/travel-posts?incentive=true");
+    await expectStatus(res, 200);
+  });
+
+  test("Get travel posts filtered by incentive false", async () => {
+    const res = await api("/api/travel-posts?incentive=false");
+    await expectStatus(res, 200);
+  });
+
+  test("Get travel posts sorted by newest", async () => {
+    const res = await api("/api/travel-posts?sort=newest");
     await expectStatus(res, 200);
   });
 
@@ -358,6 +652,39 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
+  test("Update travel post with incentive", async () => {
+    const res = await authenticatedApi(`/api/travel-posts/${travelPostId}`, authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        incentiveAmount: 75.50,
+      }),
+    });
+    await expectStatus(res, 200);
+  });
+
+  test("Update non-existent travel post returns 404", async () => {
+    const res = await authenticatedApi("/api/travel-posts/00000000-0000-0000-0000-000000000000", authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        description: "Updated",
+      }),
+    });
+    await expectStatus(res, 404);
+  });
+
+  test("Update travel post with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/travel-posts/invalid-uuid", authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        description: "Updated",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   test("Get my travel posts", async () => {
     const res = await authenticatedApi("/api/my/travel-posts", authToken);
     await expectStatus(res, 200);
@@ -368,6 +695,13 @@ describe("API Integration Tests", () => {
       method: "PATCH",
     });
     await expectStatus(res, 200);
+  });
+
+  test("Close non-existent travel post returns 404", async () => {
+    const res = await authenticatedApi("/api/travel-posts/00000000-0000-0000-0000-000000000000/close", authToken, {
+      method: "PATCH",
+    });
+    await expectStatus(res, 404);
   });
 
   test("Delete own travel post", async () => {
@@ -419,6 +753,22 @@ describe("API Integration Tests", () => {
     expect(data.id || data.travelPostId).toBeDefined();
   });
 
+  test("Create travel post with invalid incentive amount returns 400", async () => {
+    const res = await authenticatedApi("/api/travel-posts", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        fromCity: "Berlin",
+        toCity: "Munich",
+        travelDate: "2026-09-01",
+        incentiveAmount: 150.00, // Exceeds max of 99.99
+        companionshipConsent: true,
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   // ============ Favorites ============
 
   test("Create favorite on travel post", async () => {
@@ -450,8 +800,39 @@ describe("API Integration Tests", () => {
     expect(data.favorite.postId).toBe(postId);
   });
 
+  test("Create favorite with invalid postType returns 400", async () => {
+    const createRes = await authenticatedApi("/api/travel-posts", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "seeking",
+        fromCity: "Berlin",
+        toCity: "Hamburg",
+        travelDate: "2026-06-01",
+        seekingConsent: true,
+      }),
+    });
+    const createData = await createRes.json();
+    const postId = createData.id || createData.travelPostId;
+
+    const res = await authenticatedApi("/api/favorites", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId,
+        postType: "invalid",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   test("Get user favorites with pagination", async () => {
     const res = await authenticatedApi("/api/favorites", authToken);
+    await expectStatus(res, 200);
+  });
+
+  test("Get favorites with limit and offset", async () => {
+    const res = await authenticatedApi("/api/favorites?limit=10&offset=0", authToken);
     await expectStatus(res, 200);
   });
 
@@ -478,6 +859,11 @@ describe("API Integration Tests", () => {
 
   test("Check if post is favorited with invalid UUID format returns 400", async () => {
     const res = await authenticatedApi("/api/favorites/check/invalid-uuid?postType=travel", authToken);
+    await expectStatus(res, 400);
+  });
+
+  test("Check if post is favorited with invalid postType returns 400", async () => {
+    const res = await authenticatedApi("/api/favorites/check/00000000-0000-0000-0000-000000000000?postType=invalid", authToken);
     await expectStatus(res, 400);
   });
 
@@ -511,6 +897,13 @@ describe("API Integration Tests", () => {
     await expectStatus(deleteRes, 200);
     const data = await deleteRes.json();
     expect(data.success).toBe(true);
+  });
+
+  test("Delete favorite with invalid postType returns 400", async () => {
+    const res = await authenticatedApi("/api/favorites/00000000-0000-0000-0000-000000000000?postType=invalid", authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 400);
   });
 
   test("Create favorite on sublet post", async () => {
@@ -707,8 +1100,23 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
-  test("Get community topics filtered by category and status", async () => {
-    const res = await api("/api/community/topics?category=Housing&status=open");
+  test("Get community topics filtered by category", async () => {
+    const res = await api("/api/community/topics?category=Housing");
+    await expectStatus(res, 200);
+  });
+
+  test("Get community topics filtered by status open", async () => {
+    const res = await api("/api/community/topics?status=open");
+    await expectStatus(res, 200);
+  });
+
+  test("Get community topics filtered by status closed", async () => {
+    const res = await api("/api/community/topics?status=closed");
+    await expectStatus(res, 200);
+  });
+
+  test("Get community topics with pagination", async () => {
+    const res = await api("/api/community/topics?limit=5&offset=0");
     await expectStatus(res, 200);
   });
 
@@ -739,6 +1147,39 @@ describe("API Integration Tests", () => {
       }),
     });
     await expectStatus(res, 200);
+  });
+
+  test("Update community topic status to closed", async () => {
+    const res = await authenticatedApi(`/api/community/topics/${communityTopicId}`, authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: "closed",
+      }),
+    });
+    await expectStatus(res, 200);
+  });
+
+  test("Update non-existent community topic returns 404", async () => {
+    const res = await authenticatedApi("/api/community/topics/00000000-0000-0000-0000-000000000000", authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Updated title",
+      }),
+    });
+    await expectStatus(res, 404);
+  });
+
+  test("Update topic with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/community/topics/invalid-uuid", authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Updated title",
+      }),
+    });
+    await expectStatus(res, 400);
   });
 
   test("Create reply to community topic", async () => {
@@ -777,6 +1218,17 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400);
   });
 
+  test("Create reply missing content returns 400", async () => {
+    const res = await authenticatedApi(`/api/community/topics/${communityTopicId}/replies`, authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        // Missing required: content
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   test("Update own community reply", async () => {
     const res = await authenticatedApi(`/api/community/replies/${replyId}`, authToken, {
       method: "PUT",
@@ -805,6 +1257,17 @@ describe("API Integration Tests", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         content: "Updated content",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Update reply missing content returns 400", async () => {
+    const res = await authenticatedApi(`/api/community/replies/${replyId}`, authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        // Missing required: content
       }),
     });
     await expectStatus(res, 400);
@@ -908,12 +1371,40 @@ describe("API Integration Tests", () => {
   });
 
   test("Close open community topic", async () => {
-    const res = await authenticatedApi(`/api/community/topics/${communityTopicId}/close`, authToken, {
+    // Create a fresh topic for this test since communityTopicId is already closed
+    const createRes = await authenticatedApi("/api/community/topics", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "General",
+        title: "Topic to close for test",
+        description: "Test closing topic",
+        location: "Berlin",
+      }),
+    });
+    const createData = await createRes.json();
+    const topicToCloseId = createData.id;
+
+    const res = await authenticatedApi(`/api/community/topics/${topicToCloseId}/close`, authToken, {
       method: "POST",
     });
     await expectStatus(res, 200);
     const data = await res.json();
     expect(data.success).toBe(true);
+  });
+
+  test("Close non-existent community topic returns 404", async () => {
+    const res = await authenticatedApi("/api/community/topics/00000000-0000-0000-0000-000000000000/close", authToken, {
+      method: "POST",
+    });
+    await expectStatus(res, 404);
+  });
+
+  test("Close topic with invalid UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/community/topics/invalid-uuid/close", authToken, {
+      method: "POST",
+    });
+    await expectStatus(res, 400);
   });
 
   test("Delete community topic", async () => {
@@ -933,6 +1424,13 @@ describe("API Integration Tests", () => {
       method: "DELETE",
     });
     await expectStatus(res, 400);
+  });
+
+  test("Delete non-existent community topic returns 404", async () => {
+    const res = await authenticatedApi("/api/community/topics/00000000-0000-0000-0000-000000000000", authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 404);
   });
 
   test("Create topic missing required fields fails", async () => {
@@ -958,7 +1456,7 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
-  test("Get community posts with sorting", async () => {
+  test("Get community posts with sorting newest", async () => {
     const res = await api("/api/community-posts?sort=newest");
     await expectStatus(res, 200);
   });
@@ -1054,6 +1552,30 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400);
   });
 
+  test("Add comment missing content returns 400", async () => {
+    const topicRes = await authenticatedApi("/api/community/topics", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "General",
+        title: "Topic for test missing content",
+        description: "Test topic",
+        location: "Berlin",
+      }),
+    });
+    const topicData = await topicRes.json();
+    const topicId = topicData.id;
+
+    const res = await authenticatedApi(`/api/community/${topicId}/comments`, authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        // Missing required: content
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   // ============ Conversations ============
 
   test("Get conversations list for current user", async () => {
@@ -1095,6 +1617,65 @@ describe("API Integration Tests", () => {
     const data = await res.json();
     conversationId = data.id;
     expect(conversationId).toBeDefined();
+  });
+
+  test("Start conversation on sublet post", async () => {
+    const postRes = await authenticatedApi("/api/sublets", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        title: "Conversation test sublet",
+        city: "Hamburg",
+        availableFrom: "2026-06-01",
+        availableTo: "2026-08-31",
+        rent: "1500",
+        independentArrangementConsent: true,
+      }),
+    });
+    const postData = await postRes.json();
+    const postId = postData.id;
+
+    const res = await authenticatedApi("/api/conversations", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId,
+        postType: "sublet",
+        recipientId: authUser.id,
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.id).toBeDefined();
+  });
+
+  test("Start conversation on community post", async () => {
+    const postRes = await authenticatedApi("/api/community/topics", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "General",
+        title: "Conversation test community topic",
+        description: "Testing conversation on community post",
+        location: "Berlin",
+      }),
+    });
+    const postData = await postRes.json();
+    const postId = postData.id;
+
+    const res = await authenticatedApi("/api/conversations", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId,
+        postType: "community",
+        recipientId: authUser.id,
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.id).toBeDefined();
   });
 
   test("Start conversation missing required fields fails", async () => {
@@ -1269,6 +1850,39 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
   });
 
+  test("Get messages with pagination", async () => {
+    if (!conversationId) {
+      const postRes = await authenticatedApi("/api/travel-posts", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "offering",
+          fromCity: "Munich",
+          toCity: "Stuttgart",
+          travelDate: "2026-12-10",
+          companionshipConsent: true,
+        }),
+      });
+      const postData = await postRes.json();
+      const postId = postData.id || postData.travelPostId;
+
+      const convRes = await authenticatedApi("/api/conversations", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postId,
+          postType: "travel",
+          recipientId: authUser.id,
+        }),
+      });
+      const convData = await convRes.json();
+      conversationId = convData.id;
+    }
+
+    const res = await authenticatedApi(`/api/conversations/${conversationId}/messages?limit=10&offset=0`, authToken);
+    await expectStatus(res, 200);
+  });
+
   test("Get messages for non-existent conversation returns 404", async () => {
     const res = await authenticatedApi("/api/conversations/00000000-0000-0000-0000-000000000000/messages", authToken);
     await expectStatus(res, 404);
@@ -1312,6 +1926,16 @@ describe("API Integration Tests", () => {
       method: "POST",
     });
     await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(typeof data.markedCount).toBe("number");
+  });
+
+  test("Mark read on non-existent conversation returns 404", async () => {
+    const res = await authenticatedApi("/api/conversations/00000000-0000-0000-0000-000000000000/mark-read", authToken, {
+      method: "POST",
+    });
+    await expectStatus(res, 404);
   });
 
   test("Delete a conversation", async () => {
@@ -1420,6 +2044,48 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 404);
   });
 
+  test("Delete message with invalid conversation UUID format returns 400", async () => {
+    const res = await authenticatedApi("/api/conversations/invalid-uuid/messages/00000000-0000-0000-0000-000000000001", authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Delete message with invalid message UUID format returns 400", async () => {
+    if (!conversationId) {
+      const postRes = await authenticatedApi("/api/travel-posts", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "offering",
+          fromCity: "Cologne",
+          toCity: "Frankfurt",
+          travelDate: "2027-02-15",
+          companionshipConsent: true,
+        }),
+      });
+      const postData = await postRes.json();
+      const postId = postData.id || postData.travelPostId;
+
+      const convRes = await authenticatedApi("/api/conversations", authToken, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postId,
+          postType: "travel",
+          recipientId: authUser.id,
+        }),
+      });
+      const convData = await convRes.json();
+      conversationId = convData.id;
+    }
+
+    const res = await authenticatedApi(`/api/conversations/${conversationId}/messages/invalid-uuid`, authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 400);
+  });
+
   // ============ Push Tokens ============
 
   test("Register device push token", async () => {
@@ -1446,6 +2112,20 @@ describe("API Integration Tests", () => {
       }),
     });
     await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+  });
+
+  test("Register push token missing platform returns 400", async () => {
+    const res = await authenticatedApi("/api/push-tokens", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: "test_token",
+        // Missing platform
+      }),
+    });
+    await expectStatus(res, 400);
   });
 
   test("Delete push token", async () => {
@@ -1654,6 +2334,13 @@ describe("API Integration Tests", () => {
     expect(data.message).toBeDefined();
   });
 
+  test("Schedule account deletion without auth returns 401", async () => {
+    const res = await api("/api/user/delete-account", {
+      method: "POST",
+    });
+    await expectStatus(res, 401);
+  });
+
   test("Cancel account deletion", async () => {
     // First schedule deletion
     await authenticatedApi("/api/user/delete-account", authToken, {
@@ -1668,13 +2355,6 @@ describe("API Integration Tests", () => {
     const data = await res.json();
     expect(data.success).toBe(true);
     expect(data.message).toBeDefined();
-  });
-
-  test("Delete account without authentication returns 401", async () => {
-    const res = await api("/api/user/delete-account", {
-      method: "POST",
-    });
-    await expectStatus(res, 401);
   });
 
   test("Cancel account deletion without authentication returns 401", async () => {
@@ -1761,6 +2441,34 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 200);
     const data = await res.json();
     expect(data.success).toBe(true);
+  });
+
+  test("Trigger matching missing postType returns 400", async () => {
+    const createRes = await authenticatedApi("/api/sublets", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        title: "Trigger match test",
+        city: "Munich",
+        availableFrom: "2026-07-01",
+        availableTo: "2026-08-30",
+        rent: "1500",
+        independentArrangementConsent: true,
+      }),
+    });
+    const createData = await createRes.json();
+    const postId = createData.id;
+
+    const res = await authenticatedApi("/api/matches/trigger", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId,
+        // Missing postType
+      }),
+    });
+    await expectStatus(res, 400);
   });
 
   // ============ Admin Endpoints ============
