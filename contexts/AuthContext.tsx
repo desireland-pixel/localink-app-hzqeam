@@ -111,13 +111,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const fetchProfileStandalone = async (): Promise<void> => {
     try {
-      console.log('[AuthContext] Fetching user profile');
       setProfileLoading(true);
       const response = await authenticatedGet<Profile>('/api/profile');
-      console.log('[AuthContext] Profile fetched successfully:', response);
       setProfileRef.current(response);
     } catch (error: any) {
-      console.log('[AuthContext] Profile fetch failed (may not exist yet):', error?.message);
       setProfileRef.current(null);
     } finally {
       setProfileLoading(false);
@@ -130,13 +127,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const fetchUser = React.useCallback(async (): Promise<void> => {
     try {
-      console.log('[AuthContext] Fetching user session from /api/auth/get-session');
-
       // Get the bearer token
       const token = await getBearerToken();
       
       if (!token) {
-        console.log('[AuthContext] No bearer token found, user is logged out');
         setUserRef.current(null);
         setProfileRef.current(null);
         return;
@@ -152,10 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credentials: 'include',
       });
 
-      console.log('[AuthContext] Session response status:', response.status);
-
       if (!response.ok) {
-        console.log('[AuthContext] Session check failed, clearing auth state');
         setUserRef.current(null);
         setProfileRef.current(null);
         await clearAuthTokens();
@@ -163,16 +154,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json();
-      console.log('[AuthContext] Session data received:', data);
 
       // Check if we have user data in the response
       if (data?.user) {
-        console.log('[AuthContext] User session found:', data.user.id);
         setUserRef.current(data.user as User);
         identify(data.user.id, { email: data.user.email, name: data.user.name });
         await fetchProfileStandalone();
       } else {
-        console.log('[AuthContext] No user in session response, user is logged out');
         setUserRef.current(null);
         setProfileRef.current(null);
         await clearAuthTokens();
@@ -207,14 +195,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshProfile = React.useCallback(async () => {
-    console.log('[AuthContext] Refreshing profile');
     await fetchProfileStandalone();
   }, []);
 
   const fetchUnreadCountInternal = React.useCallback(async () => {
     try {
       const response = await authenticatedGet<{ unreadConversationCount: number }>('/api/conversations/unread-count');
-      console.log('[AuthContext] Unread count fetched:', response.unreadConversationCount);
       setUnreadCount(response.unreadConversationCount || 0);
     } catch (error: any) {
       console.error('[AuthContext] Failed to fetch unread count:', error);
@@ -225,7 +211,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchCommunityUnreadCountInternal = React.useCallback(async () => {
     try {
       const response = await authenticatedGet<{ unreadTopicsCount: number }>('/api/community/unread-count');
-      console.log('[AuthContext] Community unread count fetched:', response.unreadTopicsCount);
       setCommunityUnreadCount(response.unreadTopicsCount || 0);
     } catch (error: any) {
       console.error('[AuthContext] Failed to fetch community unread count:', error);
@@ -242,7 +227,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchCommunityUnreadCountInternal]);
 
   useEffect(() => {
-    console.log('[AuthContext] Initializing auth state');
     initializeAuth();
 
     const subscription = Linking.addEventListener("url", (event) => {
@@ -251,17 +235,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const publicPaths = ["/reset-password", "/verify-otp"];
       const isPublic = publicPaths.some((p) => event.url.includes(p));
       if (isPublic) {
-        console.log("[AuthContext] Deep link to public route, skipping auth refresh:", event.url);
         return;
       }
-      console.log("[AuthContext] Deep link received, refreshing user session");
       setTimeout(() => initializeAuth(), 500);
     });
 
     // Refresh session every 20 minutes to keep it alive well within the 30-day window.
     // The backend's updateAge is 24 hours, so this ensures the session stays fresh.
     const intervalId = setInterval(() => {
-      console.log("[AuthContext] Auto-refreshing user session (20-min interval)...");
       fetchUser();
     }, 20 * 60 * 1000); // 20 minutes
 
@@ -273,7 +254,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (user) {
-      console.log('[AuthContext] User logged in, starting unread count polling');
       fetchUnreadCountInternal();
       fetchCommunityUnreadCountInternal();
       const unreadInterval = setInterval(() => {
@@ -292,7 +272,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
-      console.log('[AuthContext] Signing in with email via /api/login');
       const response = await fetch(`${BACKEND_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -300,13 +279,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credentials: 'include',
       });
 
-      console.log('[AuthContext] Login response status:', response.status);
-
       // Parse response body
       let data: any;
       try {
         const text = await response.text();
-        console.log('[AuthContext] Login response body:', text);
         data = text ? JSON.parse(text) : {};
       } catch (parseError) {
         console.error('[AuthContext] Failed to parse response:', parseError);
@@ -321,21 +297,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Store bearer token if returned
       if (data?.session?.token) {
-        console.log('[AuthContext] Storing bearer token (session.token) after email sign in');
         await setBearerToken(data.session.token);
       } else if (data?.token) {
-        console.log('[AuthContext] Storing bearer token (token field) after email sign in');
         await setBearerToken(data.token);
       }
 
       // Set user from response or re-fetch
       if (data?.user) {
-        console.log('[AuthContext] Setting user from login response:', data.user.id);
         setUser(data.user as User);
         identify(data.user.id, { email: data.user.email, name: data.user.name });
         await fetchProfileStandalone();
       } else {
-        console.log('[AuthContext] No user in response, fetching from session');
         await fetchUser();
       }
 
@@ -347,16 +319,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUpWithEmail = async (email: string, password: string, name?: string) => {
     try {
-      console.log('[AuthContext] Signing up with email');
       const result = await authClient.signUp.email({
         email,
         password,
         name,
       });
-      console.log('[AuthContext] Sign up result:', result);
 
       if (result.data?.session?.token) {
-        console.log('[AuthContext] Storing bearer token after email sign up');
         await setBearerToken(result.data.session.token);
       }
 
@@ -369,14 +338,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithSocial = async (provider: "google" | "apple" | "github") => {
     try {
-      console.log(`[AuthContext] Signing in with ${provider}`);
       if (Platform.OS === "web") {
         const token = await openOAuthPopup(provider);
         await setBearerToken(token);
         await fetchUser();
       } else {
         const callbackURL = Linking.createURL("/");
-        console.log(`[AuthContext] Using callback URL: ${callbackURL}`);
         await authClient.signIn.social({
           provider,
           callbackURL,
@@ -395,7 +362,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
-      console.log('[AuthContext] Signing out');
       await authClient.signOut();
     } catch (error) {
       console.error("[AuthContext] Sign out failed (API):", error);

@@ -10,7 +10,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function TabLayout() {
   const { unreadCount, communityUnreadCount } = useAuth();
   const insets = useSafeAreaInsets();
-  console.log('TabLayout: Rendering tabs', { unreadCount, communityUnreadCount, insets });
 
   return (
     <Tabs

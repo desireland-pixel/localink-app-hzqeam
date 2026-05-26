@@ -21,7 +21,6 @@ import Modal from "@/components/ui/Modal";
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const { token } = useLocalSearchParams<{ token: string }>();
-  console.log('[ResetPassword] token value:', token)
   
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -34,17 +33,14 @@ export default function ResetPasswordScreen() {
   const hasToken = !!token && token.length > 0;
 
   const handleToggleNewPassword = () => {
-    console.log('[ResetPassword] Toggle new password visibility');
     setShowNewPassword((prev) => !prev);
   };
 
   const handleToggleConfirmPassword = () => {
-    console.log('[ResetPassword] Toggle confirm password visibility');
     setShowConfirmPassword((prev) => !prev);
   };
 
   const handleSubmit = async () => {
-    console.log('[ResetPassword] Submit pressed, token present:', hasToken);
 
     if (!newPassword) {
       setError("Please enter a new password.");
@@ -63,7 +59,6 @@ export default function ResetPasswordScreen() {
     setError(null);
 
     try {
-      console.log('[ResetPassword] POST /api/auth/do-reset-password called');
       const response = await fetch(
         'https://prod-proj-dpluqp3d5nexthtfrcpmq-liwg5h36mq-ey.a.run.app/api/auth/do-reset-password',
         {
@@ -86,7 +81,6 @@ export default function ResetPasswordScreen() {
       } else {
         const json = await response.json();
         if (json.success) {
-          console.log('[ResetPassword] Password reset successful');
           setSuccess(true);
         } else {
           const userMsg = json.error || "Failed to reset password. Please try again.";
@@ -100,12 +94,10 @@ export default function ResetPasswordScreen() {
   };
 
   const handleGoToSignIn = () => {
-    console.log('[ResetPassword] Navigate to sign in');
     router.replace('/auth');
   };
 
   const handleSuccessClose = () => {
-    console.log('[ResetPassword] Success modal closed, navigating to auth');
     setSuccess(false);
     router.replace('/auth');
   };

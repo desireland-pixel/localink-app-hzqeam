@@ -25,12 +25,9 @@ export default function TravelFiltersScreen() {
   const [incentive, setIncentive] = useState<boolean | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
-  console.log('[TravelFiltersScreen] Rendering', { role, types: Array.from(types), hydrated });
-  
   // Use useFocusEffect to reinitialize filter state every time screen gains focus
   useFocusEffect(
     useCallback(() => {
-      console.log('[TravelFiltersScreen] Screen focused, hydrating filters from params', params.filters);
       setHydrated(false);
       
       // Reset all filters first
@@ -46,7 +43,6 @@ export default function TravelFiltersScreen() {
         
         const roleParam = urlParams.get('role');
         if (roleParam === 'offering' || roleParam === 'seeking') {
-          console.log('[TravelFiltersScreen] Setting role:', roleParam);
           setRole(roleParam);
         }
         
@@ -60,29 +56,24 @@ export default function TravelFiltersScreen() {
             newTypes.add('ally');
           }
           if (newTypes.size > 0) {
-            console.log('[TravelFiltersScreen] Setting types:', Array.from(newTypes));
             setTypes(newTypes);
           }
         }
         
         const fromDate = urlParams.get('travelDateFrom');
         if (fromDate) {
-          console.log('[TravelFiltersScreen] Setting dateStart:', fromDate);
           setDateStart(new Date(fromDate));
         }
         
         const toDate = urlParams.get('travelDateTo');
         if (toDate) {
-          console.log('[TravelFiltersScreen] Setting dateEnd:', toDate);
           setDateEnd(new Date(toDate));
         }
         
         const incentiveParam = urlParams.get('incentive');
         if (incentiveParam === 'true') {
-          console.log('[TravelFiltersScreen] Setting incentive: true');
           setIncentive(true);
         } else if (incentiveParam === 'false') {
-          console.log('[TravelFiltersScreen] Setting incentive: false');
           setIncentive(false);
         }
       }
@@ -102,8 +93,6 @@ export default function TravelFiltersScreen() {
   };
 
   const handleApply = () => {
-    console.log('[TravelFiltersScreen] Applying filters', { role, types: Array.from(types), dateStart, dateEnd });
-    
     const params = new URLSearchParams();
     
     if (role) {
@@ -120,7 +109,6 @@ export default function TravelFiltersScreen() {
     if (incentive !== null) params.append('incentive', String(incentive));
     
     const filterString = params.toString();
-    console.log('[TravelFiltersScreen] Filter string:', filterString);
     
     router.replace({
       pathname: '/(tabs)/travel',
@@ -129,7 +117,6 @@ export default function TravelFiltersScreen() {
   };
 
   const handleReset = () => {
-    console.log('[TravelFiltersScreen] Resetting filters');
     setRole(null);
     setTypes(new Set());
     setDateStart(null);

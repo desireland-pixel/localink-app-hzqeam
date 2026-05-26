@@ -30,11 +30,7 @@ export default function VerifyOTPScreen() {
   const [success, setSuccess] = useState<string | null>(null);
   const [verified, setVerified] = useState(false);
 
-  console.log('[VerifyOTP] Rendering, email:', email, 'username:', username);
-
   const handleVerifyOTP = async () => {
-    console.log('[VerifyOTP] Verifying OTP for email:', email);
-    
     if (!otp || otp.length !== 6) {
       setError('Please enter a valid 6-digit OTP');
       return;
@@ -44,19 +40,14 @@ export default function VerifyOTPScreen() {
     setError(null);
     
     try {
-      console.log('[VerifyOTP] Calling verify-otp API');
       const result = await apiPost('/api/verify-otp', { email, otp });
-      console.log('[VerifyOTP] OTP verified successfully', result);
 
       // After successful OTP verification, register the username if provided
       if (username) {
         try {
-          console.log('[VerifyOTP] Registering username after OTP verification:', username);
           await apiPost('/api/register-username', { username });
-          console.log('[VerifyOTP] Username registered successfully:', username);
         } catch (usernameErr: any) {
           // Log but don't block — user can update username later in Personal Details
-          console.warn('[VerifyOTP] Username registration failed (non-fatal):', usernameErr?.message || usernameErr);
         }
       }
 
@@ -76,14 +67,11 @@ export default function VerifyOTPScreen() {
   };
 
   const handleResendOTP = async () => {
-    console.log('[VerifyOTP] Resending OTP');
     setResending(true);
     setError(null);
     
     try {
-      console.log('[VerifyOTP] Calling resend-otp API');
       await apiPost('/api/resend-otp', { email });
-      console.log('[VerifyOTP] OTP resent successfully');
       setSuccess('OTP has been resent to your email');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
@@ -95,7 +83,6 @@ export default function VerifyOTPScreen() {
   };
 
   const handleContinue = () => {
-    console.log('[VerifyOTP] Navigating to login');
     router.replace('/auth');
   };
 

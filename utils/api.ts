@@ -55,7 +55,6 @@ export const apiCall = async <T = any>(
   const url = `${BACKEND_URL}${endpoint}`;
   
   const method = options?.method || "GET";
-  console.log(`API → ${method} ${endpoint}`);
 
   try {
     const fetchOptions: RequestInit = {
@@ -83,15 +82,7 @@ export const apiCall = async <T = any>(
       throw new Error(`API error: ${response.status} - ${text}`);
     }
 
-    const startTime = Date.now();
     const data = await response.json();
-    const duration = Date.now() - startTime;
-    
-    if (Array.isArray(data)) {
-      console.log(`API ← ${response.status} (${data.length} items, ${duration}ms)`);
-    } else {
-      console.log(`API ← ${response.status} (${duration}ms)`);
-    }
     
     return data;
     

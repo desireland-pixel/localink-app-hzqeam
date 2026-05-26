@@ -13,14 +13,10 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [showSignOutModal, setShowSignOutModal] = useState(false);
 
-  console.log('[ProfileScreen] Rendering, user:', user?.id, 'profile:', profile?.name);
-
   const handleSignOut = async () => {
-    console.log('[ProfileScreen] Signing out');
     setShowSignOutModal(false);
     try {
       await signOut();
-      console.log('[ProfileScreen] Sign out successful, redirecting to auth');
       router.replace('/auth');
     } catch (error) {
       console.error('[ProfileScreen] Sign out error:', error);
@@ -43,7 +39,6 @@ export default function ProfileScreen() {
             <TouchableOpacity 
               style={styles.editAvatarButton}
               onPress={() => {
-                console.log('[ProfileScreen] Navigate to personal details for photo edit');
                 router.push('/personal-details');
               }}
             >
@@ -71,7 +66,6 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              console.log('[ProfileScreen] Navigate to personal details');
               router.push('/personal-details');
             }}
           >
@@ -116,7 +110,6 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              console.log('[ProfileScreen] Navigate to favourites');
               router.push('/favourites');
             }}
           >
@@ -140,7 +133,6 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              console.log('[ProfileScreen] Navigate to notifications');
               router.push('/notifications');
             }}
           >
@@ -164,7 +156,6 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              console.log('[ProfileScreen] Navigate to FAQs');
               router.push('/faqs');
             }}
           >
@@ -188,7 +179,6 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              console.log('[ProfileScreen] Navigate to data & privacy');
               router.push('/data-privacy');
             }}
           >
@@ -212,7 +202,6 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              console.log('[ProfileScreen] Navigate to about');
               router.push('/about');
             }}
           >
