@@ -56,6 +56,9 @@ export const apiCall = async <T = any>(
   
   const method = options?.method || "GET";
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
   try {
     const fetchOptions: RequestInit = {
       ...options,
@@ -63,6 +66,7 @@ export const apiCall = async <T = any>(
         "Content-Type": "application/json",
         ...options?.headers,
       },
+      signal: controller.signal,
     };
 
     // Always send the token if we have it (needed for cross-domain/iframe support)
@@ -86,9 +90,14 @@ export const apiCall = async <T = any>(
     
     return data;
     
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your connection and try again.');
+    }
     console.error("[API] Request failed:", error);
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 

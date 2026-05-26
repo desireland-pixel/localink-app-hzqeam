@@ -166,9 +166,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await clearAuthTokens();
       }
     } catch (error) {
-      console.error('[AuthContext] Failed to fetch user:', error);
-      setUserRef.current(null);
-      setProfileRef.current(null);
+      // Network error (offline, timeout, DNS failure, etc.) — do NOT log the user out.
+      // The bearer token is still valid in SecureStore. The next successful session
+      // check (20-min interval, app foreground, or manual action) will restore the user.
+      // Only an explicit backend rejection (handled in the !response.ok branch above)
+      // should clear auth state.
+      console.error('[AuthContext] Session check failed (network error, keeping existing auth state):', error);
     }
   }, []); // No deps – uses refs and standalone helpers
 
