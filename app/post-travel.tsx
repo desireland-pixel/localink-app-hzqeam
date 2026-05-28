@@ -102,24 +102,34 @@ export default function PostTravelScreen() {
         }
         
         // Parse dates
-        if (data.travelDate) {
-          const date = parseDateFromDDMMYYYY(data.travelDate);
-          if (date) {
-            setTravelDate(new Date(date));
+        if (data.type === 'seeking-ally') {
+          // For seeking-ally: travelDate from API = Needed from Date → goes into neededFromDate state.
+          //                   travelDateTo from API = Needed by Date → goes into travelDate state.
+          if (data.travelDate) {
+            const fromDate = parseDateFromDDMMYYYY(data.travelDate);
+            if (fromDate) {
+              setNeededFromDate(new Date(fromDate));
+            }
           }
-        }
-        if (data.travelDateTo) {
-          const dateTo = parseDateFromDDMMYYYY(data.travelDateTo);
-          if (dateTo) {
-            setTravelDateTo(new Date(dateTo));
+          if (data.travelDateTo) {
+            const byDate = parseDateFromDDMMYYYY(data.travelDateTo);
+            if (byDate) {
+              setTravelDate(new Date(byDate));
+            }
           }
-        }
-        
-        // For seeking-ally, travelDate is "Needed from Date" and travelDateTo is "Needed by Date"
-        if (data.type === 'seeking-ally' && data.travelDate) {
-          const fromDate = parseDateFromDDMMYYYY(data.travelDate);
-          if (fromDate) {
-            setNeededFromDate(new Date(fromDate));
+        } else {
+          // For offering / seeking-companionship: API fields map directly to same-named state.
+          if (data.travelDate) {
+            const date = parseDateFromDDMMYYYY(data.travelDate);
+            if (date) {
+              setTravelDate(new Date(date));
+            }
+          }
+          if (data.travelDateTo) {
+            const dateTo = parseDateFromDDMMYYYY(data.travelDateTo);
+            if (dateTo) {
+              setTravelDateTo(new Date(dateTo));
+            }
           }
         }
       } catch (err) {
