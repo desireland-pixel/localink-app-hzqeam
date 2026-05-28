@@ -17,6 +17,7 @@ import { registerOnesignalRoutes } from './routes/onesignal.js';
 import { registerNotificationPreferencesRoutes } from './routes/notification-preferences.js';
 import { registerUserDeletionRoutes } from './routes/user-deletion.js';
 import { registerMatchRoutes } from './routes/matches.js';
+import { registerFeedbackRoutes } from './routes/feedback.js';
 import { startCleanupJob } from './utils/cleanup-job.js';
 import { startEmailDigestJob } from './utils/email-digest-job.js';
 
@@ -148,6 +149,7 @@ registerOnesignalRoutes(app);
 registerNotificationPreferencesRoutes(app);
 registerUserDeletionRoutes(app);
 registerMatchRoutes(app);
+registerFeedbackRoutes(app);
 
 // Start cleanup job for soft-deleted posts
 startCleanupJob(app);

@@ -2497,6 +2497,99 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 401, 403);
   });
 
+  // ============ Feedback ============
+
+  test("Submit feedback with general category", async () => {
+    const res = await authenticatedApi("/api/feedback", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "general",
+        message: "This is a great app!",
+      }),
+    });
+    await expectStatus(res, 201);
+    const data = await res.json();
+    expect(data.id).toBeDefined();
+    expect(data.created_at).toBeDefined();
+  });
+
+  test("Submit feedback with bug category", async () => {
+    const res = await authenticatedApi("/api/feedback", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "bug",
+        message: "I found a bug in the chat feature.",
+      }),
+    });
+    await expectStatus(res, 201);
+    const data = await res.json();
+    expect(data.id).toBeDefined();
+  });
+
+  test("Submit feedback with feature category", async () => {
+    const res = await authenticatedApi("/api/feedback", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "feature",
+        message: "It would be nice to have a dark mode.",
+      }),
+    });
+    await expectStatus(res, 201);
+    const data = await res.json();
+    expect(data.id).toBeDefined();
+  });
+
+  test("Submit feedback missing category returns 400", async () => {
+    const res = await authenticatedApi("/api/feedback", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        // Missing category
+        message: "Some feedback",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Submit feedback missing message returns 400", async () => {
+    const res = await authenticatedApi("/api/feedback", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "general",
+        // Missing message
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Submit feedback with invalid category returns 400", async () => {
+    const res = await authenticatedApi("/api/feedback", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "invalid",
+        message: "Some feedback",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Submit feedback without authentication returns 401", async () => {
+    const res = await api("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "general",
+        message: "Some feedback",
+      }),
+    });
+    await expectStatus(res, 401);
+  });
+
   // ============ General ============
 
   test("Get terms and conditions", async () => {
