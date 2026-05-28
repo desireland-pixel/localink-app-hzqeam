@@ -428,9 +428,9 @@ export default function AuthScreen() {
                 </View>
 
                 <TouchableOpacity
-                  style={[styles.primaryButton, loading && styles.buttonDisabled]}
+                  style={[styles.primaryButton, (loading || !email.trim()) && styles.buttonDisabled]}
                   onPress={handleForgotPassword}
-                  disabled={loading}
+                  disabled={loading || !email.trim()}
                 >
                   {loading ? (
                     <ActivityIndicator color="#fff" />
