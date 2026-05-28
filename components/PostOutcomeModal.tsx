@@ -33,14 +33,14 @@ export default function PostOutcomeModal({
 }: PostOutcomeModalProps) {
   const [selected, setSelected] = useState<'yes' | 'no' | null>(null);
   const [comment, setComment] = useState('');
-  const [thanksVisible, setThanksVisible] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   // Reset state whenever modal closes
   useEffect(() => {
     if (!visible) {
       setSelected(null);
       setComment('');
-      setThanksVisible(false);
+      setSubmitted(false);
     }
   }, [visible]);
 
@@ -57,7 +57,6 @@ export default function PostOutcomeModal({
   const handleSelect = (value: 'yes' | 'no') => {
     console.log('PostOutcomeModal: User selected outcome', { postId, postType, outcome: value });
     setSelected(value);
-    setThanksVisible(true);
   };
 
   const submitOutcome = async () => {
@@ -77,11 +76,15 @@ export default function PostOutcomeModal({
 
   const handleClose = () => {
     console.log('PostOutcomeModal: Close button tapped', { postId, postType, outcome: selected });
+    setSubmitted(true);
     submitOutcome(); // fire-and-forget — no await
-    onClose();
+    setTimeout(() => {
+      onClose();
+    }, 1500);
   };
 
   const handleDismiss = () => {
+    if (submitted) return;
     console.log('PostOutcomeModal: Dismissed without submitting', { postId, postType });
     onClose();
   };
@@ -108,81 +111,85 @@ export default function PostOutcomeModal({
         >
           <TouchableOpacity activeOpacity={1} onPress={() => {}}>
             <View style={styles.card}>
-              {/* Top-right X button — dismisses without submitting */}
-              <TouchableOpacity style={styles.closeX} onPress={handleDismiss} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <IconSymbol
-                  ios_icon_name="xmark"
-                  android_material_icon_name="close"
-                  size={18}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
+              {submitted ? (
+                <View style={styles.thanksContainer}>
+                  <Text style={styles.thanksTitle}>Thanks for letting us know! 🙌</Text>
+                  <Text style={styles.thanksSubtitle}>Your feedback helps us improve.</Text>
+                </View>
+              ) : (
+                <>
+                  {/* Top-right X button — dismisses without submitting */}
+                  <TouchableOpacity style={styles.closeX} onPress={handleDismiss} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <IconSymbol
+                      ios_icon_name="xmark"
+                      android_material_icon_name="close"
+                      size={18}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
 
-              {/* Question */}
-              <Text style={styles.question}>{questionText}</Text>
+                  {/* Question */}
+                  <Text style={styles.question}>{questionText}</Text>
 
-              {/* Yes / No buttons */}
-              <View style={styles.yesNoRow}>
-                <TouchableOpacity
-                  style={[styles.yesNoButton, selected === 'yes' && styles.yesNoButtonSelected]}
-                  onPress={() => handleSelect('yes')}
-                  activeOpacity={0.8}
-                >
-                  <IconSymbol
-                    ios_icon_name="checkmark"
-                    android_material_icon_name="check"
-                    size={16}
-                    color={selected === 'yes' ? colors.primary : colors.textSecondary}
+                  {/* Yes / No buttons */}
+                  <View style={styles.yesNoRow}>
+                    <TouchableOpacity
+                      style={[styles.yesNoButton, selected === 'yes' && styles.yesNoButtonSelected]}
+                      onPress={() => handleSelect('yes')}
+                      activeOpacity={0.8}
+                    >
+                      <IconSymbol
+                        ios_icon_name="checkmark"
+                        android_material_icon_name="check"
+                        size={16}
+                        color={selected === 'yes' ? colors.primary : colors.textSecondary}
+                      />
+                      <Text style={[styles.yesNoText, selected === 'yes' && styles.yesNoTextSelected]}>
+                        Yes
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.yesNoButton, selected === 'no' && styles.yesNoButtonSelected]}
+                      onPress={() => handleSelect('no')}
+                      activeOpacity={0.8}
+                    >
+                      <IconSymbol
+                        ios_icon_name="xmark"
+                        android_material_icon_name="close"
+                        size={16}
+                        color={selected === 'no' ? colors.primary : colors.textSecondary}
+                      />
+                      <Text style={[styles.yesNoText, selected === 'no' && styles.yesNoTextSelected]}>
+                        No
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Optional comment */}
+                  <TextInput
+                    style={styles.commentInput}
+                    placeholder="Add a comment (optional)"
+                    placeholderTextColor={colors.textLight}
+                    value={comment}
+                    onChangeText={setComment}
+                    maxLength={COMMENT_MAX_LENGTH}
+                    multiline
+                    numberOfLines={3}
                   />
-                  <Text style={[styles.yesNoText, selected === 'yes' && styles.yesNoTextSelected]}>
-                    Yes
-                  </Text>
-                </TouchableOpacity>
+                  <Text style={styles.charCounter}>{commentLength}/{COMMENT_MAX_LENGTH}</Text>
 
-                <TouchableOpacity
-                  style={[styles.yesNoButton, selected === 'no' && styles.yesNoButtonSelected]}
-                  onPress={() => handleSelect('no')}
-                  activeOpacity={0.8}
-                >
-                  <IconSymbol
-                    ios_icon_name="xmark"
-                    android_material_icon_name="close"
-                    size={16}
-                    color={selected === 'no' ? colors.primary : colors.textSecondary}
-                  />
-                  <Text style={[styles.yesNoText, selected === 'no' && styles.yesNoTextSelected]}>
-                    No
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Thank-you line */}
-              {thanksVisible && (
-                <Text style={styles.thanks}>Thanks for letting us know! 🙌</Text>
+                  {/* Close / submit button */}
+                  <TouchableOpacity
+                    style={[styles.closeButton, !isCloseEnabled && styles.closeButtonDisabled]}
+                    onPress={handleClose}
+                    disabled={!isCloseEnabled}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.closeButtonText}>Close</Text>
+                  </TouchableOpacity>
+                </>
               )}
-
-              {/* Optional comment */}
-              <TextInput
-                style={styles.commentInput}
-                placeholder="Add a comment (optional)"
-                placeholderTextColor={colors.textLight}
-                value={comment}
-                onChangeText={setComment}
-                maxLength={COMMENT_MAX_LENGTH}
-                multiline
-                numberOfLines={3}
-              />
-              <Text style={styles.charCounter}>{commentLength}/{COMMENT_MAX_LENGTH}</Text>
-
-              {/* Close / submit button */}
-              <TouchableOpacity
-                style={[styles.closeButton, !isCloseEnabled && styles.closeButtonDisabled]}
-                onPress={handleClose}
-                disabled={!isCloseEnabled}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.closeButtonText}>Close</Text>
-              </TouchableOpacity>
             </View>
           </TouchableOpacity>
         </KeyboardAvoidingView>
@@ -257,12 +264,20 @@ const styles = StyleSheet.create({
   yesNoTextSelected: {
     color: colors.primary,
   },
-  thanks: {
-    ...typography.bodySmall,
+  thanksContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+  },
+  thanksTitle: {
+    ...typography.h3,
     color: colors.primary,
     textAlign: 'center',
-    marginBottom: spacing.md,
-    fontWeight: '500',
+    marginBottom: spacing.sm,
+  },
+  thanksSubtitle: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   commentInput: {
     backgroundColor: colors.card,
