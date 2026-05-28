@@ -41,6 +41,8 @@ export async function sendPushNotification(
       target_channel: 'push',
       headings: { en: title },
       contents: { en: message },
+      ios_badgeType: 'Increase',
+      ios_badgeCount: 1,
       ...(data && { data }),
     };
 
@@ -103,6 +105,8 @@ export async function sendPushToAllUsers(
       included_segments: ['Total Subscriptions'],
       headings: { en: title },
       contents: { en: message },
+      ios_badgeType: 'Increase',
+      ios_badgeCount: 1,
       ...(data && { data }),
     };
 
