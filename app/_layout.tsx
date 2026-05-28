@@ -18,6 +18,7 @@ import { WidgetProvider } from "@/contexts/WidgetContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import OfflineBanner from "@/components/OfflineBanner";
+import RatingPrompt from "@/components/RatingPrompt";
 import { colors } from "@/styles/commonStyles";
 import { capture, startSession, endSession, checkSessionTimeout, getSessionId } from "@/utils/analytics";
 import { AppState } from "react-native";
@@ -114,6 +115,7 @@ export default function RootLayout() {
           <WidgetProvider>
             <GestureHandlerRootView style={{ flex: 1 }}>
               <OfflineBanner />
+              <RatingPrompt />
               <AnalyticsProvider>
                 <Stack>
                 <Stack.Screen name="index" options={{ headerShown: false }} />
