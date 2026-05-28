@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Modal as RNModal, Keyboard } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Modal as RNModal, Keyboard } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -37,11 +37,26 @@ interface Sublet {
 
 type SortOption = 'Newest' | 'Earliest' | 'Cheapest';
 
+const PAGE_SIZE = 20;
+
 const SUBLET_DISCLAIMER = `LokaLinc operates solely as a communication platform connecting users and is not a party to any rental agreement.
 
 Users are exclusively responsible for ensuring compliance with applicable rental laws, including obtaining any required landlord consent under §§ 540, 553 BGB.
 
 No verification of listings is performed, and no responsibility is assumed for the legality, accuracy, or execution of subletting arrangements.`;
+
+function parseListResponse<T>(data: unknown): { items: T[]; hasMore: boolean } {
+  if (data && typeof data === 'object' && !Array.isArray(data) && 'data' in data && Array.isArray((data as any).data)) {
+    return {
+      items: (data as any).data as T[],
+      hasMore: Boolean((data as any).hasMore),
+    };
+  }
+  if (Array.isArray(data)) {
+    return { items: data as T[], hasMore: false };
+  }
+  return { items: [], hasMore: false };
+}
 
 export default function SubletScreen() {
   useScreenTracking(SCREEN_NAMES.SUBLET);
@@ -54,7 +69,6 @@ export default function SubletScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [selectedCity, setSelectedCity] = useState<string>(() => {
-    // Initialize city from params if available (preserved from filter page navigation)
     return typeof params.city === 'string' ? params.city : '';
   });
   const [sortOption, setSortOption] = useState<SortOption>('Newest');
@@ -64,7 +78,12 @@ export default function SubletScreen() {
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const sortButtonRef = useRef<View>(null);
   const [sortButtonLayout, setSortButtonLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   // Disclaimer state
   const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
@@ -100,7 +119,6 @@ export default function SubletScreen() {
         setDisclaimerAccepted(response.subletDisclaimerAccepted);
       } catch (error) {
         console.error('SubletScreen: Error checking disclaimer:', error);
-        // If error, assume not accepted and show disclaimer
         setShowDisclaimerModal(true);
       } finally {
         setDisclaimerCheckLoading(false);
@@ -122,32 +140,62 @@ export default function SubletScreen() {
     }
   };
 
-  const fetchPosts = React.useCallback(async () => {
-    console.log('SubletScreen: Fetching sublets with filters:', params.filters);
-    if (sublets.length === 0) {
+  const buildQueryString = useCallback((pageNum: number) => {
+    const qp = new URLSearchParams();
+    qp.append('page', String(pageNum));
+    qp.append('limit', String(PAGE_SIZE));
+
+    // Map sort option to backend value
+    if (sortOption === 'Newest') {
+      qp.append('sort', 'newest');
+    } else if (sortOption === 'Earliest') {
+      qp.append('sort', 'earliest');
+    } else if (sortOption === 'Cheapest') {
+      qp.append('sort', 'cheapest');
+    }
+
+    if (selectedCity) {
+      qp.append('city', selectedCity);
+    }
+
+    // Merge any extra filter params from the filter page
+    if (params.filters) {
+      const extra = new URLSearchParams(params.filters as string);
+      extra.forEach((value, key) => {
+        if (!qp.has(key)) {
+          qp.append(key, value);
+        }
+      });
+    }
+
+    return qp.toString();
+  }, [sortOption, selectedCity, params.filters]);
+
+  // Initial / refresh fetch (page 1)
+  const fetchPage1 = useCallback(async (isRefresh = false) => {
+    console.log('SubletScreen: Fetching sublets page 1, sort:', sortOption, 'city:', selectedCity);
+    if (!isRefresh) {
       setLoading(true);
     }
     try {
-      // DO NOT pass city to backend - city filtering is done on frontend only
-      const filterParams = params.filters ? `?${params.filters}` : '';
-      
-      const data = await authenticatedGet<Sublet[]>(`/api/sublets${filterParams}`);
-      const dataArray = Array.isArray(data) ? data : [];
-      console.log('SubletScreen: Fetched sublets', dataArray.length);
-      
-      setSublets(dataArray);
+      const qs = buildQueryString(1);
+      console.log('SubletScreen: GET /api/sublets?' + qs);
+      const raw = await authenticatedGet<unknown>(`/api/sublets?${qs}`);
+      const { items, hasMore: more } = parseListResponse<Sublet>(raw);
+      console.log('SubletScreen: Fetched sublets page 1, count:', items.length, 'hasMore:', more);
+      setSublets(items);
+      setPage(1);
+      setHasMore(more);
     } catch (error) {
       console.error('SubletScreen: Error fetching sublets', error);
-      if (sublets.length === 0) {
-        setSublets([]);
-      }
+      setSublets([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [params.filters, sublets.length]);
+  }, [buildQueryString, sortOption, selectedCity]);
 
-  const fetchFavorites = React.useCallback(async () => {
+  const fetchFavorites = useCallback(async () => {
     try {
       console.log('SubletScreen: Fetching favorites');
       const data = await authenticatedGet<{ postId: string; postType: string }[]>('/api/favorites');
@@ -158,62 +206,57 @@ export default function SubletScreen() {
     }
   }, []);
 
+  // Load more (next pages)
+  const handleLoadMore = useCallback(async () => {
+    if (!hasMore || loadingMore || loading) return;
+    const nextPage = page + 1;
+    console.log('SubletScreen: Loading more sublets, page:', nextPage);
+    setLoadingMore(true);
+    try {
+      const qs = buildQueryString(nextPage);
+      console.log('SubletScreen: GET /api/sublets?' + qs);
+      const raw = await authenticatedGet<unknown>(`/api/sublets?${qs}`);
+      const { items, hasMore: more } = parseListResponse<Sublet>(raw);
+      console.log('SubletScreen: Fetched sublets page', nextPage, 'count:', items.length, 'hasMore:', more);
+      setSublets(prev => {
+        const existingIds = new Set(prev.map(s => s.id));
+        const newItems = items.filter(s => !existingIds.has(s.id));
+        return [...prev, ...newItems];
+      });
+      setPage(nextPage);
+      setHasMore(more);
+    } catch (error) {
+      console.error('SubletScreen: Error loading more sublets', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [hasMore, loadingMore, loading, page, buildQueryString]);
+
+  // Trigger fresh page-1 load when sort or city changes
   useEffect(() => {
-    fetchPosts();
+    fetchPage1();
     fetchFavorites();
-  }, [fetchPosts, fetchFavorites]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortOption, selectedCity, params.filters]);
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       console.log('SubletScreen: Screen focused, refreshing posts');
-      fetchPosts();
+      fetchPage1();
       fetchFavorites();
-    }, [fetchPosts, fetchFavorites])
+    }, [fetchPage1, fetchFavorites])
   );
 
-  // Apply city filter and sorting on the frontend
-  const filteredAndSortedSublets = useMemo(() => {
-    
-    // Step 1: Apply city filter
-    let filtered = sublets;
-    if (selectedCity) {
-      filtered = sublets.filter(s => s.city.toLowerCase() === selectedCity.toLowerCase());
-    }
-    
-    // Step 2: Apply search query filter
-    filtered = filtered.filter(sublet =>
-      sublet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sublet.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (sublet.description && sublet.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  // Client-side search filter only (sort/city handled by backend)
+  const visibleItems = useMemo(() => {
+    if (!searchQuery.trim()) return sublets;
+    const q = searchQuery.toLowerCase();
+    return sublets.filter(sublet =>
+      sublet.title.toLowerCase().includes(q) ||
+      sublet.city.toLowerCase().includes(q) ||
+      (sublet.description && sublet.description.toLowerCase().includes(q))
     );
-    
-    // Step 3: Apply sorting
-    const parseDateStr = (dateStr: string | null | undefined): number => {
-      if (!dateStr) return 0;
-      const isoStr = parseDateFromDDMMYYYY(dateStr);
-      if (!isoStr) return 0;
-      return new Date(isoStr).getTime();
-    };
-
-    let sorted = [...filtered];
-    if (sortOption === 'Newest') {
-      sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    } else if (sortOption === 'Earliest') {
-      sorted.sort((a, b) => {
-        const dateA = parseDateStr(a.availableFrom);
-        const dateB = parseDateStr(b.availableFrom);
-        return dateA - dateB;
-      });
-    } else if (sortOption === 'Cheapest') {
-      sorted.sort((a, b) => {
-        const rentA = a.rent ? parseFloat(a.rent) : Infinity;
-        const rentB = b.rent ? parseFloat(b.rent) : Infinity;
-        return rentA - rentB;
-      });
-    }
-    
-    return sorted;
-  }, [sublets, selectedCity, sortOption, searchQuery]);
+  }, [sublets, searchQuery]);
 
   const toggleFavorite = async (postId: string) => {
     console.log('SubletScreen: Toggle favorite', postId);
@@ -240,17 +283,19 @@ export default function SubletScreen() {
   };
 
   const onRefresh = () => {
-    console.log('SubletScreen: Refreshing');
+    console.log('SubletScreen: Pull-to-refresh');
     setRefreshing(true);
-    fetchPosts();
+    fetchPage1(true);
     fetchFavorites();
   };
 
   const handlePostSublet = () => {
+    console.log('SubletScreen: Navigate to post sublet');
     router.push('/post-sublet');
   };
 
   const handleFilters = () => {
+    console.log('SubletScreen: Navigate to filters');
     router.push({
       pathname: '/sublet-filters',
       params: { filters: params.filters || '', city: selectedCity }
@@ -277,6 +322,7 @@ export default function SubletScreen() {
   };
 
   const handleCitySelect = (city: string) => {
+    console.log('SubletScreen: City selected:', city);
     setSelectedCity(city);
     setCityInputValue('');
     setShowCitySuggestions(false);
@@ -284,6 +330,7 @@ export default function SubletScreen() {
   };
 
   const handleClearCity = () => {
+    console.log('SubletScreen: City filter cleared');
     setSelectedCity('');
     setCityInputValue('');
     setShowCitySuggestions(false);
@@ -297,10 +344,116 @@ export default function SubletScreen() {
   };
 
   const handleSortSelect = (option: SortOption) => {
+    console.log('SubletScreen: Sort selected:', option);
     setSortOption(option);
     setShowSortModal(false);
   };
-  
+
+  const renderFooter = () => {
+    if (loadingMore) {
+      return <ActivityIndicator style={{ paddingVertical: 24 }} color={colors.primary} />;
+    }
+    if (!hasMore && sublets.length > 0) {
+      return <Text style={styles.endOfListText}>You've seen all posts</Text>;
+    }
+    return null;
+  };
+
+  const renderItem = ({ item: sublet }: { item: Sublet }) => {
+    const fromDisplay = formatDateToDDMMYYYY(sublet.availableFrom);
+    const toDisplay = formatDateToDDMMYYYY(sublet.availableTo);
+    const label = sublet.type === 'offering' ? 'Offering' : 'Seeking';
+    const imageUrl = sublet.imageUrls?.[0];
+    const isFavorited = favorites.has(sublet.id);
+    const hasNoPhoto = !imageUrl || imageUrl.length === 0;
+    const tagBackgroundColor = sublet.type === 'offering' ? '#D1FAE5' : '#DBEAFE';
+    const tagTextColor = sublet.type === 'offering' ? '#065F46' : '#1E40AF';
+    const isOwnPost = sublet.userId === user?.id;
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => {
+          console.log('SubletScreen: Navigate to sublet detail', sublet.id);
+          router.push(`/sublet/${sublet.id}`);
+        }}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.leftSection}>
+            <View style={[styles.typeTag, { backgroundColor: tagBackgroundColor }]}>
+              <Text style={[styles.typeTagText, { color: tagTextColor }]}>{label}</Text>
+            </View>
+            <IconSymbol
+              ios_icon_name="location.fill"
+              android_material_icon_name="location-on"
+              size={14}
+              color={colors.textSecondary}
+            />
+            <Text style={styles.cityText}>{sublet.city}</Text>
+            {!isOwnPost && (
+              <TouchableOpacity 
+                onPress={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(sublet.id);
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.heartButton}
+              >
+                <IconSymbol
+                  ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                  android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                  size={20}
+                  color={isFavorited ? colors.primary : colors.border}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+        <View style={styles.cardContent}>
+          <View style={styles.imageContainer}>
+            {hasNoPhoto ? (
+              <View style={styles.noPhotoContainer}>
+                <Text style={styles.noPhotoText}>No Photo</Text>
+              </View>
+            ) : (
+              <Image 
+                source={{ uri: imageUrl }} 
+                style={styles.cardImage}
+                cachePolicy="memory-disk"
+                contentFit="cover"
+                transition={200}
+                placeholder={require('@/assets/images/Logo_LokaLinc.png')}
+                placeholderContentFit="contain"
+                onError={(error) => {
+                  console.error('[SubletScreen] Image load error:', imageUrl, error);
+                }}
+              />
+            )}
+          </View>
+          <View style={styles.cardTextContent}>
+            <Text style={styles.cardTitle} numberOfLines={1}>{sublet.title}</Text>
+            {fromDisplay && toDisplay && (
+              <View style={styles.cardDateRow}>
+                <IconSymbol
+                  ios_icon_name="calendar"
+                  android_material_icon_name="calendar-today"
+                  size={14}
+                  color={colors.textSecondary}
+                />
+                <Text style={styles.cardDateText}>{fromDisplay}</Text>
+                <Text style={styles.cardDateSeparator}>-</Text>
+                <Text style={styles.cardDateText}>{toDisplay}</Text>
+              </View>
+            )}
+            {sublet.rent && (
+              <Text style={styles.cardRent}>€{sublet.rent}/month</Text>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   const hasActiveFilters = params.filters && params.filters.toString().length > 0;
 
   // Show loading while checking disclaimer
@@ -436,115 +589,29 @@ export default function SubletScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : filteredAndSortedSublets.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyEmoji}>🏠</Text>
-          <Text style={styles.emptyTitle}>No sublet matches found</Text>
-          <Text style={styles.emptySubtitle}>Post a request to reach hosts directly!</Text>
-          <TouchableOpacity style={styles.requestButton} onPress={handlePostSublet}>
-            <Text style={styles.requestButtonText}>Request</Text>
-          </TouchableOpacity>
-        </View>
       ) : (
-        <ScrollView 
-          style={styles.content}
+        <FlatList
+          data={visibleItems}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
           }
-        >
-          {filteredAndSortedSublets.map((sublet) => {
-            const fromDisplay = formatDateToDDMMYYYY(sublet.availableFrom);
-            const toDisplay = formatDateToDDMMYYYY(sublet.availableTo);
-            const label = sublet.type === 'offering' ? 'Offering' : 'Seeking';
-            const imageUrl = sublet.imageUrls?.[0];
-            const isFavorited = favorites.has(sublet.id);
-            const hasNoPhoto = !imageUrl || imageUrl.length === 0;
-            const tagBackgroundColor = sublet.type === 'offering' ? '#D1FAE5' : '#DBEAFE';
-            const tagTextColor = sublet.type === 'offering' ? '#065F46' : '#1E40AF';
-            const isOwnPost = sublet.userId === user?.id;
-            
-            return (
-              <TouchableOpacity
-                key={sublet.id}
-                style={styles.card}
-                onPress={() => router.push(`/sublet/${sublet.id}`)}
-              >
-                <View style={styles.cardHeader}>
-                  <View style={styles.leftSection}>
-                    <View style={[styles.typeTag, { backgroundColor: tagBackgroundColor }]}>
-                      <Text style={[styles.typeTagText, { color: tagTextColor }]}>{label}</Text>
-                    </View>
-                    <IconSymbol
-                      ios_icon_name="location.fill"
-                      android_material_icon_name="location-on"
-                      size={14}
-                      color={colors.textSecondary}
-                    />
-                    <Text style={styles.cityText}>{sublet.city}</Text>
-                    {!isOwnPost && (
-                      <TouchableOpacity 
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(sublet.id);
-                        }}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        style={styles.heartButton}
-                      >
-                        <IconSymbol
-                          ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                          android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                          size={20}
-                          color={isFavorited ? colors.primary : colors.border}
-                        />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-                <View style={styles.cardContent}>
-                  <View style={styles.imageContainer}>
-                    {hasNoPhoto ? (
-                      <View style={styles.noPhotoContainer}>
-                        <Text style={styles.noPhotoText}>No Photo</Text>
-                      </View>
-                    ) : (
-                      <Image 
-                        source={{ uri: imageUrl }} 
-                        style={styles.cardImage}
-                        cachePolicy="memory-disk"
-                        contentFit="cover"
-                        transition={200}
-                        placeholder={require('@/assets/images/Logo_LokaLinc.png')}
-                        placeholderContentFit="contain"
-                        onError={(error) => {
-                          console.error('[SubletScreen] Image load error:', imageUrl, error);
-                        }}
-                      />
-                    )}
-                  </View>
-                  <View style={styles.cardTextContent}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>{sublet.title}</Text>
-                    {fromDisplay && toDisplay && (
-                      <View style={styles.cardDateRow}>
-                        <IconSymbol
-                          ios_icon_name="calendar"
-                          android_material_icon_name="calendar-today"
-                          size={14}
-                          color={colors.textSecondary}
-                        />
-                        <Text style={styles.cardDateText}>{fromDisplay}</Text>
-                        <Text style={styles.cardDateSeparator}>-</Text>
-                        <Text style={styles.cardDateText}>{toDisplay}</Text>
-                      </View>
-                    )}
-                    {sublet.rent && (
-                      <Text style={styles.cardRent}>€{sublet.rent}/month</Text>
-                    )}
-                  </View>
-                </View>
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyEmoji}>🏠</Text>
+              <Text style={styles.emptyTitle}>No sublet matches found</Text>
+              <Text style={styles.emptySubtitle}>Post a request to reach hosts directly!</Text>
+              <TouchableOpacity style={styles.requestButton} onPress={handlePostSublet}>
+                <Text style={styles.requestButtonText}>Request</Text>
               </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+            </View>
+          }
+          contentContainerStyle={visibleItems.length === 0 ? styles.flatListEmpty : styles.flatListContent}
+        />
       )}
 
       {/* Sort Modal */}
@@ -788,6 +855,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl * 3,
   },
   emptyEmoji: {
     fontSize: 64,
@@ -815,7 +883,11 @@ const styles = StyleSheet.create({
     ...typography.button,
     color: '#FFFFFF',
   },
-  content: {
+  flatListContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+  },
+  flatListEmpty: {
     flex: 1,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
@@ -920,6 +992,12 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
     fontSize: 14,
+  },
+  endOfListText: {
+    textAlign: 'center',
+    paddingVertical: 24,
+    color: colors.textSecondary,
+    fontSize: 13,
   },
   sortModalOverlay: {
     flex: 1,

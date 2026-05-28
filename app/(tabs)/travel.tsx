@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Modal as RNModal, Keyboard } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Modal as RNModal, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
@@ -45,11 +45,26 @@ interface TravelPost {
 
 type SortOption = 'Newest' | 'Earliest departure' | 'Latest departure';
 
+const PAGE_SIZE = 20;
+
 const TRAVEL_DISCLAIMER = `LokaLinc provides a digital platform enabling users to connect and coordinate independently.
 
 Users are solely responsible for compliance with all applicable laws, airline policies, and customs regulations. The transport of illegal, restricted, hazardous, or commercially regulated goods is strictly prohibited. Offered/Received incentives do not constitute employment, commercial transport fees, or service engagement by the platform.
 
 No responsibility or liability is assumed for loss, damage, delay, disputes, or legal consequences arising from arrangements made between users.`;
+
+function parseListResponse<T>(data: unknown): { items: T[]; hasMore: boolean } {
+  if (data && typeof data === 'object' && !Array.isArray(data) && 'data' in data && Array.isArray((data as any).data)) {
+    return {
+      items: (data as any).data as T[],
+      hasMore: Boolean((data as any).hasMore),
+    };
+  }
+  if (Array.isArray(data)) {
+    return { items: data as T[], hasMore: false };
+  }
+  return { items: [], hasMore: false };
+}
 
 export default function TravelScreen() {
   useScreenTracking(SCREEN_NAMES.TRAVEL);
@@ -70,11 +85,9 @@ export default function TravelScreen() {
   const [disclaimerCheckLoading, setDisclaimerCheckLoading] = useState(true);
 
   const [selectedFrom, setSelectedFrom] = useState<string>(() => {
-    // Initialize from city from params if available (preserved from filter page navigation)
     return typeof params.fromCity === 'string' ? params.fromCity : '';
   });
   const [selectedTo, setSelectedTo] = useState<string>(() => {
-    // Initialize to city from params if available (preserved from filter page navigation)
     return typeof params.toCity === 'string' ? params.toCity : '';
   });
   const [fromInputValue, setFromInputValue] = useState('');
@@ -85,6 +98,11 @@ export default function TravelScreen() {
   const [showToSuggestions, setShowToSuggestions] = useState(false);
   const sortButtonRef = useRef<View>(null);
   const [sortButtonLayout, setSortButtonLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Sync from/to cities from params when navigating back from filter page
   React.useEffect(() => {
@@ -125,7 +143,6 @@ export default function TravelScreen() {
         setDisclaimerAccepted(response.travelDisclaimerAccepted);
       } catch (error) {
         console.error('TravelScreen: Error checking disclaimer:', error);
-        // If error, assume not accepted and show disclaimer
         setShowDisclaimerModal(true);
       } finally {
         setDisclaimerCheckLoading(false);
@@ -147,33 +164,65 @@ export default function TravelScreen() {
     }
   };
 
-  const fetchPosts = React.useCallback(async () => {
-    console.log('TravelScreen: Fetching travel posts');
-    if (posts.length === 0) {
+  const buildQueryString = useCallback((pageNum: number) => {
+    const qp = new URLSearchParams();
+    qp.append('page', String(pageNum));
+    qp.append('limit', String(PAGE_SIZE));
+
+    // Map sort option to backend value
+    if (sortOption === 'Newest') {
+      qp.append('sort', 'newest');
+    } else if (sortOption === 'Earliest departure') {
+      qp.append('sort', 'earliest');
+    } else if (sortOption === 'Latest departure') {
+      qp.append('sort', 'latest_journey');
+    }
+
+    if (selectedFrom) {
+      qp.append('fromCity', selectedFrom);
+    }
+    if (selectedTo) {
+      qp.append('toCity', selectedTo);
+    }
+
+    // Merge any extra filter params from the filter page
+    if (params.filters) {
+      const extra = new URLSearchParams(params.filters as string);
+      extra.forEach((value, key) => {
+        if (!qp.has(key)) {
+          qp.append(key, value);
+        }
+      });
+    }
+
+    return qp.toString();
+  }, [sortOption, selectedFrom, selectedTo, params.filters]);
+
+  // Initial / refresh fetch (page 1)
+  const fetchPage1 = useCallback(async (isRefresh = false) => {
+    console.log('TravelScreen: Fetching travel posts page 1, sort:', sortOption, 'from:', selectedFrom, 'to:', selectedTo);
+    if (!isRefresh) {
       setLoading(true);
     }
     try {
-      // DO NOT pass From/To to backend - route filtering is done on frontend only
-      const filterParams = params.filters ? `?${params.filters}` : '';
-      
-      const data = await authenticatedGet<TravelPost[]>(`/api/travel-posts${filterParams}`);
-      const dataArray = Array.isArray(data) ? data : [];
-      
-      console.log('TravelScreen: Fetched travel posts', dataArray.length);
-      
-      setPosts(dataArray);
+      const qs = buildQueryString(1);
+      console.log('TravelScreen: GET /api/travel-posts?' + qs);
+      const raw = await authenticatedGet<unknown>(`/api/travel-posts?${qs}`);
+      const { items, hasMore: more } = parseListResponse<TravelPost>(raw);
+      console.log('TravelScreen: Fetched travel posts page 1, count:', items.length, 'hasMore:', more);
+      setPosts(items);
+      setPage(1);
+      setHasMore(more);
     } catch (error) {
       console.error('TravelScreen: Error fetching travel posts', error);
-      if (posts.length === 0) {
-        setPosts([]);
-      }
+      setPosts([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [params.filters, posts.length]);
+  }, [buildQueryString, sortOption, selectedFrom, selectedTo]);
 
-  const fetchFavorites = React.useCallback(async () => {
+  const fetchFavorites = useCallback(async () => {
     try {
       console.log('TravelScreen: Fetching favorites');
       const data = await authenticatedGet<{ postId: string; postType: string }[]>('/api/favorites');
@@ -184,108 +233,57 @@ export default function TravelScreen() {
     }
   }, []);
 
+  // Load more (next pages)
+  const handleLoadMore = useCallback(async () => {
+    if (!hasMore || loadingMore || loading) return;
+    const nextPage = page + 1;
+    console.log('TravelScreen: Loading more travel posts, page:', nextPage);
+    setLoadingMore(true);
+    try {
+      const qs = buildQueryString(nextPage);
+      console.log('TravelScreen: GET /api/travel-posts?' + qs);
+      const raw = await authenticatedGet<unknown>(`/api/travel-posts?${qs}`);
+      const { items, hasMore: more } = parseListResponse<TravelPost>(raw);
+      console.log('TravelScreen: Fetched travel posts page', nextPage, 'count:', items.length, 'hasMore:', more);
+      setPosts(prev => {
+        const existingIds = new Set(prev.map(p => p.id));
+        const newItems = items.filter(p => !existingIds.has(p.id));
+        return [...prev, ...newItems];
+      });
+      setPage(nextPage);
+      setHasMore(more);
+    } catch (error) {
+      console.error('TravelScreen: Error loading more travel posts', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [hasMore, loadingMore, loading, page, buildQueryString]);
+
+  // Trigger fresh page-1 load when sort or city filters change
   useEffect(() => {
-    fetchPosts();
+    fetchPage1();
     fetchFavorites();
-  }, [params.filters, fetchPosts, fetchFavorites]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortOption, selectedFrom, selectedTo, params.filters]);
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       console.log('TravelScreen: Screen focused, refreshing posts');
-      fetchPosts();
+      fetchPage1();
       fetchFavorites();
-    }, [fetchPosts, fetchFavorites])
+    }, [fetchPage1, fetchFavorites])
   );
 
-
-
-  // Returns all city names that match the selection (expands country to its cities)
-  const getMatchingCities = (selection: string): string[] => {
-    const countryCities = COUNTRY_CITIES[selection];
-    if (countryCities) {
-      // Include both the country name itself and all its cities
-      return [selection, ...countryCities];
-    }
-    return [selection];
-  };
-
-  // Apply from/to filter and sorting on the frontend
-  const filteredAndSortedPosts = useMemo(() => {
-    const getMatchingCitiesLocal = (selection: string): string[] => {
-      const countryCities = COUNTRY_CITIES[selection];
-      if (countryCities) {
-        return [selection, ...countryCities];
-      }
-      return [selection];
-    };
-
-    // Step 1: Apply from/to filter with country expansion
-    let filtered = posts;
-    if (selectedFrom) {
-      const matchingFromCities = getMatchingCitiesLocal(selectedFrom);
-      filtered = filtered.filter(p =>
-        matchingFromCities.some(city => city.toLowerCase() === p.fromCity.toLowerCase())
-      );
-    }
-    if (selectedTo) {
-      const matchingToCities = getMatchingCitiesLocal(selectedTo);
-      filtered = filtered.filter(p =>
-        matchingToCities.some(city => city.toLowerCase() === p.toCity.toLowerCase())
-      );
-    }
-    
-    // Step 2: Apply search query filter
-    filtered = filtered.filter(post =>
-      post.fromCity.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.toCity.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (post.description && post.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  // Client-side search filter only (sort/from/to handled by backend)
+  const visibleItems = useMemo(() => {
+    if (!searchQuery.trim()) return posts;
+    const q = searchQuery.toLowerCase();
+    return posts.filter(post =>
+      post.fromCity.toLowerCase().includes(q) ||
+      post.toCity.toLowerCase().includes(q) ||
+      (post.description && post.description.toLowerCase().includes(q))
     );
-    
-    // Step 3: Apply sorting
-    const parseDateStr = (dateStr: string | null | undefined): number => {
-      if (!dateStr) return 0;
-      
-      let day, month, year;
-      
-      if (dateStr.includes('-')) {
-        [year, month, day] = dateStr.split('-');
-      } else {
-        [day, month, year] = dateStr.split('.');
-      }
-      
-      return new Date(Number(year), Number(month) - 1, Number(day)).getTime();
-    };
-
-    let sorted = [...filtered];
-    if (sortOption === 'Newest') {
-      sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    } else if (sortOption === 'Earliest departure') {
-      sorted.sort((a, b) => {
-        const startA = parseDateStr(a.travelDate);
-        const startB = parseDateStr(b.travelDate);
-        const startDateComparison = startA - startB;
-        if (startDateComparison !== 0) return startDateComparison;
-
-        const endA = parseDateStr(a.travelDateTo || a.travelDate);
-        const endB = parseDateStr(b.travelDateTo || b.travelDate);
-        return endA - endB;
-      });
-    } else if (sortOption === 'Latest departure') {
-      sorted.sort((a, b) => {
-        const endA = parseDateStr(a.travelDateTo || a.travelDate);
-        const endB = parseDateStr(b.travelDateTo || b.travelDate);
-        const endDateComparison = endB - endA;
-        if (endDateComparison !== 0) return endDateComparison;
-
-        const startA = parseDateStr(a.travelDate);
-        const startB = parseDateStr(b.travelDate);
-        return startB - startA;
-      });
-    }
-    
-    return sorted;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [posts, selectedFrom, selectedTo, sortOption, searchQuery]);
+  }, [posts, searchQuery]);
 
   const toggleFavorite = async (postId: string) => {
     console.log('TravelScreen: Toggle favorite', postId);
@@ -312,9 +310,9 @@ export default function TravelScreen() {
   };
 
   const onRefresh = () => {
-    console.log('TravelScreen: Refreshing');
+    console.log('TravelScreen: Pull-to-refresh');
     setRefreshing(true);
-    fetchPosts();
+    fetchPage1(true);
     fetchFavorites();
   };
 
@@ -357,6 +355,7 @@ export default function TravelScreen() {
   };
 
   const handleFromSelect = (city: string) => {
+    console.log('TravelScreen: From city selected:', city);
     setSelectedFrom(city);
     setFromInputValue('');
     setShowFromSuggestions(false);
@@ -364,6 +363,7 @@ export default function TravelScreen() {
   };
 
   const handleToSelect = (city: string) => {
+    console.log('TravelScreen: To city selected:', city);
     setSelectedTo(city);
     setToInputValue('');
     setShowToSuggestions(false);
@@ -371,12 +371,14 @@ export default function TravelScreen() {
   };
 
   const handleClearFrom = () => {
+    console.log('TravelScreen: From city filter cleared');
     setSelectedFrom('');
     setFromInputValue('');
     setShowFromSuggestions(false);
   };
 
   const handleClearTo = () => {
+    console.log('TravelScreen: To city filter cleared');
     setSelectedTo('');
     setToInputValue('');
     setShowToSuggestions(false);
@@ -390,10 +392,192 @@ export default function TravelScreen() {
   };
 
   const handleSortSelect = (option: SortOption) => {
+    console.log('TravelScreen: Sort selected:', option);
     setSortOption(option);
     setShowSortModal(false);
   };
+
+  const renderFooter = () => {
+    if (loadingMore) {
+      return <ActivityIndicator style={{ paddingVertical: 24 }} color={colors.primary} />;
+    }
+    if (!hasMore && posts.length > 0) {
+      return <Text style={styles.endOfListText}>You've seen all posts</Text>;
+    }
+    return null;
+  };
+
+  const renderItem = ({ item: post }: { item: TravelPost }) => {
+    const dateDisplay = formatDateToDDMMYYYY(post.travelDate);
+    const dateToDisplay = post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo) : null;
+    
+    const showDateRange = (post.type === 'seeking-ally' || post.type === 'seeking') && dateToDisplay;
+    
+    let label = '';
+    let iconCompanionship = false;
+    let iconAlly = false;
+    let tagBackgroundColor = '';
+    let tagTextColor = '';
   
+    // Check if post should be disabled based on date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let isExpired = false;
+
+    const rawExpiryDateStr =
+      post.type === 'offering'
+        ? post.travelDate
+        : post.travelDateTo || post.travelDate;
+
+    const expiryDateStr = rawExpiryDateStr?.split('T')[0];
+    
+    if (expiryDateStr) {
+      let expiryDate;
+      if (expiryDateStr.includes('-')) {
+        const [year, month, day] = expiryDateStr.split('-');
+        expiryDate = new Date(Number(year), Number(month) - 1, Number(day));
+      } else {
+        const [day, month, year] = expiryDateStr.split('.');
+        expiryDate = new Date(Number(year), Number(month) - 1, Number(day));
+      }
+      expiryDate.setHours(0,0,0,0);
+      isExpired = expiryDate < today;
+    }
+  
+    if (post.type === 'offering') {
+      label = 'Offering';
+      tagBackgroundColor = '#D1FAE5';
+      tagTextColor = '#065F46';
+    
+      const hasCompanionship = post.canOfferCompanionship;
+      const hasCarry = post.canCarryItems;
+
+      if (hasCompanionship && hasCarry) {
+        iconCompanionship = true;
+        iconAlly = true;
+      } else if (hasCompanionship) {
+        iconCompanionship = true;
+      } else if (hasCarry) {
+        iconAlly = true;
+      } else {
+        iconCompanionship = true;
+        iconAlly = true;
+      }
+
+    } else if (post.type === 'seeking' || post.type === 'seeking-ally') {
+      label = 'Seeking';
+      tagBackgroundColor = '#DBEAFE';
+      tagTextColor = '#1E40AF';
+    
+      if (post.type === 'seeking') {
+        iconCompanionship = true;
+      } else {
+        iconAlly = true;
+      }
+    }
+    
+    const isFavorited = favorites.has(post.id);
+    const hasIncentive = post.incentiveAmount && post.incentiveAmount > 0;
+    const isOwnPost = post.userId === user?.id;
+    
+    return (
+      <TouchableOpacity
+        style={[styles.card, isExpired && styles.cardDisabled]}
+        onPress={() => {
+          if (!isExpired) {
+            console.log('TravelScreen: Navigate to travel detail', post.id);
+            router.push(`/travel/${post.id}`);
+          }
+        }}
+        disabled={isExpired}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.tagRow}>
+            {label ? (
+              <View style={[styles.typeTag, { backgroundColor: tagBackgroundColor }]}>
+                <Text style={[styles.typeTagText, { color: tagTextColor }]}>{label}</Text>
+              </View>
+            ) : null}
+            {iconCompanionship && (
+              <Text style={styles.iconText}>👥</Text>
+            )}
+            {iconCompanionship && iconAlly && (
+              <Text style={styles.iconSeparator}>, </Text>
+            )}
+            {iconAlly && (
+              <Text style={styles.iconText}>📦</Text>
+            )}
+          </View>
+          <View style={styles.rightSection}>
+            {hasIncentive && (
+              <View style={styles.incentiveTag}>
+                <Text style={styles.incentiveTagText}>Incentive</Text>
+              </View>
+            )}
+            {!isOwnPost && (
+              <TouchableOpacity 
+                onPress={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(post.id);
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <IconSymbol
+                  ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                  android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                  size={20}
+                  color={isFavorited ? colors.primary : colors.border}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+        <View style={styles.routeTextContainer}>
+          <Text style={styles.routeText}>{post.fromCity}</Text>
+          <Text style={styles.routeArrow}>→</Text>
+          <Text style={styles.routeText}>{post.toCity}</Text>
+        </View>
+        {(dateDisplay || dateToDisplay) && (
+          <View style={styles.dateContainer}>
+            <IconSymbol
+              ios_icon_name="calendar"
+              android_material_icon_name="calendar-today"
+              size={14}
+              color={colors.textSecondary}
+            />
+            {showDateRange ? (
+              <>
+                <Text style={styles.dateText}>{dateDisplay}</Text>
+                <Text style={styles.dateSeparator}>-</Text>
+                <Text style={styles.dateText}>{dateToDisplay}</Text>
+              </>
+            ) : (
+              <Text style={styles.dateText}>{dateDisplay}</Text>
+            )}
+          </View>
+        )}
+        {post.type === 'seeking' && post.companionshipFor && (
+          <View style={styles.companionshipForContainer}>
+            <Text style={styles.companionshipForLabel}>for: </Text>
+            <Text style={styles.companionshipForValue}>{post.companionshipFor}</Text>
+          </View>
+        )}
+        {post.type === 'seeking-ally' && post.item && (
+          <View style={styles.itemContainer}>
+            <Text style={styles.itemLabel}>Item: </Text>
+            <Text style={styles.itemName}>{post.item}</Text>
+          </View>
+        )}
+        {post.description && (
+          <Text style={styles.cardDescription} numberOfLines={2}>
+            {post.description}
+          </Text>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
   const hasActiveFilters = params.filters && params.filters.toString().length > 0;
   
   const sortDisplayText = sortOption === 'Earliest departure' ? 'Earliest dep..' : sortOption === 'Latest departure' ? 'Latest dep..' : sortOption;
@@ -552,10 +736,13 @@ export default function TravelScreen() {
         </View>
         <TouchableOpacity
           style={[styles.iconButton, hasActiveFilters && styles.iconButtonActive]}
-          onPress={() => router.push({
-            pathname: '/travel-filters',
-            params: { filters: params.filters || '', fromCity: selectedFrom, toCity: selectedTo }
-          })}
+          onPress={() => {
+            console.log('TravelScreen: Navigate to travel filters');
+            router.push({
+              pathname: '/travel-filters',
+              params: { filters: params.filters || '', fromCity: selectedFrom, toCity: selectedTo }
+            });
+          }}
         >
           <IconSymbol
             ios_icon_name="line.3.horizontal.decrease.circle"
@@ -566,7 +753,10 @@ export default function TravelScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.iconButton}
-          onPress={() => router.push('/post-travel')}
+          onPress={() => {
+            console.log('TravelScreen: Navigate to post travel');
+            router.push('/post-travel');
+          }}
         >
           <IconSymbol
             ios_icon_name="plus.circle.fill"
@@ -583,201 +773,35 @@ export default function TravelScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : filteredAndSortedPosts.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyEmoji}>✈️</Text>
-          <Text style={styles.emptyTitle}>No travel buddy matches found</Text>
-          <Text style={styles.emptySubtitle}>Post a request to connect with others!</Text>
-          <TouchableOpacity
-            style={styles.requestButton}
-            onPress={() => router.push('/post-travel')}
-          >
-            <Text style={styles.requestButtonText}>Request</Text>
-          </TouchableOpacity>
-        </View>
       ) : (
-        <ScrollView 
-          style={styles.content}
+        <FlatList
+          data={visibleItems}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
           }
-        >
-          {filteredAndSortedPosts.map((post) => {
-          
-            const dateDisplay = formatDateToDDMMYYYY(post.travelDate);
-            const dateToDisplay = post.travelDateTo ? formatDateToDDMMYYYY(post.travelDateTo) : null;
-            
-            const showDateRange = (post.type === 'seeking-ally' || post.type === 'seeking') && dateToDisplay;
-            
-            let label = '';
-            let iconCompanionship = false;
-            let iconAlly = false;
-            let tagBackgroundColor = '';
-            let tagTextColor = '';
-          
-            // Check if post should be disabled based on date
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            let isExpired = false;
-
-            // Determine expiry date
-            const rawExpiryDateStr =
-              post.type === 'offering'
-                ? post.travelDate
-                : post.travelDateTo || post.travelDate;
-
-            // Strip time component to handle both "YYYY-MM-DD" and "YYYY-MM-DDT00:00:00.000Z"
-            const expiryDateStr = rawExpiryDateStr?.split('T')[0];
-            
-            if (expiryDateStr) {
-
-              let expiryDate;
-
-              if (expiryDateStr.includes('-')) {
-                // YYYY-MM-DD from backend
-                const [year, month, day] = expiryDateStr.split('-');
-                expiryDate = new Date(Number(year), Number(month) - 1, Number(day));
-              } else {
-                // DD.MM.YYYY
-                const [day, month, year] = expiryDateStr.split('.');
-                expiryDate = new Date(Number(year), Number(month) - 1, Number(day));
-              }
-              
-              expiryDate.setHours(0,0,0,0);
-              isExpired = expiryDate < today;
-            }
-          
-            if (post.type === 'offering') {
-              label = 'Offering';
-              tagBackgroundColor = '#D1FAE5';
-              tagTextColor = '#065F46';
-            
-              const hasCompanionship = post.canOfferCompanionship;
-              const hasCarry = post.canCarryItems;
-
-              if (hasCompanionship && hasCarry) {
-                iconCompanionship = true;
-                iconAlly = true;
-              } else if (hasCompanionship) {
-                iconCompanionship = true;
-              } else if (hasCarry) {
-                iconAlly = true;
-              } else {
-                iconCompanionship = true;
-                iconAlly = true;
-              }
-
-            } else if (post.type === 'seeking' || post.type === 'seeking-ally') {
-
-              label = 'Seeking';
-              tagBackgroundColor = '#DBEAFE';
-              tagTextColor = '#1E40AF';
-            
-              if (post.type === 'seeking') {
-                iconCompanionship = true;
-              } else {
-                iconAlly = true;
-              }
-            }
-            
-            const isFavorited = favorites.has(post.id);
-            const hasIncentive = post.incentiveAmount && post.incentiveAmount > 0;
-            const isOwnPost = post.userId === user?.id;
-            
-            return (
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyEmoji}>✈️</Text>
+              <Text style={styles.emptyTitle}>No travel buddy matches found</Text>
+              <Text style={styles.emptySubtitle}>Post a request to connect with others!</Text>
               <TouchableOpacity
-                key={post.id}
-                style={[styles.card, isExpired && styles.cardDisabled]}
-                onPress={() => !isExpired && router.push(`/travel/${post.id}`)}
-                disabled={isExpired}
+                style={styles.requestButton}
+                onPress={() => {
+                  console.log('TravelScreen: Navigate to post travel from empty state');
+                  router.push('/post-travel');
+                }}
               >
-                <View style={styles.cardHeader}>
-                  <View style={styles.tagRow}>
-                    {label && (
-                      <View style={[styles.typeTag, { backgroundColor: tagBackgroundColor }]}>
-                        <Text style={[styles.typeTagText, { color: tagTextColor }]}>{label}</Text>
-                      </View>
-                    )}
-                    {iconCompanionship && (
-                      <Text style={styles.iconText}>👥</Text>
-                    )}
-                    {iconCompanionship && iconAlly && (
-                      <Text style={styles.iconSeparator}>, </Text>
-                    )}
-                    {iconAlly && (
-                      <Text style={styles.iconText}>📦</Text>
-                    )}
-                  </View>
-                  <View style={styles.rightSection}>
-                    {hasIncentive && (
-                      <View style={styles.incentiveTag}>
-                        <Text style={styles.incentiveTagText}>Incentive</Text>
-                      </View>
-                    )}
-                    {!isOwnPost && (
-                      <TouchableOpacity 
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(post.id);
-                        }}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      >
-                        <IconSymbol
-                          ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                          android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                          size={20}
-                          color={isFavorited ? colors.primary : colors.border}
-                        />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-                <View style={styles.routeTextContainer}>
-                  <Text style={styles.routeText}>{post.fromCity}</Text>
-                  <Text style={styles.routeArrow}>→</Text>
-                  <Text style={styles.routeText}>{post.toCity}</Text>
-                </View>
-                {(dateDisplay || dateToDisplay) && (
-                  <View style={styles.dateContainer}>
-                    <IconSymbol
-                      ios_icon_name="calendar"
-                      android_material_icon_name="calendar-today"
-                      size={14}
-                      color={colors.textSecondary}
-                    />
-                    {showDateRange ? (
-                      <>
-                        <Text style={styles.dateText}>{dateDisplay}</Text>
-                        <Text style={styles.dateSeparator}>-</Text>
-                        <Text style={styles.dateText}>{dateToDisplay}</Text>
-                      </>
-                    ) : (
-                      <Text style={styles.dateText}>{dateDisplay}</Text>
-                    )}
-                  </View>
-                )}
-                {post.type === 'seeking' && post.companionshipFor && (
-                  <View style={styles.companionshipForContainer}>
-                    <Text style={styles.companionshipForLabel}>for: </Text>
-                    <Text style={styles.companionshipForValue}>{post.companionshipFor}</Text>
-                  </View>
-                )}
-                {post.type === 'seeking-ally' && post.item && (
-                  <View style={styles.itemContainer}>
-                    <Text style={styles.itemLabel}>Item: </Text>
-                    <Text style={styles.itemName}>{post.item}</Text>
-                  </View>
-                )}
-                {post.description && (
-                  <Text style={styles.cardDescription} numberOfLines={2}>
-                    {post.description}
-                  </Text>
-                )}
+                <Text style={styles.requestButtonText}>Request</Text>
               </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+            </View>
+          }
+          contentContainerStyle={visibleItems.length === 0 ? styles.flatListEmpty : styles.flatListContent}
+        />
       )}
 
       {/* Sort Modal */}
@@ -1017,6 +1041,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl * 3,
   },
   emptyEmoji: {
     fontSize: 64,
@@ -1044,10 +1069,20 @@ const styles = StyleSheet.create({
     ...typography.button,
     color: '#FFFFFF',
   },
-  content: {
+  flatListContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+  },
+  flatListEmpty: {
     flex: 1,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
+  },
+  endOfListText: {
+    textAlign: 'center',
+    paddingVertical: 24,
+    color: colors.textSecondary,
+    fontSize: 13,
   },
   card: {
     backgroundColor: colors.card,

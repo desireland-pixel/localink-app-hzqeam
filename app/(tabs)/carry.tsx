@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Modal as RNModal, Keyboard } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Platform, TextInput, ActivityIndicator, RefreshControl, Modal as RNModal, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
@@ -46,6 +46,21 @@ const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } =
 
 type SortOption = 'Newest' | 'Trending' | 'Oldest';
 
+const PAGE_SIZE = 20;
+
+function parseListResponse<T>(data: unknown): { items: T[]; hasMore: boolean } {
+  if (data && typeof data === 'object' && !Array.isArray(data) && 'data' in data && Array.isArray((data as any).data)) {
+    return {
+      items: (data as any).data as T[],
+      hasMore: Boolean((data as any).hasMore),
+    };
+  }
+  if (Array.isArray(data)) {
+    return { items: data as T[], hasMore: false };
+  }
+  return { items: [], hasMore: false };
+}
+
 export default function CommunityScreen() {
   useScreenTracking(SCREEN_NAMES.COMMUNITY);
   const router = useRouter();
@@ -57,7 +72,6 @@ export default function CommunityScreen() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCity, setSelectedCity] = useState<string>(() => {
-    // Initialize city from params if available (preserved from filter page navigation)
     return typeof params.city === 'string' ? params.city : '';
   });
   const [cityInputValue, setCityInputValue] = useState('');
@@ -67,8 +81,11 @@ export default function CommunityScreen() {
   const [showSortModal, setShowSortModal] = useState(false);
   const sortButtonRef = useRef<View>(null);
   const [sortButtonLayout, setSortButtonLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  const scrollViewRef = useRef<ScrollView>(null);
-  const [topicLayouts, setTopicLayouts] = useState<{ id: string; y: number; height: number }[]>([]);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Sync city from params when navigating back from filter page
   React.useEffect(() => {
@@ -80,32 +97,40 @@ export default function CommunityScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.city]);
 
-  const fetchTopics = React.useCallback(async () => {
-    console.log('CommunityScreen: Fetching community topics');
-    if (topics.length === 0) {
+  const buildQueryString = useCallback((pageNum: number) => {
+    const qp = new URLSearchParams();
+    qp.append('page', String(pageNum));
+    qp.append('limit', String(PAGE_SIZE));
+
+    if (selectedCity) {
+      qp.append('city', selectedCity);
+    }
+    if (sortOption === 'Newest') {
+      qp.append('sort', 'newest');
+    } else if (sortOption === 'Trending') {
+      qp.append('sort', 'trending');
+    } else if (sortOption === 'Oldest') {
+      qp.append('sort', 'oldest');
+    }
+
+    return qp.toString();
+  }, [selectedCity, sortOption]);
+
+  // Initial / refresh fetch (page 1)
+  const fetchPage1 = useCallback(async (isRefresh = false) => {
+    console.log('CommunityScreen: Fetching community topics page 1, sort:', sortOption, 'city:', selectedCity);
+    if (!isRefresh) {
       setLoading(true);
     }
     try {
-      // Use /api/community-posts which supports city and sort params
-      const queryParams = new URLSearchParams();
-      queryParams.append('limit', '100');
-      if (selectedCity) {
-        queryParams.append('city', selectedCity);
-      }
-      // Map frontend sort options to backend sort values
-      if (sortOption === 'Newest') {
-        queryParams.append('sort', 'newest');
-      } else if (sortOption === 'Trending') {
-        queryParams.append('sort', 'trending');
-      } else if (sortOption === 'Oldest') {
-        queryParams.append('sort', 'oldest');
-      }
-      const data = await authenticatedGet<CommunityTopic[]>(`/api/community-posts?${queryParams.toString()}`);
-      const dataArray = Array.isArray(data) ? data : [];
-      console.log('CommunityScreen: Fetched community topics', dataArray.length);
+      const qs = buildQueryString(1);
+      console.log('CommunityScreen: GET /api/community-posts?' + qs);
+      const raw = await authenticatedGet<unknown>(`/api/community-posts?${qs}`);
+      const { items, hasMore: more } = parseListResponse<CommunityTopic>(raw);
+      console.log('CommunityScreen: Fetched community topics page 1, count:', items.length, 'hasMore:', more);
 
       // Fetch unread reply counts for own topics
-      const ownTopics = dataArray.filter(t => t.userId === user?.id);
+      const ownTopics = items.filter(t => t.userId === user?.id);
       if (ownTopics.length > 0) {
         const unreadResults = await Promise.allSettled(
           ownTopics.map(t =>
@@ -120,19 +145,19 @@ export default function CommunityScreen() {
         });
       }
 
-      setTopics(dataArray);
+      setTopics(items);
+      setPage(1);
+      setHasMore(more);
     } catch (error) {
       console.error('CommunityScreen: Error fetching community topics', error);
-      if (topics.length === 0) {
-        setTopics([]);
-      }
+      setTopics([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [topics.length, user?.id, selectedCity, sortOption]);
+  }, [buildQueryString, sortOption, selectedCity, user?.id]);
 
-  const fetchFavorites = React.useCallback(async () => {
+  const fetchFavorites = useCallback(async () => {
     try {
       console.log('CommunityScreen: Fetching favorites');
       const data = await authenticatedGet<{ postId: string; postType: string }[]>('/api/favorites');
@@ -143,11 +168,70 @@ export default function CommunityScreen() {
     }
   }, []);
 
-  // Compute filtered topics based on carry-filters params and search query
+  // Load more (next pages)
+  const handleLoadMore = useCallback(async () => {
+    if (!hasMore || loadingMore || loading) return;
+    const nextPage = page + 1;
+    console.log('CommunityScreen: Loading more topics, page:', nextPage);
+    setLoadingMore(true);
+    try {
+      const qs = buildQueryString(nextPage);
+      console.log('CommunityScreen: GET /api/community-posts?' + qs);
+      const raw = await authenticatedGet<unknown>(`/api/community-posts?${qs}`);
+      const { items, hasMore: more } = parseListResponse<CommunityTopic>(raw);
+      console.log('CommunityScreen: Fetched community topics page', nextPage, 'count:', items.length, 'hasMore:', more);
+
+      // Fetch unread reply counts for own topics in new page
+      const ownTopics = items.filter(t => t.userId === user?.id);
+      if (ownTopics.length > 0) {
+        const unreadResults = await Promise.allSettled(
+          ownTopics.map(t =>
+            authenticatedGet<{ unreadCount: number }>(`/api/community/topics/${t.id}/unread-replies`)
+          )
+        );
+        ownTopics.forEach((t, idx) => {
+          const result = unreadResults[idx];
+          if (result.status === 'fulfilled') {
+            t.unreadRepliesCount = result.value.unreadCount;
+          }
+        });
+      }
+
+      setTopics(prev => {
+        const existingIds = new Set(prev.map(t => t.id));
+        const newItems = items.filter(t => !existingIds.has(t.id));
+        return [...prev, ...newItems];
+      });
+      setPage(nextPage);
+      setHasMore(more);
+    } catch (error) {
+      console.error('CommunityScreen: Error loading more community topics', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [hasMore, loadingMore, loading, page, buildQueryString, user?.id]);
+
+  // Trigger fresh page-1 load when sort or city changes
+  useEffect(() => {
+    fetchPage1();
+    fetchFavorites();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCity, sortOption]);
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log('CommunityScreen: Screen focused, refreshing topics');
+      fetchPage1();
+      fetchFavorites();
+      fetchCommunityUnreadCount();
+    }, [fetchPage1, fetchFavorites, fetchCommunityUnreadCount])
+  );
+
+  // Client-side filter: category/status from filter page + search query
   const filteredTopics = useMemo(() => {
     let filtered = topics;
 
-    // Apply carry-filters page filters (category, status) - independent from city
+    // Apply carry-filters page filters (category, status) - independent from city/sort
     if (params.filters) {
       const filterString = params.filters as string;
       const urlFilterParams = new URLSearchParams(filterString);
@@ -174,43 +258,6 @@ export default function CommunityScreen() {
     return filtered;
   }, [topics, params.filters, searchQuery]);
 
-  useEffect(() => {
-    fetchTopics();
-    fetchFavorites();
-  }, [selectedCity, sortOption, fetchTopics, fetchFavorites]);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('CommunityScreen: Screen focused, refreshing topics');
-      fetchTopics();
-      fetchFavorites();
-      fetchCommunityUnreadCount();
-    }, [fetchTopics, fetchFavorites, fetchCommunityUnreadCount])
-  );
-
-  // Auto-scroll to user's post with new comments when topics are loaded
-  useEffect(() => {
-    if (topics.length > 0 && scrollViewRef.current && user?.id && topicLayouts.length > 0) {
-      // Find the first post by the user that has unread replies
-      const unreadPostIndex = topics.findIndex(t => t.userId === user.id && (t.unreadRepliesCount ?? 0) > 0);
-      
-      if (unreadPostIndex !== -1) {
-        const unreadPost = topics[unreadPostIndex];
-        
-        // Find the layout for this post
-        const targetLayout = topicLayouts.find(layout => layout.id === unreadPost.id);
-        
-        if (targetLayout) {
-          // Delay to ensure layout is complete
-          setTimeout(() => {
-            const scrollY = Math.max(0, targetLayout.y - 50); // 50px offset from top
-            scrollViewRef.current?.scrollTo({ y: scrollY, animated: true });
-          }, 300);
-        }
-      }
-    }
-  }, [topics, user?.id, topicLayouts]);
-
   const toggleFavorite = async (postId: string) => {
     console.log('CommunityScreen: Toggle favorite', postId);
     const isFavorited = favorites.has(postId);
@@ -236,9 +283,9 @@ export default function CommunityScreen() {
   };
 
   const onRefresh = () => {
-    console.log('CommunityScreen: Refreshing');
+    console.log('CommunityScreen: Pull-to-refresh');
     setRefreshing(true);
-    fetchTopics();
+    fetchPage1(true);
     fetchFavorites();
   };
 
@@ -248,13 +295,10 @@ export default function CommunityScreen() {
       try {
         const response = await apiGet<{ cities: string[] }>(`/api/cities/search?q=${encodeURIComponent(text)}&limit=8`);
         
-        // Pin Germany for first 3 characters typed
         let suggestions = response.cities;
         const textLength = text.trim().length;
         if (textLength >= 1 && textLength <= 3) {
-          // Remove Germany from its current position if it exists
           suggestions = suggestions.filter(city => city.toLowerCase() !== 'germany');
-          // Add Germany at the beginning
           suggestions = ['Germany', ...suggestions];
         }
         
@@ -272,6 +316,7 @@ export default function CommunityScreen() {
   };
 
   const handleCitySelect = (city: string) => {
+    console.log('CommunityScreen: City selected:', city);
     setSelectedCity(city);
     setCityInputValue('');
     setShowCitySuggestions(false);
@@ -279,6 +324,7 @@ export default function CommunityScreen() {
   };
 
   const handleClearCity = () => {
+    console.log('CommunityScreen: City filter cleared');
     setSelectedCity('');
     setCityInputValue('');
     setShowCitySuggestions(false);
@@ -292,8 +338,123 @@ export default function CommunityScreen() {
   };
 
   const handleSortSelect = (option: SortOption) => {
+    console.log('CommunityScreen: Sort selected:', option);
     setSortOption(option);
     setShowSortModal(false);
+  };
+
+  const renderFooter = () => {
+    if (loadingMore) {
+      return <ActivityIndicator style={{ paddingVertical: 24 }} color={colors.primary} />;
+    }
+    if (!hasMore && topics.length > 0) {
+      return <Text style={styles.endOfListText}>You've seen all posts</Text>;
+    }
+    return null;
+  };
+
+  const renderItem = ({ item: topic }: { item: CommunityTopic }) => {
+    const authorName = topic.user?.username || topic.user?.name || 'Unknown';
+    const createdDate = formatDateToDDMMYYYY(topic.createdAt);
+    const isFavorited = favorites.has(topic.id);
+    const isOpen = topic.status === 'open';
+    const isOwnPost = topic.userId === user?.id;
+    const locationDisplay = topic.location || 'Germany';
+    const hasUnreadReplies = isOwnPost && (topic.unreadRepliesCount ?? 0) > 0;
+
+    const categoryColor = CATEGORY_COLORS[topic.category] || CATEGORY_COLORS['General'];
+    const categoryBackgroundColor = isOpen ? categoryColor.background : '#E5E7EB';
+    const categoryTextColor = isOpen ? categoryColor.text : '#6B7280';
+
+    const replyCountValue = topic.replyCount ?? (topic.repliesCount !== undefined ? parseInt(String(topic.repliesCount), 10) || 0 : 0);
+
+    return (
+      <TouchableOpacity
+        style={[styles.card, hasUnreadReplies && styles.cardUnread]}
+        onPress={() => {
+          console.log('CommunityScreen: Navigate to community topic', topic.id);
+          router.push(`/community/${topic.id}`);
+        }}
+      >
+        <View style={styles.cardHeader}>
+          <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
+            <Text style={[styles.categoryBadgeText, { color: categoryTextColor }]}>{topic.category}</Text>
+          </View>
+          <View style={styles.rightHeaderSection}>
+            {!isOpen && (
+              <View style={styles.closedBadge}>
+                <Text style={styles.closedBadgeText}>Closed</Text>
+              </View>
+            )}
+            {!isOwnPost && (
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(topic.id);
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <IconSymbol
+                  ios_icon_name={isFavorited ? "heart.fill" : "heart"}
+                  android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
+                  size={20}
+                  color={isFavorited ? colors.primary : colors.textLight}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+        <Text style={styles.cardTitle}>{topic.title}</Text>
+        {topic.description && (
+          <Text style={styles.cardDescription} numberOfLines={2}>
+            {topic.description}
+          </Text>
+        )}
+        <View style={styles.cardFooter}>
+          <View style={styles.authorDateContainer}>
+            <Text style={styles.cardAuthor}>{authorName}</Text>
+            <Text style={styles.cardDate}> • {createdDate}</Text>
+            <Text style={styles.cardDate}> • {locationDisplay}</Text>
+          </View>
+          <View style={styles.replyCountContainer}>
+            {hasUnreadReplies && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>{topic.unreadRepliesCount}</Text>
+              </View>
+            )}
+            {Platform.select({
+              ios: (
+                <IconSymbol
+                  ios_icon_name="bubble.right"
+                  android_material_icon_name="chat-bubble"
+                  size={14}
+                  color={colors.textLight}
+                />
+              ),
+              android: (
+                <View style={{ transform: [{ scaleX: -1 }] }}>
+                  <IconSymbol
+                    ios_icon_name="bubble.right"
+                    android_material_icon_name="chat-bubble-outline"
+                    size={14}
+                    color={colors.textLight}
+                  />
+                </View>
+              ),
+              default: (
+                <IconSymbol
+                  ios_icon_name="bubble.right"
+                  android_material_icon_name="chat-bubble"
+                  size={14}
+                  color={colors.textLight}
+                />
+              ),
+            })}
+            <Text style={styles.replyCountText}>{replyCountValue}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -398,6 +559,7 @@ export default function CommunityScreen() {
         <TouchableOpacity
           style={[styles.iconButton, (params.filters && params.filters.toString().length > 0) && styles.iconButtonActive]}
           onPress={() => {
+            console.log('CommunityScreen: Navigate to community filters');
             router.push({
               pathname: '/community-filters',
               params: { filters: params.filters || '', city: selectedCity }
@@ -414,6 +576,7 @@ export default function CommunityScreen() {
         <TouchableOpacity
           style={styles.iconButton}
           onPress={() => {
+            console.log('CommunityScreen: Navigate to post community topic');
             router.push('/post-community-topic');
           }}
         >
@@ -432,143 +595,35 @@ export default function CommunityScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : filteredTopics.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyEmoji}>💬</Text>
-          <Text style={styles.emptyTitle}>No discussions yet</Text>
-          <Text style={styles.emptySubtitle}>Start a conversation about Visa, Travel Insurance, or other topics!</Text>
-          <TouchableOpacity
-            style={styles.requestButton}
-            onPress={() => {
-              router.push('/post-community-topic');
-            }}
-          >
-            <Text style={styles.requestButtonText}>Start Discussion</Text>
-          </TouchableOpacity>
-        </View>
       ) : (
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.content}
+        <FlatList
+          data={filteredTopics}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
           }
-        >
-          {filteredTopics.map((topic) => {
-            const authorName = topic.user?.username || topic.user?.name || 'Unknown';
-            const createdDate = formatDateToDDMMYYYY(topic.createdAt);
-            const isFavorited = favorites.has(topic.id);
-            const isOpen = topic.status === 'open';
-            const isOwnPost = topic.userId === user?.id;
-            const locationDisplay = topic.location || 'Germany';
-            const hasUnreadReplies = isOwnPost && (topic.unreadRepliesCount ?? 0) > 0;
-
-            const categoryColor = CATEGORY_COLORS[topic.category] || CATEGORY_COLORS['General'];
-            const categoryBackgroundColor = isOpen ? categoryColor.background : '#E5E7EB';
-            const categoryTextColor = isOpen ? categoryColor.text : '#6B7280';
-
-            // Use replyCount (from SQL query) if available, otherwise fall back to repliesCount
-            const replyCountValue = topic.replyCount ?? (topic.repliesCount !== undefined ? parseInt(String(topic.repliesCount), 10) || 0 : 0);
-
-            return (
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyEmoji}>💬</Text>
+              <Text style={styles.emptyTitle}>No discussions yet</Text>
+              <Text style={styles.emptySubtitle}>Start a conversation about Visa, Travel Insurance, or other topics!</Text>
               <TouchableOpacity
-                key={topic.id}
-                style={[styles.card, hasUnreadReplies && styles.cardUnread]}
+                style={styles.requestButton}
                 onPress={() => {
-                  router.push(`/community/${topic.id}`);
-                }}
-                onLayout={(event) => {
-                  const { y, height } = event.nativeEvent.layout;
-                  setTopicLayouts(prev => {
-                    const existing = prev.find(p => p.id === topic.id);
-                    if (!existing || existing.y !== y || existing.height !== height) {
-                      return [...prev.filter(p => p.id !== topic.id), { id: topic.id, y, height }];
-                    }
-                    return prev;
-                  });
+                  console.log('CommunityScreen: Navigate to post community topic from empty state');
+                  router.push('/post-community-topic');
                 }}
               >
-                <View style={styles.cardHeader}>
-                  <View style={[styles.categoryBadge, { backgroundColor: categoryBackgroundColor }]}>
-                    <Text style={[styles.categoryBadgeText, { color: categoryTextColor }]}>{topic.category}</Text>
-                  </View>
-                  <View style={styles.rightHeaderSection}>
-                    {!isOpen && (
-                      <View style={styles.closedBadge}>
-                        <Text style={styles.closedBadgeText}>Closed</Text>
-                      </View>
-                    )}
-                    {!isOwnPost && (
-                      <TouchableOpacity
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(topic.id);
-                        }}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      >
-                        <IconSymbol
-                          ios_icon_name={isFavorited ? "heart.fill" : "heart"}
-                          android_material_icon_name={isFavorited ? "favorite" : "favorite-border"}
-                          size={20}
-                          color={isFavorited ? colors.primary : colors.textLight}
-                        />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-                <Text style={styles.cardTitle}>{topic.title}</Text>
-                {topic.description && (
-                  <Text style={styles.cardDescription} numberOfLines={2}>
-                    {topic.description}
-                  </Text>
-                )}
-                <View style={styles.cardFooter}>
-                  <View style={styles.authorDateContainer}>
-                    <Text style={styles.cardAuthor}>{authorName}</Text>
-                    <Text style={styles.cardDate}> • {createdDate}</Text>
-                    <Text style={styles.cardDate}> • {locationDisplay}</Text>
-                  </View>
-                  <View style={styles.replyCountContainer}>
-                    {hasUnreadReplies && (
-                      <View style={styles.unreadBadge}>
-                        <Text style={styles.unreadBadgeText}>{topic.unreadRepliesCount}</Text>
-                      </View>
-                    )}
-                    {Platform.select({
-                      ios: (
-                        <IconSymbol
-                          ios_icon_name="bubble.right"
-                          android_material_icon_name="chat-bubble"
-                          size={14}
-                          color={colors.textLight}
-                        />
-                      ),
-                      android: (
-                        <View style={{ transform: [{ scaleX: -1 }] }}>
-                          <IconSymbol
-                            ios_icon_name="bubble.right"
-                            android_material_icon_name="chat-bubble-outline"
-                            size={14}
-                            color={colors.textLight}
-                          />
-                        </View>
-                      ),
-                      default: (
-                        <IconSymbol
-                          ios_icon_name="bubble.right"
-                          android_material_icon_name="chat-bubble"
-                          size={14}
-                          color={colors.textLight}
-                        />
-                      ),
-                    })}
-                    <Text style={styles.replyCountText}>{replyCountValue}</Text>
-                  </View>
-                </View>
+                <Text style={styles.requestButtonText}>Start Discussion</Text>
               </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+            </View>
+          }
+          contentContainerStyle={filteredTopics.length === 0 ? styles.flatListEmpty : styles.flatListContent}
+        />
       )}
 
       {/* Sort Modal */}
@@ -801,6 +856,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl * 3,
   },
   emptyEmoji: {
     fontSize: 64,
@@ -828,10 +884,20 @@ const styles = StyleSheet.create({
     ...typography.button,
     color: '#FFFFFF',
   },
-  content: {
+  flatListContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+  },
+  flatListEmpty: {
     flex: 1,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
+  },
+  endOfListText: {
+    textAlign: 'center',
+    paddingVertical: 24,
+    color: colors.textSecondary,
+    fontSize: 13,
   },
   card: {
     backgroundColor: colors.card,
