@@ -179,6 +179,30 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
+              console.log('[ProfileScreen] Feedback pressed');
+              router.push('/feedback');
+            }}
+          >
+            <View style={styles.menuItemLeft}>
+              <IconSymbol 
+                ios_icon_name="bubble.left.and.bubble.right.fill" 
+                android_material_icon_name="feedback" 
+                size={22} 
+                color={colors.text} 
+              />
+              <Text style={styles.menuItemText}>Feedback</Text>
+            </View>
+            <IconSymbol 
+              ios_icon_name="chevron.right" 
+              android_material_icon_name="chevron-right" 
+              size={20} 
+              color={colors.textSecondary} 
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => {
               router.push('/data-privacy');
             }}
           >
