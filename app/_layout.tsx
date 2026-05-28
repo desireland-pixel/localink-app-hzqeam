@@ -35,7 +35,6 @@ function AnalyticsProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     startSession();
-    capture('app_open', { session_id: getSessionId() });
 
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'background' || nextState === 'inactive') {

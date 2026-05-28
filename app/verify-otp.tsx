@@ -16,6 +16,7 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Modal from '@/components/ui/Modal';
 import { apiPost } from '@/utils/api';
+import { capture } from '@/utils/analytics';
 
 export default function VerifyOTPScreen() {
   const router = useRouter();
@@ -52,6 +53,14 @@ export default function VerifyOTPScreen() {
       }
 
       setVerified(true);
+      try {
+        capture('user_registered', {
+          method: 'email',
+          has_username: !!username,
+        });
+      } catch (e) {
+        // fire-and-forget — never block registration on analytics
+      }
       setSuccess('Your account has been created successfully!');
     } catch (err: any) {
       console.error('[VerifyOTP] OTP verification failed:', err);

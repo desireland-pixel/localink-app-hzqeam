@@ -6,6 +6,7 @@ export function getPostHog(): PostHog {
   if (!_client) {
     _client = new PostHog('phc_tkBmBRwfqAtK3pVkx3TBVh5NSnPpimiAnDinSS98tA7u', {
       host: 'https://eu.posthog.com',
+      disabled: __DEV__,
     });
   }
   return _client;

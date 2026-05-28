@@ -4,7 +4,7 @@ import { Platform } from "react-native";
 import * as Linking from "expo-linking";
 import { authClient, setBearerToken, clearAuthTokens } from "@/lib/auth";
 import { authenticatedGet, getBearerToken, BACKEND_URL } from "@/utils/api";
-import { identify, getPostHog } from "@/utils/analytics";
+import { identify, capture, getPostHog } from "@/utils/analytics";
 
 
 interface User {
@@ -97,6 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [communityUnreadCount, setCommunityUnreadCount] = useState(0);
 
+  // Fires app_open once per launch, after identify(), for logged-in users only
+  const appOpenFiredRef = useRef(false);
+
   // Use a ref to hold the latest setUser/setProfile so we can call them from
   // inside fetchUser without stale-closure issues
   const setUserRef = useRef(setUser);
@@ -159,6 +162,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data?.user) {
         setUserRef.current(data.user as User);
         identify(data.user.id, { email: data.user.email, name: data.user.name });
+        if (!appOpenFiredRef.current) {
+          appOpenFiredRef.current = true;
+          try {
+            capture('app_open');
+          } catch (e) {
+            // fire-and-forget
+          }
+        }
         await fetchProfileStandalone();
       } else {
         setUserRef.current(null);
@@ -309,6 +320,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data?.user) {
         setUser(data.user as User);
         identify(data.user.id, { email: data.user.email, name: data.user.name });
+        if (!appOpenFiredRef.current) {
+          appOpenFiredRef.current = true;
+          try {
+            capture('app_open');
+          } catch (e) {
+            // fire-and-forget
+          }
+        }
         await fetchProfileStandalone();
       } else {
         await fetchUser();
