@@ -27,6 +27,7 @@ import { Platform } from "react-native";
 import { OneSignal, NotificationWillDisplayEvent } from "react-native-onesignal";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Import auth hook for user targeting (validated at setup time)
 import { useAuth } from "./AuthContext";
@@ -34,6 +35,10 @@ import { useAuth } from "./AuthContext";
 // Read App ID from app.json (expo.extra)
 const extra = Constants.expoConfig?.extra || {};
 const ONESIGNAL_APP_ID = extra.oneSignalAppId || "";
+
+// AsyncStorage key for the one-time notification permission prompt flag.
+// Includes "v1" so we can bump it in future if we ever need to re-prompt all users.
+const NOTIFICATION_PROMPT_FLAG_KEY = "lokalinc_notification_prompt_shown_v1";
 
 // Check if running on web
 const isWeb = Platform.OS === "web";
@@ -185,6 +190,117 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       console.error("[OneSignal] Failed to update user:", error);
     }
   }, [user?.id]);
+
+  // Helper: shared navigation logic for both foreground taps and cold-start launch notifications.
+  const navigateFromNotificationData = useCallback((data: Record<string, string>) => {
+    const { type, post_id, post_type, conversationId, topicId } = data;
+
+    if (type === "post_match" && post_id && post_type) {
+      console.log("[OneSignal] Navigating to post match", { post_type, post_id });
+      if (post_type === "sublet") {
+        router.push(`/sublet/${post_id}` as any);
+      } else if (post_type === "travel") {
+        router.push(`/travel/${post_id}` as any);
+      }
+    } else if (type === "chat_message" && conversationId) {
+      console.log("[OneSignal] Navigating to chat", { conversationId });
+      router.push(`/chat/${conversationId}` as any);
+    } else if (type === "community_reply" && topicId) {
+      console.log("[OneSignal] Navigating to community topic (reply)", { topicId });
+      router.push(`/community/${topicId}` as any);
+    } else if (type === "reply_liked" && topicId) {
+      console.log("[OneSignal] Navigating to community topic (liked)", { topicId });
+      router.push(`/community/${topicId}` as any);
+    }
+  }, [router]);
+
+  // Change 1 — Auto-request OS notification permission once after login.
+  // Fires whenever user.id changes (i.e. on login). The AsyncStorage flag ensures
+  // the OS dialog is shown at most once per device, ever.
+  useEffect(() => {
+    if (isWeb) return;
+    if (!ONESIGNAL_APP_ID) return;
+    if (!user?.id) return;
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    timeoutId = setTimeout(async () => {
+      try {
+        const alreadyAsked = await AsyncStorage.getItem(NOTIFICATION_PROMPT_FLAG_KEY);
+        if (alreadyAsked === "true") {
+          console.log("[OneSignal] Notification prompt already shown on this device — skipping.");
+          return;
+        }
+
+        const currentlyHasPermission = OneSignal.Notifications.hasPermission();
+        if (currentlyHasPermission === true) {
+          // User already granted permission (e.g. from a previous install) — just mark the flag.
+          await AsyncStorage.setItem(NOTIFICATION_PROMPT_FLAG_KEY, "true");
+          console.log("[OneSignal] Permission already granted — flag set, no prompt needed.");
+          return;
+        }
+
+        // Show the OS native permission dialog.
+        console.log("[OneSignal] Requesting notification permission for user:", user?.id);
+        await OneSignal.Notifications.requestPermission(true);
+        // Mark as asked regardless of the user's choice — the OS only allows asking once per install.
+        await AsyncStorage.setItem(NOTIFICATION_PROMPT_FLAG_KEY, "true");
+        console.log("[OneSignal] Notification permission prompt shown and flag set.");
+      } catch (error) {
+        // Silent failure — must never break the login flow.
+        console.warn("[OneSignal] Auto-permission request failed silently:", error);
+      }
+    }, 800);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [user?.id]);
+
+  // Change 2 — Cold-start notification tap navigation fix.
+  // When the app is launched by tapping a notification, the click handler fires before
+  // expo-router is ready. This effect waits 1 s then reads the launch notification and
+  // navigates to the correct screen.
+  useEffect(() => {
+    if (isWeb) return;
+    if (!ONESIGNAL_APP_ID) return;
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    timeoutId = setTimeout(async () => {
+      try {
+        const notificationsApi = OneSignal.Notifications as any;
+        let launchNotification: any = null;
+
+        if (typeof notificationsApi.getLastNotification === "function") {
+          launchNotification = await notificationsApi.getLastNotification();
+        } else if (typeof notificationsApi.getInitialNotification === "function") {
+          launchNotification = await notificationsApi.getInitialNotification();
+        } else if (typeof notificationsApi.getLaunchNotification === "function") {
+          launchNotification = await notificationsApi.getLaunchNotification();
+        }
+
+        if (!launchNotification) return;
+
+        // additionalData may live at the top level or nested under .notification
+        const additionalData =
+          launchNotification.additionalData ??
+          launchNotification.notification?.additionalData;
+
+        if (additionalData) {
+          console.log("[OneSignal] Cold-start launch notification detected", additionalData);
+          navigateFromNotificationData(additionalData as Record<string, string>);
+        }
+      } catch (error) {
+        // Silent failure — if the SDK version doesn't support these methods, do nothing.
+        console.warn("[OneSignal] Cold-start notification check failed silently:", error);
+      }
+    }, 1000);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [router, navigateFromNotificationData]);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (isWeb) return false;
