@@ -1,6 +1,6 @@
 import type { App } from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, or, gte, lte, isNull, isNotNull, desc, asc } from 'drizzle-orm';
+import { eq, and, or, gte, lte, isNull, isNotNull, desc, asc, ilike, sql, count as countFn } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { generateShortId } from '../utils/short-id.js';
 import { formatDateToDDMMYYYY, parseDateFromDDMMYYYY } from '../utils/date-format.js';
@@ -19,6 +19,7 @@ interface SubletFilters {
   sort?: 'newest' | 'earliest' | 'cheapest'; // Sorting option
   limit?: string;
   offset?: string;
+  page?: string; // Pagination: 1-indexed page number
 }
 
 interface SubletBody {
@@ -76,6 +77,7 @@ export function registerSubletRoutes(app: App) {
           sort: { type: 'string', enum: ['newest', 'earliest', 'cheapest'] },
           limit: { type: 'string' },
           offset: { type: 'string' },
+          page: { type: 'string' },
         },
       },
     },
@@ -123,8 +125,6 @@ export function registerSubletRoutes(app: App) {
         conditions.push(eq(schema.sublets.cityRegistrationRequired, false));
       }
 
-      const offset = parseInt(filters.offset || '0');
-
       // Determine sort order
       let orderByClause: any;
       if (filters.sort === 'earliest') {
@@ -138,58 +138,127 @@ export function registerSubletRoutes(app: App) {
         orderByClause = desc(schema.sublets.createdAt);
       }
 
-      const sublets = await app.db
-        .select({
-          id: schema.sublets.id,
-          userId: schema.sublets.userId,
-          type: schema.sublets.type,
-          title: schema.sublets.title,
-          description: schema.sublets.description,
-          city: schema.sublets.city,
-          availableFrom: schema.sublets.availableFrom,
-          availableTo: schema.sublets.availableTo,
-          rent: schema.sublets.rent,
-          imageUrls: schema.sublets.imageUrls,
-          address: schema.sublets.address,
-          pincode: schema.sublets.pincode,
-          cityRegistrationRequired: schema.sublets.cityRegistrationRequired,
-          deposit: schema.sublets.deposit,
-          status: schema.sublets.status,
-          createdAt: schema.sublets.createdAt,
-          updatedAt: schema.sublets.updatedAt,
-          username: schema.profiles.username,
-        })
-        .from(schema.sublets)
-        .leftJoin(schema.profiles, eq(schema.sublets.userId, schema.profiles.userId))
-        .where(and(...conditions))
-        .offset(offset)
-        .orderBy(orderByClause);
+      // Check if pagination (page param) is present
+      const isPaginated = filters.page !== undefined;
 
-      // Transform to include user object and format dates
-      const result = await Promise.all(sublets.map(async (sublet) => {
-        // Dates come as strings from database in YYYY-MM-DD format
-        const fromDate = String(sublet.availableFrom);
-        const toDate = String(sublet.availableTo);
+      if (isPaginated) {
+        // New paginated response
+        const page = Math.max(1, parseInt(filters.page || '1'));
+        const limit = Math.min(50, Math.max(1, parseInt(filters.limit || '20')));
+        const offset = (page - 1) * limit;
 
-        // Regenerate fresh signed URLs for images
-        const freshImageUrls = await regenerateSignedUrls(app, sublet.imageUrls);
+        // Get total count with filters applied
+        const [{ total }] = await app.db
+          .select({ total: countFn(schema.sublets.id).as('total') })
+          .from(schema.sublets)
+          .where(and(...conditions));
 
-        return {
-          ...sublet,
-          imageUrls: freshImageUrls,
-          availableFrom: formatDateToDDMMYYYY(fromDate),
-          availableTo: formatDateToDDMMYYYY(toDate),
-          isOwner: false, // Set to false for list endpoint (frontend can determine based on userId)
-          user: {
-            id: sublet.userId,
-            username: sublet.username || 'Unknown User',
-          },
-          username: undefined, // Remove flat username field
-        };
-      }));
+        const sublets = await app.db
+          .select({
+            id: schema.sublets.id,
+            userId: schema.sublets.userId,
+            type: schema.sublets.type,
+            title: schema.sublets.title,
+            description: schema.sublets.description,
+            city: schema.sublets.city,
+            availableFrom: schema.sublets.availableFrom,
+            availableTo: schema.sublets.availableTo,
+            rent: schema.sublets.rent,
+            imageUrls: schema.sublets.imageUrls,
+            address: schema.sublets.address,
+            pincode: schema.sublets.pincode,
+            cityRegistrationRequired: schema.sublets.cityRegistrationRequired,
+            deposit: schema.sublets.deposit,
+            status: schema.sublets.status,
+            createdAt: schema.sublets.createdAt,
+            updatedAt: schema.sublets.updatedAt,
+            username: schema.profiles.username,
+          })
+          .from(schema.sublets)
+          .leftJoin(schema.profiles, eq(schema.sublets.userId, schema.profiles.userId))
+          .where(and(...conditions))
+          .offset(offset)
+          .limit(limit)
+          .orderBy(orderByClause);
 
-      app.logger.info({ count: result.length, filters }, 'Sublets listed successfully');
-      return result;
+        // Transform to include user object and format dates
+        const data = await Promise.all(sublets.map(async (sublet) => {
+          const fromDate = String(sublet.availableFrom);
+          const toDate = String(sublet.availableTo);
+          const freshImageUrls = await regenerateSignedUrls(app, sublet.imageUrls);
+
+          return {
+            ...sublet,
+            imageUrls: freshImageUrls,
+            availableFrom: formatDateToDDMMYYYY(fromDate),
+            availableTo: formatDateToDDMMYYYY(toDate),
+            isOwner: false,
+            user: {
+              id: sublet.userId,
+              username: sublet.username || 'Unknown User',
+            },
+            username: undefined,
+          };
+        }));
+
+        const hasMore = (page * limit) < total;
+
+        app.logger.info({ page, limit, total, hasMore, count: data.length }, 'Sublets listed with pagination');
+        return { data, hasMore, total, page };
+      } else {
+        // Legacy plain array response
+        const offset = parseInt(filters.offset || '0');
+
+        const sublets = await app.db
+          .select({
+            id: schema.sublets.id,
+            userId: schema.sublets.userId,
+            type: schema.sublets.type,
+            title: schema.sublets.title,
+            description: schema.sublets.description,
+            city: schema.sublets.city,
+            availableFrom: schema.sublets.availableFrom,
+            availableTo: schema.sublets.availableTo,
+            rent: schema.sublets.rent,
+            imageUrls: schema.sublets.imageUrls,
+            address: schema.sublets.address,
+            pincode: schema.sublets.pincode,
+            cityRegistrationRequired: schema.sublets.cityRegistrationRequired,
+            deposit: schema.sublets.deposit,
+            status: schema.sublets.status,
+            createdAt: schema.sublets.createdAt,
+            updatedAt: schema.sublets.updatedAt,
+            username: schema.profiles.username,
+          })
+          .from(schema.sublets)
+          .leftJoin(schema.profiles, eq(schema.sublets.userId, schema.profiles.userId))
+          .where(and(...conditions))
+          .offset(offset)
+          .orderBy(orderByClause);
+
+        // Transform to include user object and format dates
+        const result = await Promise.all(sublets.map(async (sublet) => {
+          const fromDate = String(sublet.availableFrom);
+          const toDate = String(sublet.availableTo);
+          const freshImageUrls = await regenerateSignedUrls(app, sublet.imageUrls);
+
+          return {
+            ...sublet,
+            imageUrls: freshImageUrls,
+            availableFrom: formatDateToDDMMYYYY(fromDate),
+            availableTo: formatDateToDDMMYYYY(toDate),
+            isOwner: false,
+            user: {
+              id: sublet.userId,
+              username: sublet.username || 'Unknown User',
+            },
+            username: undefined,
+          };
+        }));
+
+        app.logger.info({ count: result.length, filters }, 'Sublets listed successfully');
+        return result;
+      }
     } catch (error) {
       app.logger.error({ err: error }, 'Failed to list sublets');
       return reply.status(500).send({ error: 'Failed to list sublets' });

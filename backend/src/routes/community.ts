@@ -1118,11 +1118,12 @@ export function registerCommunityRoutes(app: App) {
           sort: { type: 'string', enum: ['newest', 'trending', 'oldest'] },
           limit: { type: 'string' },
           offset: { type: 'string' },
+          page: { type: 'string' },
         },
       },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const filters = request.query as { city?: string; sort?: 'newest' | 'trending' | 'oldest'; limit?: string; offset?: string };
+    const filters = request.query as { city?: string; sort?: 'newest' | 'trending' | 'oldest'; limit?: string; offset?: string; page?: string };
     app.logger.info({ filters }, 'Listing community posts');
 
     try {
@@ -1133,71 +1134,138 @@ export function registerCommunityRoutes(app: App) {
         conditions.push(eq(schema.discussionTopics.location, filters.city));
       }
 
-      const limit = parseInt(filters.limit || '20');
-      const offset = parseInt(filters.offset || '0');
+      // Check if pagination (page param) is present
+      const isPaginated = filters.page !== undefined;
 
-      const topics = await app.db
-        .select({
-          id: schema.discussionTopics.id,
-          userId: schema.discussionTopics.userId,
-          category: schema.discussionTopics.category,
-          location: schema.discussionTopics.location,
-          title: schema.discussionTopics.title,
-          description: schema.discussionTopics.description,
-          status: schema.discussionTopics.status,
-          unreadRepliesCount: schema.discussionTopics.unreadRepliesCount,
-          replyCount: sql<number>`(SELECT COUNT(*) FROM ${schema.discussionReplies} WHERE ${schema.discussionReplies.topicId} = ${schema.discussionTopics.id})`,
-          createdAt: schema.discussionTopics.createdAt,
-          updatedAt: schema.discussionTopics.updatedAt,
-          username: schema.profiles.username,
-        })
-        .from(schema.discussionTopics)
-        .leftJoin(schema.profiles, eq(schema.discussionTopics.userId, schema.profiles.userId))
-        .where(conditions.length > 0 ? and(...conditions) : undefined);
+      if (isPaginated) {
+        // New paginated response
+        const page = Math.max(1, parseInt(filters.page || '1'));
+        const limit = Math.min(50, Math.max(1, parseInt(filters.limit || '20')));
+        const offset = (page - 1) * limit;
 
-      // Apply sorting after retrieving data
-      let sortedTopics = topics;
-      if (filters.sort === 'trending') {
-        // Sort by actual replyCount DESC, then by updatedAt DESC (latest activity first)
-        sortedTopics = topics.sort((a, b) => {
-          const replyCountDiff = (b.replyCount || 0) - (a.replyCount || 0);
-          if (replyCountDiff !== 0) return replyCountDiff;
-          // Secondary sort: latest updated first
-          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        // Get total count with filters applied
+        const [{ total }] = await app.db
+          .select({ total: count(schema.discussionTopics.id).as('total') })
+          .from(schema.discussionTopics)
+          .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+        const topics = await app.db
+          .select({
+            id: schema.discussionTopics.id,
+            userId: schema.discussionTopics.userId,
+            category: schema.discussionTopics.category,
+            location: schema.discussionTopics.location,
+            title: schema.discussionTopics.title,
+            description: schema.discussionTopics.description,
+            status: schema.discussionTopics.status,
+            unreadRepliesCount: schema.discussionTopics.unreadRepliesCount,
+            replyCount: sql<number>`(SELECT COUNT(*) FROM ${schema.discussionReplies} WHERE ${schema.discussionReplies.topicId} = ${schema.discussionTopics.id})`,
+            createdAt: schema.discussionTopics.createdAt,
+            updatedAt: schema.discussionTopics.updatedAt,
+            username: schema.profiles.username,
+          })
+          .from(schema.discussionTopics)
+          .leftJoin(schema.profiles, eq(schema.discussionTopics.userId, schema.profiles.userId))
+          .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+        // Apply sorting after retrieving data
+        let sortedTopics = topics;
+        if (filters.sort === 'trending') {
+          sortedTopics = topics.sort((a, b) => {
+            const replyCountDiff = (b.replyCount || 0) - (a.replyCount || 0);
+            if (replyCountDiff !== 0) return replyCountDiff;
+            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+          });
+        } else if (filters.sort === 'oldest') {
+          sortedTopics = topics.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        } else {
+          sortedTopics = topics.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
+
+        // Apply pagination after sorting
+        const paginatedTopics = sortedTopics.slice(offset, offset + limit);
+
+        // Transform to include user object and formatted metadata
+        const data = paginatedTopics.map(topic => {
+          const date = new Date(topic.createdAt);
+          const formattedDate = date.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
+          return {
+            ...topic,
+            shortId: generateShortId(topic.id),
+            isOwner: false,
+            user: {
+              id: topic.userId,
+              username: topic.username || 'Unknown User',
+            },
+            username: undefined,
+            byline: `by ${topic.username || 'Unknown User'} on ${formattedDate}`,
+          };
         });
-      } else if (filters.sort === 'oldest') {
-        // Sort by createdAt ASC (oldest posts first)
-        sortedTopics = topics.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+        const hasMore = (page * limit) < total;
+        app.logger.info({ page, limit, total, hasMore, count: data.length }, 'Community posts listed with pagination');
+        return { data, hasMore, total, page };
       } else {
-        // Default: newest (sort by createdAt DESC)
-        sortedTopics = topics.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        // Legacy plain array response
+        const limit = parseInt(filters.limit || '20');
+        const offset = parseInt(filters.offset || '0');
+
+        const topics = await app.db
+          .select({
+            id: schema.discussionTopics.id,
+            userId: schema.discussionTopics.userId,
+            category: schema.discussionTopics.category,
+            location: schema.discussionTopics.location,
+            title: schema.discussionTopics.title,
+            description: schema.discussionTopics.description,
+            status: schema.discussionTopics.status,
+            unreadRepliesCount: schema.discussionTopics.unreadRepliesCount,
+            replyCount: sql<number>`(SELECT COUNT(*) FROM ${schema.discussionReplies} WHERE ${schema.discussionReplies.topicId} = ${schema.discussionTopics.id})`,
+            createdAt: schema.discussionTopics.createdAt,
+            updatedAt: schema.discussionTopics.updatedAt,
+            username: schema.profiles.username,
+          })
+          .from(schema.discussionTopics)
+          .leftJoin(schema.profiles, eq(schema.discussionTopics.userId, schema.profiles.userId))
+          .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+        // Apply sorting after retrieving data
+        let sortedTopics = topics;
+        if (filters.sort === 'trending') {
+          sortedTopics = topics.sort((a, b) => {
+            const replyCountDiff = (b.replyCount || 0) - (a.replyCount || 0);
+            if (replyCountDiff !== 0) return replyCountDiff;
+            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+          });
+        } else if (filters.sort === 'oldest') {
+          sortedTopics = topics.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        } else {
+          sortedTopics = topics.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
+
+        // Apply pagination after sorting
+        const paginatedTopics = sortedTopics.slice(offset, offset + limit);
+
+        // Transform to include user object and formatted metadata
+        const result = paginatedTopics.map(topic => {
+          const date = new Date(topic.createdAt);
+          const formattedDate = date.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
+          return {
+            ...topic,
+            shortId: generateShortId(topic.id),
+            isOwner: false,
+            user: {
+              id: topic.userId,
+              username: topic.username || 'Unknown User',
+            },
+            username: undefined,
+            byline: `by ${topic.username || 'Unknown User'} on ${formattedDate}`,
+          };
+        });
+
+        app.logger.info({ count: result.length }, 'Community posts listed successfully');
+        return result;
       }
-
-      // Apply pagination after sorting
-      const paginatedTopics = sortedTopics.slice(
-        parseInt(filters.offset || '0'),
-        parseInt(filters.offset || '0') + parseInt(filters.limit || '20')
-      );
-
-      // Transform to include user object and formatted metadata
-      const result = paginatedTopics.map(topic => {
-        const date = new Date(topic.createdAt);
-        const formattedDate = date.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
-        return {
-          ...topic,
-          shortId: generateShortId(topic.id),
-          isOwner: false, // Set to false for list endpoint (frontend can determine based on userId)
-          user: {
-            id: topic.userId,
-            username: topic.username || 'Unknown User',
-          },
-          username: undefined,
-          byline: `by ${topic.username || 'Unknown User'} on ${formattedDate}`,
-        };
-      });
-
-      app.logger.info({ count: result.length }, 'Community posts listed successfully');
-      return result;
     } catch (error) {
       app.logger.error({ err: error }, 'Failed to list community posts');
       return reply.status(500).send({ error: 'Failed to list community posts' });
