@@ -97,6 +97,15 @@ describe("API Integration Tests", () => {
     expect(data.success).toBe(true);
   });
 
+  test("Accept disclaimer with missing type returns 400", async () => {
+    const res = await authenticatedApi("/api/profile/disclaimers", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    await expectStatus(res, 400);
+  });
+
   test("Change password with wrong old password returns 400", async () => {
     const res = await authenticatedApi("/api/profile/change-password", authToken, {
       method: "PUT",
@@ -104,6 +113,17 @@ describe("API Integration Tests", () => {
       body: JSON.stringify({
         oldPassword: "WrongPassword123!",
         newPassword: "NewPassword456!",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Change password missing required fields returns 400", async () => {
+    const res = await authenticatedApi("/api/profile/change-password", authToken, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        // Missing oldPassword and newPassword
       }),
     });
     await expectStatus(res, 400);
@@ -127,6 +147,15 @@ describe("API Integration Tests", () => {
       body: JSON.stringify({
         email: "not-an-email",
       }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Request password reset missing email returns 400", async () => {
+    const res = await api("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
     });
     await expectStatus(res, 400);
   });
@@ -246,6 +275,13 @@ describe("API Integration Tests", () => {
 
   test("Search cities with travel type filter", async () => {
     const res = await api("/api/cities/search?q=Berlin&type=travel");
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(Array.isArray(data.cities)).toBe(true);
+  });
+
+  test("Search cities with empty query", async () => {
+    const res = await api("/api/cities/search");
     await expectStatus(res, 200);
     const data = await res.json();
     expect(Array.isArray(data.cities)).toBe(true);
@@ -769,6 +805,22 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400);
   });
 
+  test("Create travel post with zero incentive amount returns 400", async () => {
+    const res = await authenticatedApi("/api/travel-posts", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        fromCity: "Berlin",
+        toCity: "Munich",
+        travelDate: "2026-09-01",
+        incentiveAmount: 0,
+        companionshipConsent: true,
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   // ============ Favorites ============
 
   test("Create favorite on travel post", async () => {
@@ -826,6 +878,17 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400);
   });
 
+  test("Create favorite missing postId returns 400", async () => {
+    const res = await authenticatedApi("/api/favorites", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postType: "travel",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   test("Get user favorites with pagination", async () => {
     const res = await authenticatedApi("/api/favorites", authToken);
     await expectStatus(res, 200);
@@ -867,6 +930,11 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400);
   });
 
+  test("Check if post is favorited missing postType returns 400", async () => {
+    const res = await authenticatedApi("/api/favorites/check/00000000-0000-0000-0000-000000000000", authToken);
+    await expectStatus(res, 400);
+  });
+
   test("Delete favorite from post", async () => {
     const createRes = await authenticatedApi("/api/travel-posts", authToken, {
       method: "POST",
@@ -901,6 +969,13 @@ describe("API Integration Tests", () => {
 
   test("Delete favorite with invalid postType returns 400", async () => {
     const res = await authenticatedApi("/api/favorites/00000000-0000-0000-0000-000000000000?postType=invalid", authToken, {
+      method: "DELETE",
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Delete favorite missing postType returns 400", async () => {
+    const res = await authenticatedApi("/api/favorites/00000000-0000-0000-0000-000000000000", authToken, {
       method: "DELETE",
     });
     await expectStatus(res, 400);
@@ -2128,6 +2203,18 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 400);
   });
 
+  test("Register push token missing token returns 400", async () => {
+    const res = await authenticatedApi("/api/push-tokens", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        platform: "ios",
+        // Missing token
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
   test("Delete push token", async () => {
     const res = await authenticatedApi("/api/push-tokens/device_token_ios_test_123", authToken, {
       method: "DELETE",
@@ -2466,6 +2553,18 @@ describe("API Integration Tests", () => {
       body: JSON.stringify({
         postId,
         // Missing postType
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Trigger matching missing postId returns 400", async () => {
+    const res = await authenticatedApi("/api/matches/trigger", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postType: "sublet",
+        // Missing postId
       }),
     });
     await expectStatus(res, 400);

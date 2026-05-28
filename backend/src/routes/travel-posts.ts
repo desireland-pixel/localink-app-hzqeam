@@ -1,6 +1,6 @@
 import type { App} from '../index.js';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and, or, gte, lt, lte, between, desc, asc, isNotNull, isNull, ne } from 'drizzle-orm';
+import { eq, and, or, gte, lt, lte, between, desc, asc, isNotNull, isNull, ne, ilike, count as countFn } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import { TRAVEL_CITIES, COUNTRY_CITIES } from '../cities.js';
 import { generateShortId } from '../utils/short-id.js';
@@ -23,6 +23,7 @@ interface TravelPostFilters {
   sort?: 'newest' | 'earliest-departure' | 'latest-departure'; // Sorting option
   limit?: string;
   offset?: string;
+  page?: string; // Pagination: 1-indexed page number
 }
 
 interface TravelPostBody {
@@ -121,6 +122,7 @@ export function registerTravelPostRoutes(app: App) {
           sort: { type: 'string', enum: ['newest', 'earliest-departure', 'latest-departure'] },
           limit: { type: 'string' },
           offset: { type: 'string' },
+          page: { type: 'string' },
         },
       },
     },
@@ -263,8 +265,6 @@ export function registerTravelPostRoutes(app: App) {
         );
       }
 
-      const offset = parseInt(filters.offset || '0');
-
       // Determine sort order
       let orderByClause: any[] = [];
       if (filters.sort === 'earliest-departure') {
@@ -278,81 +278,152 @@ export function registerTravelPostRoutes(app: App) {
         orderByClause = [desc(schema.travelPosts.createdAt)];
       }
 
-      const posts = await app.db
-        .select({
-          id: schema.travelPosts.id,
-          userId: schema.travelPosts.userId,
-          type: schema.travelPosts.type,
-          description: schema.travelPosts.description,
-          fromCity: schema.travelPosts.fromCity,
-          toCity: schema.travelPosts.toCity,
-          travelDate: schema.travelPosts.travelDate,
-          companionshipFor: schema.travelPosts.companionshipFor,
-          travelDateTo: schema.travelPosts.travelDateTo,
-          item: schema.travelPosts.item,
-          canOfferCompanionship: schema.travelPosts.canOfferCompanionship,
-          canCarryItems: schema.travelPosts.canCarryItems,
-          incentiveAmount: schema.travelPosts.incentiveAmount,
-          status: schema.travelPosts.status,
-          createdAt: schema.travelPosts.createdAt,
-          updatedAt: schema.travelPosts.updatedAt,
-          username: schema.profiles.username,
-        })
-        .from(schema.travelPosts)
-        .leftJoin(schema.profiles, eq(schema.travelPosts.userId, schema.profiles.userId))
-        .where(and(...conditions))
-        .offset(offset)
-        .orderBy(...orderByClause);
+      // Check if pagination (page param) is present
+      const isPaginated = filters.page !== undefined;
 
-      // Transform to include user object, format dates, and add formatted title
-      const result = await Promise.all(posts.map(async (post) => {
-        // Convert dates to strings in YYYY-MM-DD format from database
-        const travelDate = String(post.travelDate);
-        const travelDateTo = post.travelDateTo ? String(post.travelDateTo) : null;
+      if (isPaginated) {
+        // New paginated response
+        const page = Math.max(1, parseInt(filters.page || '1'));
+        const limit = Math.min(50, Math.max(1, parseInt(filters.limit || '20')));
+        const offset = (page - 1) * limit;
 
-        const { title, tag } = formatTravelPostTitle(
-          post.type as 'offering' | 'seeking' | 'seeking-ally',
-          post.fromCity,
-          post.toCity,
-          post.canOfferCompanionship,
-          post.canCarryItems
-        );
-        const typeEmojis = getTravelPostTypeEmojis(
-          post.type as 'offering' | 'seeking' | 'seeking-ally',
-          post.canOfferCompanionship,
-          post.canCarryItems
-        );
+        // Get total count with filters applied
+        const [{ total }] = await app.db
+          .select({ total: countFn(schema.travelPosts.id).as('total') })
+          .from(schema.travelPosts)
+          .where(and(...conditions));
 
-        const createdDate = new Date(post.createdAt);
-        const formattedCreatedDate = createdDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
-        const formattedIncentive = formatIncentiveAmount(post.incentiveAmount);
+        const posts = await app.db
+          .select({
+            id: schema.travelPosts.id,
+            userId: schema.travelPosts.userId,
+            type: schema.travelPosts.type,
+            description: schema.travelPosts.description,
+            fromCity: schema.travelPosts.fromCity,
+            toCity: schema.travelPosts.toCity,
+            travelDate: schema.travelPosts.travelDate,
+            companionshipFor: schema.travelPosts.companionshipFor,
+            travelDateTo: schema.travelPosts.travelDateTo,
+            item: schema.travelPosts.item,
+            canOfferCompanionship: schema.travelPosts.canOfferCompanionship,
+            canCarryItems: schema.travelPosts.canCarryItems,
+            incentiveAmount: schema.travelPosts.incentiveAmount,
+            status: schema.travelPosts.status,
+            createdAt: schema.travelPosts.createdAt,
+            updatedAt: schema.travelPosts.updatedAt,
+            username: schema.profiles.username,
+          })
+          .from(schema.travelPosts)
+          .leftJoin(schema.profiles, eq(schema.travelPosts.userId, schema.profiles.userId))
+          .where(and(...conditions))
+          .offset(offset)
+          .limit(limit)
+          .orderBy(...orderByClause);
 
-        return {
-          ...post,
-          travelDate: formatDateToDDMMYYYY(travelDate),
-          travelDateTo: travelDateTo ? formatDateToDDMMYYYY(travelDateTo) : null,
-          formattedTitle: title,
-          tag: tag,
-          typeEmojis: typeEmojis,
-          ...(formattedIncentive ? {
-            incentive: {
-              amount: formattedIncentive,
-              currency: '€',
-              displayText: `€ ${formattedIncentive}`,
-            }
-          } : {}),
-          isOwner: false, // Set to false for list endpoint (frontend can determine based on userId)
-          user: {
-            id: post.userId,
-            username: post.username || 'Unknown User',
-          },
-          byline: `by ${post.username || 'Unknown User'} on ${formattedCreatedDate}`,
-          username: undefined,
-        };
-      }));
+        // Transform posts
+        const data = await Promise.all(posts.map(async (post) => {
+          const travelDate = String(post.travelDate);
+          const travelDateTo = post.travelDateTo ? String(post.travelDateTo) : null;
+          const { title, tag } = formatTravelPostTitle(post.type as 'offering' | 'seeking' | 'seeking-ally', post.fromCity, post.toCity, post.canOfferCompanionship, post.canCarryItems);
+          const typeEmojis = getTravelPostTypeEmojis(post.type as 'offering' | 'seeking' | 'seeking-ally', post.canOfferCompanionship, post.canCarryItems);
+          const createdDate = new Date(post.createdAt);
+          const formattedCreatedDate = createdDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
+          const formattedIncentive = formatIncentiveAmount(post.incentiveAmount);
 
-      app.logger.info({ count: result.length, filters }, 'Travel posts listed successfully');
-      return result;
+          return {
+            ...post,
+            travelDate: formatDateToDDMMYYYY(travelDate),
+            travelDateTo: travelDateTo ? formatDateToDDMMYYYY(travelDateTo) : null,
+            formattedTitle: title,
+            tag: tag,
+            typeEmojis: typeEmojis,
+            ...(formattedIncentive ? {
+              incentive: {
+                amount: formattedIncentive,
+                currency: '€',
+                displayText: `€ ${formattedIncentive}`,
+              }
+            } : {}),
+            isOwner: false,
+            user: {
+              id: post.userId,
+              username: post.username || 'Unknown User',
+            },
+            byline: `by ${post.username || 'Unknown User'} on ${formattedCreatedDate}`,
+            username: undefined,
+          };
+        }));
+
+        const hasMore = (page * limit) < total;
+        app.logger.info({ page, limit, total, hasMore, count: data.length }, 'Travel posts listed with pagination');
+        return { data, hasMore, total, page };
+      } else {
+        // Legacy plain array response
+        const offset = parseInt(filters.offset || '0');
+
+        const posts = await app.db
+          .select({
+            id: schema.travelPosts.id,
+            userId: schema.travelPosts.userId,
+            type: schema.travelPosts.type,
+            description: schema.travelPosts.description,
+            fromCity: schema.travelPosts.fromCity,
+            toCity: schema.travelPosts.toCity,
+            travelDate: schema.travelPosts.travelDate,
+            companionshipFor: schema.travelPosts.companionshipFor,
+            travelDateTo: schema.travelPosts.travelDateTo,
+            item: schema.travelPosts.item,
+            canOfferCompanionship: schema.travelPosts.canOfferCompanionship,
+            canCarryItems: schema.travelPosts.canCarryItems,
+            incentiveAmount: schema.travelPosts.incentiveAmount,
+            status: schema.travelPosts.status,
+            createdAt: schema.travelPosts.createdAt,
+            updatedAt: schema.travelPosts.updatedAt,
+            username: schema.profiles.username,
+          })
+          .from(schema.travelPosts)
+          .leftJoin(schema.profiles, eq(schema.travelPosts.userId, schema.profiles.userId))
+          .where(and(...conditions))
+          .offset(offset)
+          .orderBy(...orderByClause);
+
+        // Transform to include user object, format dates, and add formatted title
+        const result = await Promise.all(posts.map(async (post) => {
+          const travelDate = String(post.travelDate);
+          const travelDateTo = post.travelDateTo ? String(post.travelDateTo) : null;
+          const { title, tag } = formatTravelPostTitle(post.type as 'offering' | 'seeking' | 'seeking-ally', post.fromCity, post.toCity, post.canOfferCompanionship, post.canCarryItems);
+          const typeEmojis = getTravelPostTypeEmojis(post.type as 'offering' | 'seeking' | 'seeking-ally', post.canOfferCompanionship, post.canCarryItems);
+          const createdDate = new Date(post.createdAt);
+          const formattedCreatedDate = createdDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
+          const formattedIncentive = formatIncentiveAmount(post.incentiveAmount);
+
+          return {
+            ...post,
+            travelDate: formatDateToDDMMYYYY(travelDate),
+            travelDateTo: travelDateTo ? formatDateToDDMMYYYY(travelDateTo) : null,
+            formattedTitle: title,
+            tag: tag,
+            typeEmojis: typeEmojis,
+            ...(formattedIncentive ? {
+              incentive: {
+                amount: formattedIncentive,
+                currency: '€',
+                displayText: `€ ${formattedIncentive}`,
+              }
+            } : {}),
+            isOwner: false,
+            user: {
+              id: post.userId,
+              username: post.username || 'Unknown User',
+            },
+            byline: `by ${post.username || 'Unknown User'} on ${formattedCreatedDate}`,
+            username: undefined,
+          };
+        }));
+
+        app.logger.info({ count: result.length, filters }, 'Travel posts listed successfully');
+        return result;
+      }
     } catch (error) {
       console.error('Failed to list travel posts:', error);
       app.logger.error({ err: error }, 'Failed to list travel posts');
