@@ -331,3 +331,21 @@ export const feedbackRelations = relations(feedback, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+// Post outcomes tracking
+export const postOutcomes = pgTable('post_outcomes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  postId: text('post_id').notNull(),
+  postType: text('post_type').notNull(),
+  outcome: text('outcome').notNull(),
+  comment: text('comment'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const postOutcomesRelations = relations(postOutcomes, ({ one }) => ({
+  user: one(user, {
+    fields: [postOutcomes.userId],
+    references: [user.id],
+  }),
+}));

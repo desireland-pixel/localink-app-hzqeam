@@ -18,6 +18,7 @@ import { registerNotificationPreferencesRoutes } from './routes/notification-pre
 import { registerUserDeletionRoutes } from './routes/user-deletion.js';
 import { registerMatchRoutes } from './routes/matches.js';
 import { registerFeedbackRoutes } from './routes/feedback.js';
+import { registerPostOutcomesRoutes } from './routes/post-outcomes.js';
 import { startCleanupJob } from './utils/cleanup-job.js';
 import { startEmailDigestJob } from './utils/email-digest-job.js';
 
@@ -150,6 +151,7 @@ registerNotificationPreferencesRoutes(app);
 registerUserDeletionRoutes(app);
 registerMatchRoutes(app);
 registerFeedbackRoutes(app);
+registerPostOutcomesRoutes(app);
 
 // Start cleanup job for soft-deleted posts
 startCleanupJob(app);
