@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { capture, SCREEN_NAMES } from '@/utils/analytics';
 import { useScreenTracking } from '@/utils/useScreenTracking';
 import Modal from '@/components/ui/Modal';
+import PostOutcomeModal from '@/components/PostOutcomeModal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -70,6 +71,7 @@ export default function CommunityDetailsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showOutcomeModal, setShowOutcomeModal] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [showDeleteCommentModal, setShowDeleteCommentModal] = useState(false);
@@ -236,8 +238,8 @@ title: shareData.title,
   const handleDelete = async () => {
     if (!topic) return;
     
-    const isClosed = topic.status === 'closed';
-    const actionText = isClosed ? 'delete' : 'close';
+    const wasOpen = topic.status === 'open';
+    const actionText = wasOpen ? 'close' : 'delete';
     
     console.log(`CommunityDetailsScreen: ${actionText} topic`, id);
     setDeleting(true);
@@ -257,7 +259,13 @@ title: shareData.title,
       
       setShowDeleteModal(false);
       
-      router.replace('/carry');
+      if (wasOpen) {
+        // Closing an open topic — show outcome modal before navigating
+        setShowOutcomeModal(true);
+      } else {
+        // Permanent delete of a closed topic — navigate immediately
+        router.replace('/carry');
+      }
     } catch (error: any) {
       console.error('CommunityDetailsScreen: Error with topic action', error);
       setError(error.message || `Failed to ${actionText} topic`);
@@ -734,6 +742,16 @@ title: shareData.title,
             disabled: deletingComment,
           },
         ]}
+      />
+
+      <PostOutcomeModal
+        visible={showOutcomeModal}
+        postId={typeof id === 'string' ? id : String(id)}
+        postType="community"
+        onClose={() => {
+          setShowOutcomeModal(false);
+          router.replace('/carry');
+        }}
       />
     </SafeAreaView>
   );

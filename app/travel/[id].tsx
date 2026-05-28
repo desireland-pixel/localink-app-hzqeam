@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { capture, SCREEN_NAMES } from '@/utils/analytics';
 import { useScreenTracking } from '@/utils/useScreenTracking';
 import Modal from '@/components/ui/Modal';
+import PostOutcomeModal from '@/components/PostOutcomeModal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
 
@@ -53,6 +54,7 @@ export default function TravelDetailsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showOutcomeModal, setShowOutcomeModal] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
 
@@ -175,7 +177,7 @@ ${shareData.shareUrl}`,
       await authenticatedDelete(`/api/travel-posts/${id}`, {});
       console.log('TravelDetailsScreen: Post deleted successfully');
       setShowDeleteModal(false);
-      router.replace('/travel');
+      setShowOutcomeModal(true);
     } catch (error: any) {
       console.error('TravelDetailsScreen: Error deleting post', error);
       setError(error.message || 'Failed to delete post');
@@ -472,6 +474,16 @@ ${shareData.shareUrl}`,
             disabled: deleting,
           },
         ]}
+      />
+
+      <PostOutcomeModal
+        visible={showOutcomeModal}
+        postId={typeof id === 'string' ? id : String(id)}
+        postType="travel"
+        onClose={() => {
+          setShowOutcomeModal(false);
+          router.replace('/travel');
+        }}
       />
     </SafeAreaView>
   );
