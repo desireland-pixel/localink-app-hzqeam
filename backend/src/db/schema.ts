@@ -1,6 +1,6 @@
-import { pgTable, uuid, text, timestamp, numeric, date, boolean, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, numeric, date, boolean, uniqueIndex, bigint, index } from 'drizzle-orm/pg-core';
 import { user } from './auth-schema.js';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 
 // Extended user profile with GDPR compliance
 export const profiles = pgTable('profiles', {
@@ -348,4 +348,18 @@ export const postOutcomesRelations = relations(postOutcomes, ({ one }) => ({
     fields: [postOutcomes.userId],
     references: [user.id],
   }),
+}));
+
+// GeoNames-backed cities table
+export const cities = pgTable('cities', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  name_lower: text('name_lower').notNull(),
+  country_code: text('country_code').notNull(),
+  population: bigint('population', { mode: 'number' }).notNull().default(0),
+  search_terms: text('search_terms').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uniqueCity: uniqueIndex('cities_name_country_code_idx').on(table.name, table.country_code),
+  nameLowerBtree: index('cities_name_lower_btree_idx').on(table.name_lower),
 }));

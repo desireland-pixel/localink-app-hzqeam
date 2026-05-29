@@ -21,6 +21,7 @@ import { registerFeedbackRoutes } from './routes/feedback.js';
 import { registerPostOutcomesRoutes } from './routes/post-outcomes.js';
 import { startCleanupJob } from './utils/cleanup-job.js';
 import { startEmailDigestJob } from './utils/email-digest-job.js';
+import { startCitySeeding } from './utils/seed-cities.js';
 
 const schema = { ...appSchema, ...authSchema };
 
@@ -158,6 +159,9 @@ startCleanupJob(app);
 
 // Start email digest cron job (Monday & Thursday at 9 AM UTC)
 startEmailDigestJob(app);
+
+// Start city seeding (non-blocking, runs in background)
+startCitySeeding(app);
 
 await app.run();
 app.logger.info('LokaLinc API running');

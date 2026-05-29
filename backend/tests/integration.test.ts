@@ -2596,6 +2596,178 @@ describe("API Integration Tests", () => {
     await expectStatus(res, 401, 403);
   });
 
+  // ============ Posts Outcome ============
+
+  test("Submit post outcome - yes", async () => {
+    // Create a sublet post to submit outcome for
+    const createRes = await authenticatedApi("/api/sublets", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        title: "Outcome test sublet",
+        city: "Berlin",
+        availableFrom: "2026-06-01",
+        availableTo: "2026-08-31",
+        rent: "1500",
+        independentArrangementConsent: true,
+      }),
+    });
+    await expectStatus(createRes, 200);
+    const createData = await createRes.json();
+    const postId = createData.id;
+
+    const res = await authenticatedApi("/api/posts/outcome", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId,
+        postType: "sublet",
+        outcome: "yes",
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+  });
+
+  test("Submit post outcome - no with comment", async () => {
+    // Create a travel post to submit outcome for
+    const createRes = await authenticatedApi("/api/travel-posts", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "offering",
+        fromCity: "Stuttgart",
+        toCity: "Frankfurt",
+        travelDate: "2026-09-15",
+        companionshipConsent: true,
+      }),
+    });
+    await expectStatus(createRes, 201);
+    const createData = await createRes.json();
+    const postId = createData.id || createData.travelPostId;
+
+    const res = await authenticatedApi("/api/posts/outcome", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId,
+        postType: "travel",
+        outcome: "no",
+        comment: "Found another travel companion",
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+  });
+
+  test("Submit post outcome for community post", async () => {
+    // Create a community topic to submit outcome for
+    const createRes = await authenticatedApi("/api/community/topics", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "General",
+        title: "Outcome test community topic",
+        description: "Testing post outcome on community",
+        location: "Berlin",
+      }),
+    });
+    await expectStatus(createRes, 200);
+    const createData = await createRes.json();
+    const postId = createData.id;
+
+    const res = await authenticatedApi("/api/posts/outcome", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId,
+        postType: "community",
+        outcome: "yes",
+      }),
+    });
+    await expectStatus(res, 200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+  });
+
+  test("Submit post outcome missing postId returns 400", async () => {
+    const res = await authenticatedApi("/api/posts/outcome", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postType: "sublet",
+        outcome: "yes",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Submit post outcome missing postType returns 400", async () => {
+    const res = await authenticatedApi("/api/posts/outcome", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId: "00000000-0000-0000-0000-000000000000",
+        outcome: "yes",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Submit post outcome missing outcome returns 400", async () => {
+    const res = await authenticatedApi("/api/posts/outcome", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId: "00000000-0000-0000-0000-000000000000",
+        postType: "sublet",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Submit post outcome with invalid postType returns 400", async () => {
+    const res = await authenticatedApi("/api/posts/outcome", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId: "00000000-0000-0000-0000-000000000000",
+        postType: "invalid",
+        outcome: "yes",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Submit post outcome with invalid outcome value returns 400", async () => {
+    const res = await authenticatedApi("/api/posts/outcome", authToken, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId: "00000000-0000-0000-0000-000000000000",
+        postType: "sublet",
+        outcome: "maybe",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Submit post outcome without authentication returns 401", async () => {
+    const res = await api("/api/posts/outcome", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId: "00000000-0000-0000-0000-000000000000",
+        postType: "sublet",
+        outcome: "yes",
+      }),
+    });
+    await expectStatus(res, 401);
+  });
+
   // ============ Feedback ============
 
   test("Submit feedback with general category", async () => {
