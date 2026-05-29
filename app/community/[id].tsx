@@ -13,6 +13,7 @@ import PostOutcomeModal from '@/components/PostOutcomeModal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { renderTextWithLinks } from '@/utils/linkText';
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
@@ -519,7 +520,9 @@ title: shareData.title,
             <Text style={styles.title}>{topic.title}</Text>
 
             {topic.description && (
-              <Text style={styles.description}>{topic.description}</Text>
+              <Text style={styles.description} selectable={true}>
+                {renderTextWithLinks(topic.description, styles.description, styles.linkText)}
+              </Text>
             )}
 
             <View style={styles.metaRow}>
@@ -601,7 +604,9 @@ title: shareData.title,
                       )}
                     </View>
                     <View style={styles.replyContentWrapper}>
-                      <Text style={styles.replyContent}>{reply.content}</Text>
+                      <Text style={styles.replyContent}>
+                        {renderTextWithLinks(reply.content, styles.replyContent, styles.linkText)}
+                      </Text>
                       <TouchableOpacity 
                         style={styles.likeButtonInline}
                         onPress={() => toggleReplyLike(reply.id)}
@@ -939,6 +944,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     flex: 1,
     marginRight: spacing.sm,
+  },
+  linkText: {
+    ...typography.body,
+    color: colors.primary,
+    textDecorationLine: 'underline',
+    fontSize: 13,
   },
   likeButtonInline: {
     alignSelf: 'flex-end',

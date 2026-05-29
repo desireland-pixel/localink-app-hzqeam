@@ -475,7 +475,7 @@ export default function CommunityScreen() {
                 />
                 <TextInput
                   style={styles.cityInput}
-                  placeholder="Location"
+                  placeholder="City"
                   placeholderTextColor={colors.textSecondary}
                   value={cityInputValue}
                   onChangeText={handleCityInputChange}

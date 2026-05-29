@@ -12,6 +12,7 @@ import Modal from '@/components/ui/Modal';
 import PostOutcomeModal from '@/components/PostOutcomeModal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
+import { renderTextWithLinks } from '@/utils/linkText';
 
 interface TravelPost {
   id: string;
@@ -383,7 +384,9 @@ ${shareData.shareUrl}`,
           {travelPost.description && (
             <View style={styles.descriptionContainer}>
               <Text style={styles.descriptionLabel}>Description:</Text>
-              <Text style={styles.description}>{travelPost.description}</Text>
+              <Text style={styles.description} selectable={true}>
+                {renderTextWithLinks(travelPost.description, styles.description, styles.linkText)}
+              </Text>
             </View>
           )}
 
@@ -612,6 +615,12 @@ const styles = StyleSheet.create({
   description: {
     ...typography.body,
     color: colors.text,
+    lineHeight: 22,
+  },
+  linkText: {
+    ...typography.body,
+    color: colors.primary,
+    textDecorationLine: 'underline',
     lineHeight: 22,
   },
   incentiveContainer: {

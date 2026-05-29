@@ -13,6 +13,7 @@ import Modal from '@/components/ui/Modal';
 import PostOutcomeModal from '@/components/PostOutcomeModal';
 import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
+import { renderTextWithLinks } from '@/utils/linkText';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -347,7 +348,9 @@ ${shareData.shareUrl}`,
         <Text style={styles.title}>{sublet.title}</Text>
         
         {sublet.description && (
-          <Text style={styles.description}>{sublet.description}</Text>
+          <Text style={styles.description} selectable={true}>
+            {renderTextWithLinks(sublet.description, styles.description, styles.linkText)}
+          </Text>
         )}
 
         <View style={styles.infoSection}>
@@ -593,6 +596,12 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
+    lineHeight: 24,
+  },
+  linkText: {
+    ...typography.body,
+    color: colors.primary,
+    textDecorationLine: 'underline',
     lineHeight: 24,
   },
   infoSection: {

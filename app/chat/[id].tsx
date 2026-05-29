@@ -10,6 +10,7 @@ import { capture, SCREEN_NAMES } from '@/utils/analytics';
 import { useScreenTracking } from '@/utils/useScreenTracking';
 import Modal from '@/components/ui/Modal';
 import { IconSymbol } from '@/components/IconSymbol';
+import * as Clipboard from 'expo-clipboard';
 
 interface Message {
   id: string;
@@ -442,22 +443,44 @@ export default function ChatScreen() {
           </View>
         </Pressable>
         {isSelected && (
-          <TouchableOpacity
-            style={[styles.deleteMessageButton, isOwnMessage ? styles.deleteMessageButtonOwn : styles.deleteMessageButtonOther]}
-            onPress={() => {
-              setMessageToDelete(item.id);
-              setShowDeleteMessageModal(true);
-              setSelectedMessageId(null);
-            }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <IconSymbol
-              ios_icon_name="trash"
-              android_material_icon_name="delete"
-              size={16}
-              color="#FF3B30"
-            />
-          </TouchableOpacity>
+          <View style={[styles.messageActionButtons, isOwnMessage ? styles.messageActionButtonsOwn : styles.messageActionButtonsOther]}>
+            <TouchableOpacity
+              style={styles.copyMessageButton}
+              onPress={async () => {
+                console.log('[ChatScreen] Copy message button pressed, messageId:', item.id);
+                try {
+                  await Clipboard.setStringAsync(item.content);
+                } catch (err) {
+                  console.error('[ChatScreen] Error copying message:', err);
+                }
+                setSelectedMessageId(null);
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <IconSymbol
+                ios_icon_name="doc.on.doc"
+                android_material_icon_name="content-copy"
+                size={16}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.deleteMessageButton}
+              onPress={() => {
+                setMessageToDelete(item.id);
+                setShowDeleteMessageModal(true);
+                setSelectedMessageId(null);
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <IconSymbol
+                ios_icon_name="trash"
+                android_material_icon_name="delete"
+                size={16}
+                color="#FF3B30"
+              />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
     );
@@ -685,6 +708,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  messageActionButtons: {
+    flexDirection: 'column',
+    gap: 4,
+  },
+  messageActionButtonsOwn: {
+    marginLeft: spacing.xs,
+  },
+  messageActionButtonsOther: {
+    marginRight: spacing.xs,
+  },
+  copyMessageButton: {
+    padding: spacing.xs,
+    borderRadius: borderRadius.sm,
+    backgroundColor: '#EFF6FF',
   },
   deleteMessageButton: {
     padding: spacing.xs,
