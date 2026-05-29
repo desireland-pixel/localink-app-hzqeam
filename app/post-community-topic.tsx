@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -9,6 +10,8 @@ import Modal from '@/components/ui/Modal';
 import { CitySearchInput } from '@/components/CitySearchInput';
 import { useScreenTracking } from '@/utils/useScreenTracking';
 import { SCREEN_NAMES } from '@/utils/analytics';
+
+const GUIDELINES_HIDDEN_KEY = 'community_post_guidelines_hidden';
 
 const CATEGORIES = [
   'General',
@@ -32,6 +35,29 @@ export default function PostCommunityTopicScreen() {
   const [location, setLocation] = useState('Germany');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [guidelinesVisible, setGuidelinesVisible] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem(GUIDELINES_HIDDEN_KEY);
+        if (stored === 'true') setGuidelinesVisible(false);
+      } catch (err) {
+        console.log('PostCommunityTopicScreen: Could not load guidelines preference', err);
+      }
+    })();
+  }, []);
+
+  const toggleGuidelines = async () => {
+    const next = !guidelinesVisible;
+    setGuidelinesVisible(next);
+    console.log('PostCommunityTopicScreen: Guidelines toggled', { visible: next });
+    try {
+      await AsyncStorage.setItem(GUIDELINES_HIDDEN_KEY, next ? 'false' : 'true');
+    } catch (err) {
+      console.log('PostCommunityTopicScreen: Could not save guidelines preference', err);
+    }
+  };
 
   const isEditing = !!params.editId;
   const editId = params.editId as string | undefined;
@@ -164,6 +190,28 @@ export default function PostCommunityTopicScreen() {
             />
 
             <Text style={styles.label}>Description</Text>
+
+            {guidelinesVisible ? (
+              <View style={styles.guidelinesBox}>
+                <View style={styles.guidelinesHeader}>
+                  <Text style={styles.guidelinesTitle}>Posting guidelines</Text>
+                  <TouchableOpacity onPress={toggleGuidelines} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Text style={styles.guidelinesToggle}>Hide</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.guidelinesRule}>🚫 No job seeking</Text>
+                <Text style={styles.guidelinesRule}>🚫 No house seeking → use the Sublet feature</Text>
+                <Text style={styles.guidelinesAskAbout}>Ask about:</Text>
+                <Text style={styles.guidelinesItem}>💼 Jobs → layoffs, interviews, career</Text>
+                <Text style={styles.guidelinesItem}>🏠 Housing → landlord, moving, deposit, contracts</Text>
+                <Text style={styles.guidelinesItem}>📄 Visa, Finance, Insurance, Taxes & more</Text>
+              </View>
+            ) : (
+              <TouchableOpacity style={styles.guidelinesShowPill} onPress={toggleGuidelines}>
+                <Text style={styles.guidelinesShowPillText}>Show posting guidelines</Text>
+              </TouchableOpacity>
+            )}
+
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Describe your question or topic in detail..."
@@ -291,5 +339,63 @@ const styles = StyleSheet.create({
   buttonText: {
     ...typography.button,
     color: '#FFFFFF',
+  },
+  guidelinesBox: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  guidelinesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  guidelinesTitle: {
+    ...typography.bodySmall,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  guidelinesToggle: {
+    ...typography.bodySmall,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  guidelinesRule: {
+    ...typography.bodySmall,
+    color: '#7C2D12',
+    marginBottom: 2,
+  },
+  guidelinesAskAbout: {
+    ...typography.bodySmall,
+    fontWeight: '700',
+    color: '#92400E',
+    marginTop: spacing.xs,
+    marginBottom: 2,
+  },
+  guidelinesItem: {
+    ...typography.bodySmall,
+    color: '#7C2D12',
+    marginBottom: 2,
+  },
+  guidelinesShowPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.card,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  guidelinesShowPillText: {
+    ...typography.bodySmall,
+    color: colors.primary,
+    fontWeight: '600',
   },
 });
