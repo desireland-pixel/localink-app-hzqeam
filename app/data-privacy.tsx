@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 
@@ -15,7 +15,12 @@ export default function DataPrivacyScreen() {
           </Text>
           <Text style={styles.paragraph}>
             Contact:{' '}
-            <Text style={styles.contactEmail}>privacy@lokalinc.de</Text>
+            <Text
+              style={styles.contactEmail}
+              onPress={() => { console.log('[DataPrivacy] Email tapped (Section 1)'); Linking.openURL('mailto:privacy@lokalinc.de'); }}
+            >
+              privacy@lokalinc.de
+            </Text>
           </Text>
         </View>
 
@@ -93,7 +98,12 @@ export default function DataPrivacyScreen() {
           </Text>
           <Text style={styles.paragraph}>
             Requests may be directed to:{' '}
-            <Text style={styles.contactEmail}>privacy@lokalinc.de</Text>
+            <Text
+              style={styles.contactEmail}
+              onPress={() => { console.log('[DataPrivacy] Email tapped (Section 9)'); Linking.openURL('mailto:privacy@lokalinc.de'); }}
+            >
+              privacy@lokalinc.de
+            </Text>
           </Text>
         </View>
 
@@ -109,6 +119,15 @@ export default function DataPrivacyScreen() {
 
         <Text style={styles.lastUpdated}>Last updated: April 2026</Text>
         <Text style={styles.lastUpdated}>This policy complies with the EU General Data Protection Regulation (GDPR)</Text>
+        <Text style={styles.lastUpdated}>
+          You can always find the latest version on our website:{' '}
+          <Text
+            style={styles.contactEmail}
+            onPress={() => { console.log('[DataPrivacy] Privacy URL tapped'); Linking.openURL('https://lokalinc.de/privacy'); }}
+          >
+            https://lokalinc.de/privacy
+          </Text>
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
