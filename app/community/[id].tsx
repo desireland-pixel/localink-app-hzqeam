@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Platform, TextInput, KeyboardAvoidingView, Keyboard, Pressable } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Platform, TextInput, KeyboardAvoidingView, Keyboard, Pressable, Linking, NativeSyntheticEvent, TextInputSelectionChangeEventData } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +15,60 @@ import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { renderTextWithLinks } from '@/utils/linkText';
+
+// --- Mention rendering helper ---
+const MENTION_URL_REGEX = /(https?:\/\/[^\s]+)/g;
+const MENTION_REGEX = /(@[a-zA-Z0-9_]+)/g;
+
+function renderTextWithLinksAndMentions(
+  text: string,
+  baseStyle: any,
+  linkStyle: any,
+  mentionStyle: any
+): React.ReactNode {
+  if (!text) return null;
+  const urlParts = text.split(MENTION_URL_REGEX);
+  const result: React.ReactNode[] = [];
+  urlParts.forEach((segment, urlIdx) => {
+    if (!segment) return;
+    MENTION_URL_REGEX.lastIndex = 0;
+    if (MENTION_URL_REGEX.test(segment)) {
+      MENTION_URL_REGEX.lastIndex = 0;
+      result.push(
+        <Text
+          key={`url-${urlIdx}`}
+          style={linkStyle}
+          onPress={() => Linking.openURL(segment).catch(err => console.error('Failed to open URL:', err))}
+        >
+          {segment}
+        </Text>
+      );
+    } else {
+      MENTION_URL_REGEX.lastIndex = 0;
+      const mentionParts = segment.split(MENTION_REGEX);
+      mentionParts.forEach((part, mIdx) => {
+        if (!part) return;
+        MENTION_REGEX.lastIndex = 0;
+        if (MENTION_REGEX.test(part)) {
+          MENTION_REGEX.lastIndex = 0;
+          result.push(
+            <Text key={`mention-${urlIdx}-${mIdx}`} style={mentionStyle}>
+              {part}
+            </Text>
+          );
+        } else {
+          MENTION_REGEX.lastIndex = 0;
+          result.push(
+            <Text key={`plain-${urlIdx}-${mIdx}`} style={baseStyle}>
+              {part}
+            </Text>
+          );
+        }
+      });
+    }
+  });
+  return result;
+}
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
@@ -61,6 +115,13 @@ interface CommunityTopic {
   replies?: Reply[];
 }
 
+// --- Mention suggestion types ---
+interface MentionSuggestion {
+  id: string;
+  username: string;
+  name: string;
+}
+
 export default function CommunityDetailsScreen() {
   useScreenTracking(SCREEN_NAMES.COMMUNITY_DETAIL);
   const { id } = useLocalSearchParams();
@@ -83,7 +144,83 @@ export default function CommunityDetailsScreen() {
   const [selectedReplyId, setSelectedReplyId] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
 
+  // --- Mention state ---
+  const [cursorSelection, setCursorSelection] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
+  const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([]);
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+
   console.log('CommunityDetailsScreen: Viewing topic', { id, insets });
+
+  // --- Build unique mention candidates from topic author + all reply authors ---
+  const allMentionCandidates = useCallback((): MentionSuggestion[] => {
+    if (!topic) return [];
+    const seen = new Set<string>();
+    const candidates: MentionSuggestion[] = [];
+    const addUser = (u: { id: string; name: string; username?: string }) => {
+      if (seen.has(u.id)) return;
+      if (u.id === user?.id) return; // exclude self
+      seen.add(u.id);
+      candidates.push({ id: u.id, username: u.username || '', name: u.name });
+    };
+    addUser(topic.user);
+    (topic.replies || []).forEach(r => addUser(r.user));
+    return candidates;
+  }, [topic, user?.id]);
+
+  // --- Handle text change with mention detection ---
+  const handleReplyTextChange = useCallback((text: string) => {
+    setReplyText(text);
+    const cursorPos = cursorSelection.start;
+    const textUpToCursor = text.slice(0, cursorPos);
+    const atIndex = textUpToCursor.lastIndexOf('@');
+    if (atIndex !== -1) {
+      const between = textUpToCursor.slice(atIndex + 1);
+      if (!/\s/.test(between)) {
+        const query = between.toLowerCase();
+        const candidates = allMentionCandidates();
+        const filtered = candidates
+          .filter(c => {
+            const uname = c.username.toLowerCase();
+            const name = c.name.toLowerCase();
+            return uname.includes(query) || name.includes(query);
+          })
+          .slice(0, 8);
+        setMentionQuery(between);
+        if (filtered.length > 0) {
+          setMentionSuggestions(filtered);
+          setShowMentionDropdown(true);
+        } else {
+          setMentionSuggestions([]);
+          setShowMentionDropdown(false);
+        }
+        return;
+      }
+    }
+    setMentionSuggestions([]);
+    setShowMentionDropdown(false);
+    setMentionQuery('');
+  }, [cursorSelection.start, allMentionCandidates]);
+
+  // --- Handle mention suggestion tap ---
+  const handleMentionSelect = useCallback((suggestion: MentionSuggestion) => {
+    const label = suggestion.username || suggestion.name;
+    console.log('CommunityDetailsScreen: Mention selected', label);
+    const cursorPos = cursorSelection.start;
+    const textUpToCursor = replyText.slice(0, cursorPos);
+    const atIndex = textUpToCursor.lastIndexOf('@');
+    if (atIndex === -1) return;
+    const before = replyText.slice(0, atIndex);
+    const after = replyText.slice(cursorPos);
+    const insertion = `@${label} `;
+    const newText = before + insertion + after;
+    const newCursor = atIndex + insertion.length;
+    setReplyText(newText);
+    setCursorSelection({ start: newCursor, end: newCursor });
+    setShowMentionDropdown(false);
+    setMentionSuggestions([]);
+    setMentionQuery('');
+  }, [cursorSelection.start, replyText]);
 
   const LIKED_KEY = `liked_topic_${id}`;
 
@@ -170,12 +307,17 @@ export default function CommunityDetailsScreen() {
   const handleSubmitReply = async () => {
     if (!topic || !replyText.trim() || submitting) return;
     
-    console.log('CommunityDetailsScreen: Submitting reply');
+    const trimmedContent = replyText.trim();
+    const mentionMatches = trimmedContent.matchAll(/@([a-zA-Z0-9_]+)/g);
+    const mentionUsernames = [...new Set([...mentionMatches].map(m => m[1]))];
+    
+    console.log('CommunityDetailsScreen: Submitting reply', { mentionCount: mentionUsernames.length });
     setSubmitting(true);
 
     try {
       await authenticatedPost(`/api/community/topics/${id}/replies`, {
-        content: replyText.trim(),
+        content: trimmedContent,
+        mentions: mentionUsernames,
       });
       
       setReplyText('');
@@ -615,7 +757,7 @@ title: shareData.title,
                     </View>
                     <View style={styles.replyContentWrapper}>
                       <Text style={styles.replyContent}>
-                        {renderTextWithLinks(reply.content, styles.replyContent, styles.linkText)}
+                        {renderTextWithLinksAndMentions(reply.content, styles.replyContent, styles.linkText, styles.mentionText)}
                       </Text>
                       <TouchableOpacity 
                         style={styles.likeButtonInline}
@@ -691,33 +833,71 @@ title: shareData.title,
         </ScrollView>
 
         {topic.status === 'open' && (
-          <View style={styles.commentInputBar}>
-            <TextInput
-              style={styles.commentInput}
-              placeholder="Write your comment"
-              placeholderTextColor={colors.textLight}
-              value={replyText}
-              onChangeText={setReplyText}
-              editable={!submitting}
-              multiline
-            />
-            <TouchableOpacity 
-              style={[styles.sendButton, (!replyText.trim() || submitting) && styles.sendButtonDisabled]} 
-              onPress={handleSubmitReply}
-              disabled={!replyText.trim() || submitting}
-            >
-              {submitting ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <IconSymbol
-                  ios_icon_name="paperplane.fill"
-                  android_material_icon_name="send"
-                  size={20}
-                  color="#FFFFFF"
-                />
-              )}
-            </TouchableOpacity>
-          </View>
+          <>
+            {showMentionDropdown && mentionSuggestions.length > 0 && (
+              <View style={styles.mentionDropdown}>
+                <ScrollView
+                  keyboardShouldPersistTaps="always"
+                  style={{ maxHeight: 180 }}
+                  nestedScrollEnabled
+                >
+                  {mentionSuggestions.map((suggestion) => {
+                    const displayLabel = suggestion.username || suggestion.name;
+                    return (
+                      <TouchableOpacity
+                        key={suggestion.id}
+                        style={styles.mentionRow}
+                        onPress={() => handleMentionSelect(suggestion)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.mentionRowUsername}>
+                          {'@'}
+                          {displayLabel}
+                        </Text>
+                        <Text style={styles.mentionRowName}>{suggestion.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+            <View style={styles.commentInputBar}>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Write your comment"
+                placeholderTextColor={colors.textLight}
+                value={replyText}
+                onChangeText={handleReplyTextChange}
+                onSelectionChange={(e: NativeSyntheticEvent<TextInputSelectionChangeEventData>) => {
+                  setCursorSelection(e.nativeEvent.selection);
+                }}
+                selection={cursorSelection.start === cursorSelection.end ? cursorSelection : undefined}
+                editable={!submitting}
+                multiline
+                onBlur={() => {
+                  setTimeout(() => {
+                    setShowMentionDropdown(false);
+                  }, 150);
+                }}
+              />
+              <TouchableOpacity 
+                style={[styles.sendButton, (!replyText.trim() || submitting) && styles.sendButtonDisabled]} 
+                onPress={handleSubmitReply}
+                disabled={!replyText.trim() || submitting}
+              >
+                {submitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <IconSymbol
+                    ios_icon_name="paperplane.fill"
+                    android_material_icon_name="send"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                )}
+              </TouchableOpacity>
+            </View>
+          </>
         )}
         
         {topic.status === 'closed' && (
@@ -1073,5 +1253,45 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     fontSize: 13,
+  },
+  mentionText: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  mentionDropdown: {
+    marginHorizontal: spacing.md,
+    marginBottom: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  mentionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    gap: spacing.sm,
+  },
+  mentionRowUsername: {
+    ...typography.body,
+    color: colors.text,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  mentionRowName: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    fontSize: 12,
   },
 });

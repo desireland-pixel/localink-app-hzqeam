@@ -157,6 +157,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         } else if (type === "reply_liked" && topicId) {
           console.log("[OneSignal] Navigating to community topic (liked)", { topicId });
           router.push(`/community/${topicId}` as any);
+        } else if (type === "community_mention" && topicId) {
+          console.log("[OneSignal] Navigating to community topic (mention)", { topicId });
+          router.push(`/community/${topicId}` as any);
         }
       };
       OneSignal.Notifications.addEventListener("click", clickHandler);
@@ -210,6 +213,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       router.push(`/community/${topicId}` as any);
     } else if (type === "reply_liked" && topicId) {
       console.log("[OneSignal] Navigating to community topic (liked)", { topicId });
+      router.push(`/community/${topicId}` as any);
+    } else if (type === "community_mention" && topicId) {
+      console.log("[OneSignal] Navigating to community topic (mention)", { topicId });
       router.push(`/community/${topicId}` as any);
     }
   }, [router]);
