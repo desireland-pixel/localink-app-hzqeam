@@ -580,7 +580,7 @@ export default function TravelScreen() {
 
   const hasActiveFilters = params.filters && params.filters.toString().length > 0;
   
-  const sortDisplayText = sortOption === 'Earliest departure' ? 'Earliest dep..' : sortOption === 'Latest departure' ? 'Latest dep..' : sortOption;
+  const sortDisplayText = sortOption === 'Earliest departure' ? 'Earliest' : sortOption === 'Latest departure' ? 'Latest' : sortOption;
 
   // Get display codes for selected cities
   const fromDisplayCode = selectedFrom ? getCityCode(selectedFrom) : '';
@@ -612,6 +612,10 @@ export default function TravelScreen() {
                   placeholderTextColor={colors.textSecondary}
                   value={fromInputValue}
                   onChangeText={handleFromInputChange}
+                  onBlur={() => {
+                    setFromInputValue('');
+                    setShowFromSuggestions(false);
+                  }}
                   autoCapitalize="words"
                   autoCorrect={false}
                 />
@@ -663,6 +667,10 @@ export default function TravelScreen() {
                   placeholderTextColor={colors.textSecondary}
                   value={toInputValue}
                   onChangeText={handleToInputChange}
+                  onBlur={() => {
+                    setToInputValue('');
+                    setShowToSuggestions(false);
+                  }}
                   autoCapitalize="words"
                   autoCorrect={false}
                 />
@@ -934,6 +942,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     minHeight: 28,
     borderWidth: 0,
+    overflow: 'hidden',
   },
   routeSelectedText: {
     fontSize: 12,
@@ -941,6 +950,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 14,
     textAlign: 'center',
+    flex: 1,
   },
   routeSuggestionsContainer: {
     position: 'absolute',
