@@ -17,16 +17,38 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const selectedFromSuggestion = useRef(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setQuery(value);
   }, [value]);
 
-  const handleQueryChange = async (text: string) => {
-    selectedFromSuggestion.current = false;
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+        debounceTimer.current = null;
+      }
+    };
+  }, []);
+
+  const handleQueryChange = (text: string) => {
     setQuery(text);
-    
-    if (text.trim().length > 0) {
+    selectedFromSuggestion.current = false;
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+      debounceTimer.current = null;
+    }
+
+    if (text.trim().length === 0) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    debounceTimer.current = setTimeout(async () => {
+      debounceTimer.current = null;
       try {
         const typeParam = cityType !== 'all' ? `&type=${cityType}` : '';
         const response = await apiGet<{ cities: string[] }>(`/api/cities/search?q=${encodeURIComponent(text)}&limit=8${typeParam}`);
@@ -37,10 +59,7 @@ export function CitySearchInput({ value, onChangeText, placeholder = 'Search cit
         setSuggestions([]);
         setShowSuggestions(false);
       }
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
+    }, 250);
   };
 
   const handleSelectCity = (city: string) => {
