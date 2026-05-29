@@ -11,6 +11,7 @@ import { useScreenTracking } from '@/utils/useScreenTracking';
 import Modal from '@/components/ui/Modal';
 import { IconSymbol } from '@/components/IconSymbol';
 import * as Clipboard from 'expo-clipboard';
+import { renderTextWithLinks } from '@/utils/linkText';
 
 interface Message {
   id: string;
@@ -425,7 +426,11 @@ export default function ChatScreen() {
               styles.messageText,
               isOwnMessage && styles.ownMessageText
             ]}>
-              {item.content}
+              {renderTextWithLinks(
+                item.content,
+                isOwnMessage ? [styles.messageText, styles.ownMessageText] : styles.messageText,
+                isOwnMessage ? styles.ownMessageLinkText : styles.linkText
+              )}
             </Text>
             <View style={styles.messageFooter}>
               <Text style={[
@@ -756,6 +761,14 @@ const styles = StyleSheet.create({
   },
   ownMessageText: {
     color: '#FFFFFF',
+  },
+  linkText: {
+    color: colors.primary,
+    textDecorationLine: 'underline',
+  },
+  ownMessageLinkText: {
+    color: '#FFFFFF',
+    textDecorationLine: 'underline',
   },
   messageFooter: {
     flexDirection: 'row',

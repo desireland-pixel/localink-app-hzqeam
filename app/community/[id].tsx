@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Platform, TextInput, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Platform, TextInput, KeyboardAvoidingView, Keyboard, Pressable } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
@@ -79,6 +80,7 @@ export default function CommunityDetailsScreen() {
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [deletingComment, setDeletingComment] = useState(false);
   const [unreadReplyIds, setUnreadReplyIds] = useState<Set<string>>(new Set());
+  const [selectedReplyId, setSelectedReplyId] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
 
   console.log('CommunityDetailsScreen: Viewing topic', { id, insets });
@@ -567,12 +569,20 @@ title: shareData.title,
                 const isOwnComment = reply.userId === user?.id;
                 
                 return (
-                  <View 
-                    key={reply.id} 
+                  <Pressable
+                    key={reply.id}
+                    onLongPress={() => {
+                      console.log('[CommunityScreen] Long-press on reply, replyId:', reply.id);
+                      setSelectedReplyId(reply.id);
+                    }}
+                    onPress={() => {
+                      if (selectedReplyId === reply.id) setSelectedReplyId(null);
+                    }}
                     style={[
                       styles.replyCard,
                       styles.replyCardIndented,
-                      isUnread && styles.replyCardUnread
+                      isUnread && styles.replyCardUnread,
+                      selectedReplyId === reply.id && styles.replyCardSelected,
                     ]}
                   >
                     <View style={styles.replyTopRow}>
@@ -645,7 +655,31 @@ title: shareData.title,
                         </View>
                       </TouchableOpacity>
                     </View>
-                  </View>
+                    {selectedReplyId === reply.id && (
+                      <View style={styles.replyCopyButtonRow}>
+                        <TouchableOpacity
+                          style={styles.replyCopyButton}
+                          onPress={async () => {
+                            console.log('[CommunityScreen] Copy reply button pressed, replyId:', reply.id);
+                            try {
+                              await Clipboard.setStringAsync(reply.content);
+                            } catch (err) {
+                              console.error('[CommunityScreen] Error copying reply:', err);
+                            }
+                            setSelectedReplyId(null);
+                          }}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <IconSymbol
+                            ios_icon_name="doc.on.doc"
+                            android_material_icon_name="content-copy"
+                            size={16}
+                            color={colors.primary}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </Pressable>
                 );
               })
             ) : (
@@ -903,6 +937,19 @@ const styles = StyleSheet.create({
   replyCardUnread: {
     borderColor: colors.primary,
     borderWidth: 2,
+  },
+  replyCardSelected: {
+    backgroundColor: '#EFF6FF',
+  },
+  replyCopyButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: spacing.xs,
+  },
+  replyCopyButton: {
+    padding: spacing.xs,
+    borderRadius: borderRadius.sm,
+    backgroundColor: '#FFFFFF',
   },
   replyTopRow: {
     flexDirection: 'row',
