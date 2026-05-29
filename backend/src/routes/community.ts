@@ -23,6 +23,7 @@ interface DiscussionTopicBody {
 
 interface DiscussionReplyBody {
   content: string;
+  mentions?: string[];
 }
 
 export function registerCommunityRoutes(app: App) {
@@ -345,6 +346,7 @@ export function registerCommunityRoutes(app: App) {
         required: ['content'],
         properties: {
           content: { type: 'string' },
+          mentions: { type: 'array', items: { type: 'string' } },
         },
       },
     },
@@ -418,6 +420,114 @@ export function registerCommunityRoutes(app: App) {
           // Send OneSignal notification to topic author (fire-and-forget)
           sendOnesignalNotification(app, [topic.userId], 'New reply to your post', body.content.substring(0, 100), { type: 'community_reply', topicId: id });
         }
+      }
+
+      // Process @mentions (non-blocking, best-effort)
+      try {
+        const mentions = Array.isArray(body.mentions) ? body.mentions : [];
+        if (mentions.length > 0) {
+          // Normalize and deduplicate mentions (case-insensitive), cap at 10
+          const normalizedMentions = Array.from(
+            new Set(mentions.map(m => (m || '').trim().toLowerCase()).filter(m => m))
+          ).slice(0, 10);
+
+          if (normalizedMentions.length > 0) {
+            // Get reply author's profile for display name
+            const replyAuthorProfile = await app.db.query.profiles.findFirst({
+              where: eq(schema.profiles.userId, session.user.id),
+            });
+
+            const authorDisplay =
+              replyAuthorProfile?.username ||
+              replyAuthorProfile?.name ||
+              (await app.db.query.user.findFirst({
+                where: eq(schema.user.id, session.user.id),
+              }))?.name ||
+              'Someone';
+
+            // Look up profiles matching mentions (case-insensitive, excluding deleted accounts)
+            for (const mention of normalizedMentions) {
+              try {
+                const mentionedProfile = await app.db.query.profiles.findFirst({
+                  where: and(
+                    sql`LOWER(${schema.profiles.username}) = LOWER(${mention})`,
+                    isNull(schema.profiles.dataDeletedAt)
+                  ),
+                });
+
+                if (!mentionedProfile) {
+                  app.logger.debug({ mention }, 'Mentioned user profile not found');
+                  continue;
+                }
+
+                // Skip self-mentions
+                if (mentionedProfile.userId === session.user.id) {
+                  app.logger.debug({ userId: session.user.id }, 'Skipping self-mention');
+                  continue;
+                }
+
+                // Check notification preferences
+                const mentionPreferences = await app.db.query.userNotificationPreferences.findFirst({
+                  where: eq(schema.userNotificationPreferences.userId, mentionedProfile.userId),
+                });
+
+                const shouldNotifyPush = mentionPreferences?.notifyPush ?? true;
+
+                if (shouldNotifyPush) {
+                  try {
+                    // Send OneSignal push notification
+                    const appId = process.env.ONESIGNAL_APP_ID;
+                    const restApiKey = process.env.ONESIGNAL_REST_API_KEY;
+
+                    if (appId && restApiKey) {
+                      const payload = {
+                        app_id: appId,
+                        include_external_user_ids: [mentionedProfile.userId],
+                        target_channel: 'push',
+                        headings: { en: 'Lokalinc' },
+                        contents: { en: `${authorDisplay} mentioned you in a comment` },
+                        ios_badgeType: 'Increase',
+                        ios_badgeCount: 1,
+                        data: {
+                          type: 'community_mention',
+                          topicId: id,
+                        },
+                      };
+
+                      const response = await fetch('https://onesignal.com/api/v1/notifications', {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Basic ${restApiKey}`,
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload),
+                      });
+
+                      if (!response.ok) {
+                        const errorData = await response.json() as Record<string, any>;
+                        app.logger.warn(
+                          { status: response.status, errors: errorData, userId: mentionedProfile.userId },
+                          'Failed to send mention OneSignal push notification'
+                        );
+                      } else {
+                        app.logger.debug({ userId: mentionedProfile.userId, mention }, 'Mention push sent');
+                      }
+                    }
+                  } catch (pushError) {
+                    app.logger.error(
+                      { err: pushError, userId: mentionedProfile.userId, mention },
+                      'Error sending mention push notification'
+                    );
+                  }
+                }
+              } catch (mentionError) {
+                app.logger.error({ err: mentionError, mention }, 'Error processing mention');
+              }
+            }
+          }
+        }
+      } catch (mentionProcessingError) {
+        app.logger.error({ err: mentionProcessingError, topicId: id, replyId: newReply.id }, 'Error in mention processing');
       }
 
       app.logger.info({ replyId: newReply.id, topicId: id, userId: session.user.id }, 'Discussion reply created successfully');
