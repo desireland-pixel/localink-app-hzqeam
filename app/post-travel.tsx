@@ -13,28 +13,33 @@ import { SCREEN_NAMES } from '@/utils/analytics';
 
 type TravelMode = 'offering' | 'seeking-companionship' | 'seeking-ally' | null;
 
-const TRAVEL_CITIES = [
-  'Germany',
+const INDIA_CITIES = [
   'India',
   'Ahmedabad',
   'Bengaluru',
-  'Berlin',
   'Chennai',
-  'Cologne',
   'Delhi',
-  'Düsseldorf',
-  'Frankfurt',
   'Goa',
-  'Hamburg',
-  'Hannover',
   'Hyderabad',
   'Kochi',
   'Kolkata',
-  'Munich',
   'Mumbai',
-  'Stuttgart',
   'Thiruvananthapuram',
 ];
+
+const GERMANY_CITIES = [
+  'Germany',
+  'Berlin',
+  'Cologne',
+  'Düsseldorf',
+  'Frankfurt',
+  'Hamburg',
+  'Hannover',
+  'Munich',
+  'Stuttgart',
+];
+
+const TRAVEL_CITIES = [...INDIA_CITIES, ...GERMANY_CITIES];
 
 const COMPANIONSHIP_FOR_OPTIONS = ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others'];
 
@@ -67,6 +72,19 @@ export default function PostTravelScreen() {
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [incentiveEnabled, setIncentiveEnabled] = useState(false);
   const [incentiveAmount, setIncentiveAmount] = useState('');
+
+  // Derived city option lists — restrict picker to the OTHER country once one side is chosen
+  const fromCityOptions = INDIA_CITIES.includes(toCity)
+    ? GERMANY_CITIES
+    : GERMANY_CITIES.includes(toCity)
+    ? INDIA_CITIES
+    : TRAVEL_CITIES;
+
+  const toCityOptions = INDIA_CITIES.includes(fromCity)
+    ? GERMANY_CITIES
+    : GERMANY_CITIES.includes(fromCity)
+    ? INDIA_CITIES
+    : TRAVEL_CITIES;
 
   console.log('PostTravelScreen: Rendering', { travelMode, isEditing, editId, consentAccepted });
 
@@ -361,12 +379,14 @@ export default function PostTravelScreen() {
                     style={styles.cityPickerScroll}
                     nestedScrollEnabled={true}
                   >
-                    {TRAVEL_CITIES.map((city) => (
+                    {fromCityOptions.map((city) => (
                       <TouchableOpacity
                         key={city}
                         style={styles.cityOption}
                         onPress={() => {
                           setFromCity(city);
+                          if (INDIA_CITIES.includes(city) && INDIA_CITIES.includes(toCity)) setToCity('');
+                          if (GERMANY_CITIES.includes(city) && GERMANY_CITIES.includes(toCity)) setToCity('');
                           setShowFromCityPicker(false);
                         }}
                       >
@@ -392,12 +412,14 @@ export default function PostTravelScreen() {
                     style={styles.cityPickerScroll}
                     nestedScrollEnabled={true}
                   >
-                    {TRAVEL_CITIES.map((city) => (
+                    {toCityOptions.map((city) => (
                       <TouchableOpacity
                         key={city}
                         style={styles.cityOption}
                         onPress={() => {
                           setToCity(city);
+                          if (INDIA_CITIES.includes(city) && INDIA_CITIES.includes(fromCity)) setFromCity('');
+                          if (GERMANY_CITIES.includes(city) && GERMANY_CITIES.includes(fromCity)) setFromCity('');
                           setShowToCityPicker(false);
                         }}
                       >
@@ -492,12 +514,14 @@ export default function PostTravelScreen() {
                     style={styles.cityPickerScroll}
                     nestedScrollEnabled={true}
                   >
-                    {TRAVEL_CITIES.map((city) => (
+                    {fromCityOptions.map((city) => (
                       <TouchableOpacity
                         key={city}
                         style={styles.cityOption}
                         onPress={() => {
                           setFromCity(city);
+                          if (INDIA_CITIES.includes(city) && INDIA_CITIES.includes(toCity)) setToCity('');
+                          if (GERMANY_CITIES.includes(city) && GERMANY_CITIES.includes(toCity)) setToCity('');
                           setShowFromCityPicker(false);
                         }}
                       >
@@ -523,12 +547,14 @@ export default function PostTravelScreen() {
                     style={styles.cityPickerScroll}
                     nestedScrollEnabled={true}
                   >
-                    {TRAVEL_CITIES.map((city) => (
+                    {toCityOptions.map((city) => (
                       <TouchableOpacity
                         key={city}
                         style={styles.cityOption}
                         onPress={() => {
                           setToCity(city);
+                          if (INDIA_CITIES.includes(city) && INDIA_CITIES.includes(fromCity)) setFromCity('');
+                          if (GERMANY_CITIES.includes(city) && GERMANY_CITIES.includes(fromCity)) setFromCity('');
                           setShowToCityPicker(false);
                         }}
                       >
@@ -690,12 +716,14 @@ export default function PostTravelScreen() {
                     style={styles.cityPickerScroll}
                     nestedScrollEnabled={true}
                   >
-                    {TRAVEL_CITIES.map((city) => (
+                    {fromCityOptions.map((city) => (
                       <TouchableOpacity
                         key={city}
                         style={styles.cityOption}
                         onPress={() => {
                           setFromCity(city);
+                          if (INDIA_CITIES.includes(city) && INDIA_CITIES.includes(toCity)) setToCity('');
+                          if (GERMANY_CITIES.includes(city) && GERMANY_CITIES.includes(toCity)) setToCity('');
                           setShowFromCityPicker(false);
                         }}
                       >
@@ -721,12 +749,14 @@ export default function PostTravelScreen() {
                     style={styles.cityPickerScroll}
                     nestedScrollEnabled={true}
                   >
-                    {TRAVEL_CITIES.map((city) => (
+                    {toCityOptions.map((city) => (
                       <TouchableOpacity
                         key={city}
                         style={styles.cityOption}
                         onPress={() => {
                           setToCity(city);
+                          if (INDIA_CITIES.includes(city) && INDIA_CITIES.includes(fromCity)) setFromCity('');
+                          if (GERMANY_CITIES.includes(city) && GERMANY_CITIES.includes(fromCity)) setFromCity('');
                           setShowToCityPicker(false);
                         }}
                       >

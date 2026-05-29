@@ -105,6 +105,17 @@ export default function SubletFiltersScreen() {
         return;
       }
     }
+
+    // If min > max, silently swap. User sees the corrected values and can tap Apply again.
+    if (minRent && maxRent) {
+      const min = parseInt(minRent, 10);
+      const max = parseInt(maxRent, 10);
+      if (!isNaN(min) && !isNaN(max) && min > max) {
+        setMinRent(maxRent);
+        setMaxRent(minRent);
+        return;
+      }
+    }
     
     const params = new URLSearchParams();
     if (subletType) params.append('type', subletType);
