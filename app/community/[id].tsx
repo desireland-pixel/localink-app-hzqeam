@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Platform, TextInput, KeyboardAvoidingView, Keyboard, Pressable, Linking, NativeSyntheticEvent, TextInputSelectionChangeEventData } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPost, authenticatedPut, authenticatedDelete } from '@/utils/api';
@@ -300,9 +300,11 @@ export default function CommunityDetailsScreen() {
     }
   }, [id, user?.id, LIKED_KEY, fetchCommunityUnreadCount]);
 
-  useEffect(() => {
-    fetchTopic();
-  }, [fetchTopic]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchTopic();
+    }, [fetchTopic])
+  );
 
   const handleSubmitReply = async () => {
     if (!topic || !replyText.trim() || submitting) return;
