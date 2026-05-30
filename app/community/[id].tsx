@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Platform, TextInput, KeyboardAvoidingView, Keyboard, Pressable, Linking, NativeSyntheticEvent, TextInputSelectionChangeEventData } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Platform, TextInput, KeyboardAvoidingView, Keyboard, Pressable, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -145,10 +145,8 @@ export default function CommunityDetailsScreen() {
   const insets = useSafeAreaInsets();
 
   // --- Mention state ---
-  const [cursorSelection, setCursorSelection] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
   const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([]);
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
-  const [mentionQuery, setMentionQuery] = useState('');
 
   console.log('CommunityDetailsScreen: Viewing topic', { id, insets });
 
@@ -171,8 +169,10 @@ export default function CommunityDetailsScreen() {
   // --- Handle text change with mention detection ---
   const handleReplyTextChange = useCallback((text: string) => {
     setReplyText(text);
-    const cursorPos = cursorSelection.start;
-    const textUpToCursor = text.slice(0, cursorPos);
+    // Use text.length as cursor position (user always types at end).
+    // Avoids stale cursorSelection state on iOS where onSelectionChange
+    // fires AFTER onChangeText.
+    const textUpToCursor = text;
     const atIndex = textUpToCursor.lastIndexOf('@');
     if (atIndex !== -1) {
       const between = textUpToCursor.slice(atIndex + 1);
@@ -181,12 +181,11 @@ export default function CommunityDetailsScreen() {
         const candidates = allMentionCandidates();
         const filtered = candidates
           .filter(c => {
-            const uname = c.username.toLowerCase();
-            const name = c.name.toLowerCase();
+            const uname = (c.username || '').toLowerCase();
+            const name = (c.name || '').toLowerCase();
             return uname.includes(query) || name.includes(query);
           })
           .slice(0, 8);
-        setMentionQuery(between);
         if (filtered.length > 0) {
           setMentionSuggestions(filtered);
           setShowMentionDropdown(true);
@@ -199,28 +198,23 @@ export default function CommunityDetailsScreen() {
     }
     setMentionSuggestions([]);
     setShowMentionDropdown(false);
-    setMentionQuery('');
-  }, [cursorSelection.start, allMentionCandidates]);
+  }, [allMentionCandidates]);
 
   // --- Handle mention suggestion tap ---
   const handleMentionSelect = useCallback((suggestion: MentionSuggestion) => {
     const label = suggestion.username || suggestion.name;
     console.log('CommunityDetailsScreen: Mention selected', label);
-    const cursorPos = cursorSelection.start;
-    const textUpToCursor = replyText.slice(0, cursorPos);
+    // Use replyText.length (cursor at end) — user is always typing at end.
+    const textUpToCursor = replyText;
     const atIndex = textUpToCursor.lastIndexOf('@');
     if (atIndex === -1) return;
     const before = replyText.slice(0, atIndex);
-    const after = replyText.slice(cursorPos);
     const insertion = `@${label} `;
-    const newText = before + insertion + after;
-    const newCursor = atIndex + insertion.length;
+    const newText = before + insertion;
     setReplyText(newText);
-    setCursorSelection({ start: newCursor, end: newCursor });
     setShowMentionDropdown(false);
     setMentionSuggestions([]);
-    setMentionQuery('');
-  }, [cursorSelection.start, replyText]);
+  }, [replyText]);
 
   const LIKED_KEY = `liked_topic_${id}`;
 
@@ -869,10 +863,6 @@ title: shareData.title,
                 placeholderTextColor={colors.textLight}
                 value={replyText}
                 onChangeText={handleReplyTextChange}
-                onSelectionChange={(e: NativeSyntheticEvent<TextInputSelectionChangeEventData>) => {
-                  setCursorSelection(e.nativeEvent.selection);
-                }}
-                selection={cursorSelection.start === cursorSelection.end ? cursorSelection : undefined}
                 editable={!submitting}
                 multiline
                 onBlur={() => {
