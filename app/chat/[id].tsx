@@ -727,12 +727,12 @@ const styles = StyleSheet.create({
   copyMessageButton: {
     padding: spacing.xs,
     borderRadius: borderRadius.sm,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F3F4F6',
   },
   deleteMessageButton: {
     padding: spacing.xs,
     borderRadius: borderRadius.sm,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#F3F4F6',
     marginHorizontal: spacing.xs,
   },
   deleteMessageButtonOwn: {

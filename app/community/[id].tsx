@@ -737,9 +737,31 @@ title: shareData.title,
                       )}
                       <Text style={styles.replyDateSeparator}> • </Text>
                       <Text style={styles.replyDate}>{replyDate}</Text>
+                      {selectedReplyId === reply.id && (
+                        <TouchableOpacity
+                          onPress={async () => {
+                            console.log('[CommunityScreen] Copy reply button pressed, replyId:', reply.id);
+                            try {
+                              await Clipboard.setStringAsync(reply.content);
+                            } catch (err) {
+                              console.error('[CommunityScreen] Error copying reply:', err);
+                            }
+                            setSelectedReplyId(null);
+                          }}
+                          style={styles.replyTopAction}
+                          accessibilityLabel="Copy comment"
+                        >
+                          <IconSymbol
+                            ios_icon_name="doc.on.doc"
+                            android_material_icon_name="content-copy"
+                            size={14}
+                            color={colors.primary}
+                          />
+                        </TouchableOpacity>
+                      )}
                       {isOwnComment && (
                         <TouchableOpacity
-                          style={styles.deleteCommentButton}
+                          style={styles.replyTopAction}
                           onPress={() => {
                             setCommentToDelete(reply.id);
                             setShowDeleteCommentModal(true);
@@ -797,30 +819,7 @@ title: shareData.title,
                         </View>
                       </TouchableOpacity>
                     </View>
-                    {selectedReplyId === reply.id && (
-                      <View style={styles.replyCopyButtonRow}>
-                        <TouchableOpacity
-                          style={styles.replyCopyButton}
-                          onPress={async () => {
-                            console.log('[CommunityScreen] Copy reply button pressed, replyId:', reply.id);
-                            try {
-                              await Clipboard.setStringAsync(reply.content);
-                            } catch (err) {
-                              console.error('[CommunityScreen] Error copying reply:', err);
-                            }
-                            setSelectedReplyId(null);
-                          }}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <IconSymbol
-                            ios_icon_name="doc.on.doc"
-                            android_material_icon_name="content-copy"
-                            size={16}
-                            color={colors.primary}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    )}
+
                   </Pressable>
                 );
               })
@@ -1121,24 +1120,14 @@ const styles = StyleSheet.create({
   replyCardSelected: {
     backgroundColor: '#EFF6FF',
   },
-  replyCopyButtonRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: spacing.xs,
-  },
-  replyCopyButton: {
-    padding: spacing.xs,
-    borderRadius: borderRadius.sm,
-    backgroundColor: '#FFFFFF',
-  },
   replyTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
   },
-  deleteCommentButton: {
-    marginLeft: 'auto',
-    paddingLeft: spacing.sm,
+  replyTopAction: {
+    padding: 6,
+    marginLeft: 4,
   },
   replyAuthor: {
     ...typography.bodySmall,
