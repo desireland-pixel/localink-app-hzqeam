@@ -158,15 +158,22 @@ export default function FeedbackScreen() {
             maxLength={MAX_LENGTH}
           />
           <View style={styles.counterRow}>
-            <Text style={[styles.counter, { color: counterColor }]}>
-              {message.length}
-            </Text>
-            <Text style={[styles.counter, { color: colors.textSecondary }]}>
-              {' / '}
-            </Text>
-            <Text style={[styles.counter, { color: colors.textSecondary }]}>
-              {MAX_LENGTH}
-            </Text>
+            {message.length > 0 && trimmedLength < MIN_LENGTH ? (
+              <Text style={styles.minHint}>Minimum {MIN_LENGTH} characters required</Text>
+            ) : (
+              <View />
+            )}
+            <View style={styles.counterGroup}>
+              <Text style={[styles.counter, { color: counterColor }]}>
+                {message.length}
+              </Text>
+              <Text style={[styles.counter, { color: colors.textSecondary }]}>
+                {' / '}
+              </Text>
+              <Text style={[styles.counter, { color: colors.textSecondary }]}>
+                {MAX_LENGTH}
+              </Text>
+            </View>
           </View>
 
           <TouchableOpacity
@@ -252,9 +259,18 @@ const styles = StyleSheet.create({
   },
   counterRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: spacing.xs,
     marginBottom: spacing.lg,
+  },
+  counterGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  minHint: {
+    ...typography.caption,
+    color: colors.textSecondary,
   },
   counter: {
     ...typography.caption,

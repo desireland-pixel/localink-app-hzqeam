@@ -178,8 +178,8 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     fontStyle: 'italic',
     textAlign: 'center',
-    marginTop: spacing.md,
-    marginBottom: spacing.lg,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
     fontSize: 12,
   },
 });
