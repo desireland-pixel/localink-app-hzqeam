@@ -1054,6 +1054,7 @@ const styles = StyleSheet.create({
     minHeight: 28,
     borderWidth: 0,
     overflow: 'hidden',
+    maxWidth: '100%',
   },
   routeSelectedText: {
     fontSize: 12,
