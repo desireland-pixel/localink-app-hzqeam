@@ -10,11 +10,11 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDateToDDMMYYYY, dateToISOString, parseDateFromDDMMYYYY } from '@/utils/cities';
 import { useScreenTracking } from '@/utils/useScreenTracking';
 import { SCREEN_NAMES } from '@/utils/analytics';
+import { IconSymbol } from '@/components/IconSymbol';
 
 type TravelMode = 'offering' | 'seeking-companionship' | 'seeking-ally' | null;
 
-const INDIA_CITIES = [
-  'India',
+const INDIA_CITY_NAMES = [
   'Ahmedabad',
   'Bengaluru',
   'Chennai',
@@ -27,8 +27,7 @@ const INDIA_CITIES = [
   'Thiruvananthapuram',
 ];
 
-const GERMANY_CITIES = [
-  'Germany',
+const GERMANY_CITY_NAMES = [
   'Berlin',
   'Cologne',
   'Düsseldorf',
@@ -39,7 +38,18 @@ const GERMANY_CITIES = [
   'Stuttgart',
 ];
 
-const TRAVEL_CITIES = [...INDIA_CITIES, ...GERMANY_CITIES];
+// Country-level entries kept for membership checks (used by restriction logic and edit-data hydration)
+const INDIA_CITIES = ['India', ...INDIA_CITY_NAMES];
+const GERMANY_CITIES = ['Germany', ...GERMANY_CITY_NAMES];
+
+// Picker display lists — pinned country at top, then cities alphabetically (no divider)
+const INDIA_PICKER_LIST = ['India', ...[...INDIA_CITY_NAMES].sort((a, b) => a.localeCompare(b))];
+const GERMANY_PICKER_LIST = ['Germany', ...[...GERMANY_CITY_NAMES].sort((a, b) => a.localeCompare(b))];
+const TRAVEL_CITIES = [
+  'Germany',
+  'India',
+  ...[...GERMANY_CITY_NAMES, ...INDIA_CITY_NAMES].sort((a, b) => a.localeCompare(b)),
+];
 
 const COMPANIONSHIP_FOR_OPTIONS = ['Mother', 'Father', 'Parents', 'MIL', 'FIL', 'Others'];
 
@@ -75,15 +85,15 @@ export default function PostTravelScreen() {
 
   // Derived city option lists — restrict picker to the OTHER country once one side is chosen
   const fromCityOptions = INDIA_CITIES.includes(toCity)
-    ? GERMANY_CITIES
+    ? GERMANY_PICKER_LIST
     : GERMANY_CITIES.includes(toCity)
-    ? INDIA_CITIES
+    ? INDIA_PICKER_LIST
     : TRAVEL_CITIES;
 
   const toCityOptions = INDIA_CITIES.includes(fromCity)
-    ? GERMANY_CITIES
+    ? GERMANY_PICKER_LIST
     : GERMANY_CITIES.includes(fromCity)
-    ? INDIA_CITIES
+    ? INDIA_PICKER_LIST
     : TRAVEL_CITIES;
 
   console.log('PostTravelScreen: Rendering', { travelMode, isEditing, editId, consentAccepted });
@@ -365,14 +375,26 @@ export default function PostTravelScreen() {
           {travelMode === 'offering' && (
             <>
               <Text style={[styles.label, styles.labelReducedSpacing]}>From *</Text>
-              <TouchableOpacity 
-                style={styles.cityButton}
-                onPress={() => setShowFromCityPicker(!showFromCityPicker)}
-              >
-                <Text style={[styles.cityButtonText, !fromCity && styles.cityButtonPlaceholder]}>
-                  {fromCity || 'Select city...'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.cityButton}>
+                <TouchableOpacity
+                  style={styles.cityButtonTextArea}
+                  onPress={() => setShowFromCityPicker(!showFromCityPicker)}
+                >
+                  <Text style={[styles.cityButtonText, !fromCity && styles.cityButtonPlaceholder]}>
+                    {fromCity || 'Select city...'}
+                  </Text>
+                </TouchableOpacity>
+                {fromCity ? (
+                  <TouchableOpacity
+                    onPress={() => setFromCity('')}
+                    style={styles.cityButtonClear}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityLabel="Clear from city"
+                  >
+                    <IconSymbol android_material_icon_name="close" size={14} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
               {showFromCityPicker && (
                 <View style={styles.cityPicker}>
                   <ScrollView 
@@ -398,14 +420,26 @@ export default function PostTravelScreen() {
               )}
 
               <Text style={styles.label}>To *</Text>
-              <TouchableOpacity 
-                style={styles.cityButton}
-                onPress={() => setShowToCityPicker(!showToCityPicker)}
-              >
-                <Text style={[styles.cityButtonText, !toCity && styles.cityButtonPlaceholder]}>
-                  {toCity || 'Select city...'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.cityButton}>
+                <TouchableOpacity
+                  style={styles.cityButtonTextArea}
+                  onPress={() => setShowToCityPicker(!showToCityPicker)}
+                >
+                  <Text style={[styles.cityButtonText, !toCity && styles.cityButtonPlaceholder]}>
+                    {toCity || 'Select city...'}
+                  </Text>
+                </TouchableOpacity>
+                {toCity ? (
+                  <TouchableOpacity
+                    onPress={() => setToCity('')}
+                    style={styles.cityButtonClear}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityLabel="Clear to city"
+                  >
+                    <IconSymbol android_material_icon_name="close" size={14} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
               {showToCityPicker && (
                 <View style={styles.cityPicker}>
                   <ScrollView 
@@ -500,14 +534,26 @@ export default function PostTravelScreen() {
           {travelMode === 'seeking-companionship' && (
             <>
               <Text style={[styles.label, styles.labelReducedSpacing]}>From *</Text>
-              <TouchableOpacity 
-                style={styles.cityButton}
-                onPress={() => setShowFromCityPicker(!showFromCityPicker)}
-              >
-                <Text style={[styles.cityButtonText, !fromCity && styles.cityButtonPlaceholder]}>
-                  {fromCity || 'Select city...'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.cityButton}>
+                <TouchableOpacity
+                  style={styles.cityButtonTextArea}
+                  onPress={() => setShowFromCityPicker(!showFromCityPicker)}
+                >
+                  <Text style={[styles.cityButtonText, !fromCity && styles.cityButtonPlaceholder]}>
+                    {fromCity || 'Select city...'}
+                  </Text>
+                </TouchableOpacity>
+                {fromCity ? (
+                  <TouchableOpacity
+                    onPress={() => setFromCity('')}
+                    style={styles.cityButtonClear}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityLabel="Clear from city"
+                  >
+                    <IconSymbol android_material_icon_name="close" size={14} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
               {showFromCityPicker && (
                 <View style={styles.cityPicker}>
                   <ScrollView 
@@ -533,14 +579,26 @@ export default function PostTravelScreen() {
               )}
 
               <Text style={styles.label}>To *</Text>
-              <TouchableOpacity 
-                style={styles.cityButton}
-                onPress={() => setShowToCityPicker(!showToCityPicker)}
-              >
-                <Text style={[styles.cityButtonText, !toCity && styles.cityButtonPlaceholder]}>
-                  {toCity || 'Select city...'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.cityButton}>
+                <TouchableOpacity
+                  style={styles.cityButtonTextArea}
+                  onPress={() => setShowToCityPicker(!showToCityPicker)}
+                >
+                  <Text style={[styles.cityButtonText, !toCity && styles.cityButtonPlaceholder]}>
+                    {toCity || 'Select city...'}
+                  </Text>
+                </TouchableOpacity>
+                {toCity ? (
+                  <TouchableOpacity
+                    onPress={() => setToCity('')}
+                    style={styles.cityButtonClear}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityLabel="Clear to city"
+                  >
+                    <IconSymbol android_material_icon_name="close" size={14} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
               {showToCityPicker && (
                 <View style={styles.cityPicker}>
                   <ScrollView 
@@ -702,14 +760,26 @@ export default function PostTravelScreen() {
           {travelMode === 'seeking-ally' && (
             <>
               <Text style={[styles.label, styles.labelReducedSpacing]}>From *</Text>
-              <TouchableOpacity 
-                style={styles.cityButton}
-                onPress={() => setShowFromCityPicker(!showFromCityPicker)}
-              >
-                <Text style={[styles.cityButtonText, !fromCity && styles.cityButtonPlaceholder]}>
-                  {fromCity || 'Select city...'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.cityButton}>
+                <TouchableOpacity
+                  style={styles.cityButtonTextArea}
+                  onPress={() => setShowFromCityPicker(!showFromCityPicker)}
+                >
+                  <Text style={[styles.cityButtonText, !fromCity && styles.cityButtonPlaceholder]}>
+                    {fromCity || 'Select city...'}
+                  </Text>
+                </TouchableOpacity>
+                {fromCity ? (
+                  <TouchableOpacity
+                    onPress={() => setFromCity('')}
+                    style={styles.cityButtonClear}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityLabel="Clear from city"
+                  >
+                    <IconSymbol android_material_icon_name="close" size={14} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
               {showFromCityPicker && (
                 <View style={styles.cityPicker}>
                   <ScrollView 
@@ -735,14 +805,26 @@ export default function PostTravelScreen() {
               )}
 
               <Text style={styles.label}>To *</Text>
-              <TouchableOpacity 
-                style={styles.cityButton}
-                onPress={() => setShowToCityPicker(!showToCityPicker)}
-              >
-                <Text style={[styles.cityButtonText, !toCity && styles.cityButtonPlaceholder]}>
-                  {toCity || 'Select city...'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.cityButton}>
+                <TouchableOpacity
+                  style={styles.cityButtonTextArea}
+                  onPress={() => setShowToCityPicker(!showToCityPicker)}
+                >
+                  <Text style={[styles.cityButtonText, !toCity && styles.cityButtonPlaceholder]}>
+                    {toCity || 'Select city...'}
+                  </Text>
+                </TouchableOpacity>
+                {toCity ? (
+                  <TouchableOpacity
+                    onPress={() => setToCity('')}
+                    style={styles.cityButtonClear}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityLabel="Clear to city"
+                  >
+                    <IconSymbol android_material_icon_name="close" size={14} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
               {showToCityPicker && (
                 <View style={styles.cityPicker}>
                   <ScrollView 
@@ -986,6 +1068,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cityButtonTextArea: {
+    flex: 1,
+  },
+  cityButtonClear: {
+    paddingLeft: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cityButtonText: {
     ...typography.body,
