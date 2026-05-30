@@ -89,6 +89,21 @@ export default function SubletScreen() {
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [disclaimerCheckLoading, setDisclaimerCheckLoading] = useState(true);
 
+  // New posts banner state
+  const flatListRef = useRef<FlatList>(null);
+  const [newPostsAvailable, setNewPostsAvailable] = useState(false);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup banner timer on unmount
+  useEffect(() => {
+    return () => {
+      if (dismissTimerRef.current) {
+        clearTimeout(dismissTimerRef.current);
+        dismissTimerRef.current = null;
+      }
+    };
+  }, []);
+
   // Sync city from params when navigating back from filter page
   React.useEffect(() => {
     const cityParam = typeof params.city === 'string' ? params.city : '';
@@ -139,6 +154,27 @@ export default function SubletScreen() {
       console.error('SubletScreen: Error accepting disclaimer:', error);
     }
   };
+
+  const clearDismissTimer = useCallback(() => {
+    if (dismissTimerRef.current) {
+      clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = null;
+    }
+  }, []);
+
+  const dismissBanner = useCallback(() => {
+    clearDismissTimer();
+    setNewPostsAvailable(false);
+  }, [clearDismissTimer]);
+
+  const showBannerWithTimer = useCallback(() => {
+    clearDismissTimer();
+    setNewPostsAvailable(true);
+    dismissTimerRef.current = setTimeout(() => {
+      setNewPostsAvailable(false);
+      dismissTimerRef.current = null;
+    }, 5000);
+  }, [clearDismissTimer]);
 
   const buildQueryString = useCallback((pageNum: number) => {
     const qp = new URLSearchParams();
@@ -206,6 +242,32 @@ export default function SubletScreen() {
     }
   }, []);
 
+  const checkForNewPosts = useCallback(async () => {
+    if (sublets.length === 0) return;
+    try {
+      const qp = new URLSearchParams();
+      qp.append('page', '1');
+      qp.append('limit', '1');
+      if (sortOption === 'Newest') qp.append('sort', 'newest');
+      else if (sortOption === 'Earliest') qp.append('sort', 'earliest');
+      else if (sortOption === 'Cheapest') qp.append('sort', 'cheapest');
+      if (selectedCity) qp.append('city', selectedCity);
+      if (params.filters) {
+        const extra = new URLSearchParams(params.filters as string);
+        extra.forEach((value, key) => { if (!qp.has(key)) qp.append(key, value); });
+      }
+      console.log('SubletScreen: checkForNewPosts GET /api/sublets?' + qp.toString());
+      const raw = await authenticatedGet<unknown>(`/api/sublets?${qp.toString()}`);
+      const { items } = parseListResponse<Sublet>(raw);
+      if (items.length > 0 && items[0].id !== sublets[0].id) {
+        console.log('SubletScreen: New posts detected, showing banner');
+        showBannerWithTimer();
+      }
+    } catch (err) {
+      console.log('SubletScreen: checkForNewPosts failed silently', err);
+    }
+  }, [sublets, sortOption, selectedCity, params.filters, showBannerWithTimer]);
+
   // Load more (next pages)
   const handleLoadMore = useCallback(async () => {
     if (!hasMore || loadingMore || loading) return;
@@ -241,10 +303,14 @@ export default function SubletScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('SubletScreen: Screen focused, refreshing posts');
-      fetchPage1();
+      console.log('SubletScreen: Screen focused');
+      if (sublets.length === 0) {
+        fetchPage1();
+      } else {
+        checkForNewPosts();
+      }
       fetchFavorites();
-    }, [fetchPage1, fetchFavorites])
+    }, [sublets.length, fetchPage1, fetchFavorites, checkForNewPosts])
   );
 
   // Client-side search filter only (sort/city handled by backend)
@@ -283,6 +349,7 @@ export default function SubletScreen() {
   };
 
   const onRefresh = () => {
+    dismissBanner();
     console.log('SubletScreen: Pull-to-refresh');
     setRefreshing(true);
     fetchPage1(true);
@@ -456,6 +523,47 @@ export default function SubletScreen() {
 
   const hasActiveFilters = params.filters && params.filters.toString().length > 0;
 
+  const renderHeader = () => {
+    if (!newPostsAvailable) return null;
+    return (
+      <TouchableOpacity
+        style={styles.newPostsBanner}
+        activeOpacity={0.8}
+        onPress={() => {
+          console.log('SubletScreen: New posts banner tapped — loading fresh posts');
+          dismissBanner();
+          fetchPage1();
+          flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        }}
+      >
+        <View style={styles.newPostsBannerLeft}>
+          <IconSymbol
+            ios_icon_name="arrow.up"
+            android_material_icon_name="arrow-upward"
+            size={13}
+            color={colors.primary}
+          />
+          <Text style={styles.newPostsBannerText}>New posts available</Text>
+        </View>
+        <TouchableOpacity
+          onPress={(e) => {
+            e.stopPropagation();
+            console.log('SubletScreen: New posts banner dismissed');
+            dismissBanner();
+          }}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <IconSymbol
+            ios_icon_name="xmark"
+            android_material_icon_name="close"
+            size={12}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    );
+  };
+
   // Show loading while checking disclaimer
   if (disclaimerCheckLoading) {
     return (
@@ -591,6 +699,7 @@ export default function SubletScreen() {
         </View>
       ) : (
         <FlatList
+          ref={flatListRef}
           data={visibleItems}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
@@ -599,6 +708,7 @@ export default function SubletScreen() {
           }
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
+          ListHeaderComponent={renderHeader}
           ListFooterComponent={renderFooter}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -1037,5 +1147,36 @@ const styles = StyleSheet.create({
   sortOptionTextSelected: {
     color: colors.primary,
     fontWeight: '600',
+  },
+  newPostsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    alignSelf: 'center',
+    width: '65%',
+    minWidth: 220,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.highlight,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  newPostsBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  newPostsBannerText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
   },
 });

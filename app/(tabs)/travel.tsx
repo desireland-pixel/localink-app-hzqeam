@@ -104,6 +104,21 @@ export default function TravelScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // New posts banner state
+  const flatListRef = useRef<FlatList>(null);
+  const [newPostsAvailable, setNewPostsAvailable] = useState(false);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup banner timer on unmount
+  useEffect(() => {
+    return () => {
+      if (dismissTimerRef.current) {
+        clearTimeout(dismissTimerRef.current);
+        dismissTimerRef.current = null;
+      }
+    };
+  }, []);
+
   // Sync from/to cities from params when navigating back from filter page
   React.useEffect(() => {
     const fromCityParam = typeof params.fromCity === 'string' ? params.fromCity : '';
@@ -163,6 +178,27 @@ export default function TravelScreen() {
       console.error('TravelScreen: Error accepting travel disclaimer:', error);
     }
   };
+
+  const clearDismissTimer = useCallback(() => {
+    if (dismissTimerRef.current) {
+      clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = null;
+    }
+  }, []);
+
+  const dismissBanner = useCallback(() => {
+    clearDismissTimer();
+    setNewPostsAvailable(false);
+  }, [clearDismissTimer]);
+
+  const showBannerWithTimer = useCallback(() => {
+    clearDismissTimer();
+    setNewPostsAvailable(true);
+    dismissTimerRef.current = setTimeout(() => {
+      setNewPostsAvailable(false);
+      dismissTimerRef.current = null;
+    }, 5000);
+  }, [clearDismissTimer]);
 
   const buildQueryString = useCallback((pageNum: number) => {
     const qp = new URLSearchParams();
@@ -233,6 +269,33 @@ export default function TravelScreen() {
     }
   }, []);
 
+  const checkForNewPosts = useCallback(async () => {
+    if (posts.length === 0) return;
+    try {
+      const qp = new URLSearchParams();
+      qp.append('page', '1');
+      qp.append('limit', '1');
+      if (sortOption === 'Newest') qp.append('sort', 'newest');
+      else if (sortOption === 'Earliest departure') qp.append('sort', 'earliest');
+      else if (sortOption === 'Latest departure') qp.append('sort', 'latest_journey');
+      if (selectedFrom) qp.append('fromCity', selectedFrom);
+      if (selectedTo) qp.append('toCity', selectedTo);
+      if (params.filters) {
+        const extra = new URLSearchParams(params.filters as string);
+        extra.forEach((value, key) => { if (!qp.has(key)) qp.append(key, value); });
+      }
+      console.log('TravelScreen: checkForNewPosts GET /api/travel-posts?' + qp.toString());
+      const raw = await authenticatedGet<unknown>(`/api/travel-posts?${qp.toString()}`);
+      const { items } = parseListResponse<TravelPost>(raw);
+      if (items.length > 0 && items[0].id !== posts[0].id) {
+        console.log('TravelScreen: New posts detected, showing banner');
+        showBannerWithTimer();
+      }
+    } catch (err) {
+      console.log('TravelScreen: checkForNewPosts failed silently', err);
+    }
+  }, [posts, sortOption, selectedFrom, selectedTo, params.filters, showBannerWithTimer]);
+
   // Load more (next pages)
   const handleLoadMore = useCallback(async () => {
     if (!hasMore || loadingMore || loading) return;
@@ -268,10 +331,14 @@ export default function TravelScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('TravelScreen: Screen focused, refreshing posts');
-      fetchPage1();
+      console.log('TravelScreen: Screen focused');
+      if (posts.length === 0) {
+        fetchPage1();
+      } else {
+        checkForNewPosts();
+      }
       fetchFavorites();
-    }, [fetchPage1, fetchFavorites])
+    }, [posts.length, fetchPage1, fetchFavorites, checkForNewPosts])
   );
 
   // Client-side search filter only (sort/from/to handled by backend)
@@ -310,6 +377,7 @@ export default function TravelScreen() {
   };
 
   const onRefresh = () => {
+    dismissBanner();
     console.log('TravelScreen: Pull-to-refresh');
     setRefreshing(true);
     fetchPage1(true);
@@ -582,6 +650,47 @@ export default function TravelScreen() {
   
   const sortDisplayText = sortOption === 'Earliest departure' ? 'Earliest' : sortOption === 'Latest departure' ? 'Latest' : sortOption;
 
+  const renderHeader = () => {
+    if (!newPostsAvailable) return null;
+    return (
+      <TouchableOpacity
+        style={styles.newPostsBanner}
+        activeOpacity={0.8}
+        onPress={() => {
+          console.log('TravelScreen: New posts banner tapped — loading fresh posts');
+          dismissBanner();
+          fetchPage1();
+          flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        }}
+      >
+        <View style={styles.newPostsBannerLeft}>
+          <IconSymbol
+            ios_icon_name="arrow.up"
+            android_material_icon_name="arrow-upward"
+            size={13}
+            color={colors.primary}
+          />
+          <Text style={styles.newPostsBannerText}>New posts available</Text>
+        </View>
+        <TouchableOpacity
+          onPress={(e) => {
+            e.stopPropagation();
+            console.log('TravelScreen: New posts banner dismissed');
+            dismissBanner();
+          }}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <IconSymbol
+            ios_icon_name="xmark"
+            android_material_icon_name="close"
+            size={12}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    );
+  };
+
   // Get display codes for selected cities
   const fromDisplayCode = selectedFrom ? getCityCode(selectedFrom) : '';
   const toDisplayCode = selectedTo ? getCityCode(selectedTo) : '';
@@ -783,6 +892,7 @@ export default function TravelScreen() {
         </View>
       ) : (
         <FlatList
+          ref={flatListRef}
           data={visibleItems}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
@@ -791,6 +901,7 @@ export default function TravelScreen() {
           }
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
+          ListHeaderComponent={renderHeader}
           ListFooterComponent={renderFooter}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -1262,5 +1373,36 @@ const styles = StyleSheet.create({
   sortOptionTextSelected: {
     color: colors.primary,
     fontWeight: '600',
+  },
+  newPostsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    alignSelf: 'center',
+    width: '65%',
+    minWidth: 220,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.highlight,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  newPostsBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  newPostsBannerText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
   },
 });
