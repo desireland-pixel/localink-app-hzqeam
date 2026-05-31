@@ -602,6 +602,12 @@ export default function SubletScreen() {
                   placeholderTextColor={colors.textSecondary}
                   value={cityInputValue}
                   onChangeText={handleCityInputChange}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      setShowCitySuggestions(false);
+                      setCitySuggestions([]);
+                    }, 150);
+                  }}
                   autoCapitalize="words"
                   autoCorrect={false}
                 />
@@ -678,6 +684,19 @@ export default function SubletScreen() {
             onChangeText={setSearchQuery}
             returnKeyType="search"
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <IconSymbol
+                ios_icon_name="xmark.circle.fill"
+                android_material_icon_name="cancel"
+                size={18}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          )}
         </View>
         <TouchableOpacity style={[styles.iconButton, hasActiveFilters && styles.iconButtonActive]} onPress={handleFilters}>
           <IconSymbol
