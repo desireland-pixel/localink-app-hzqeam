@@ -2,13 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedGet, authenticatedPatch } from '@/utils/api';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/ui/Modal';
 
 export default function NotificationsScreen() {
   const { sendTag, deleteTag, requestPermission } = useNotifications();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
 
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(false);
@@ -19,8 +23,13 @@ export default function NotificationsScreen() {
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.replace('/auth?redirect=notifications');
+      return;
+    }
     fetchPreferences();
-  }, []);
+  }, [authLoading, user]);
 
   const fetchPreferences = async () => {
     console.log('[Notifications] Fetching notification preferences');

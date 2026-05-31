@@ -13,7 +13,7 @@ import {
   Image,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { colors, typography, spacing, borderRadius } from "@/styles/commonStyles";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Modal from "@/components/ui/Modal";
@@ -57,6 +57,7 @@ const REMEMBER_ME_PASSWORD_KEY = "localink_remember_password";
 
 export default function AuthScreen() {
   const router = useRouter();
+  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
   const { user, profile, fetchUser, loading: authLoading } = useAuth();
 
   const [mode, setMode] = useState<Mode>("signin");
@@ -144,8 +145,9 @@ export default function AuthScreen() {
     }
 
     if (user) {
-      console.log('[AuthScreen] User authenticated, redirecting to home (sublet)');
-      router.replace('/(tabs)/sublet');
+      const dest = redirect === 'notifications' ? '/notifications' : '/(tabs)/sublet';
+      console.log('[AuthScreen] User authenticated, redirecting to:', dest);
+      router.replace(dest);
     }
   }, [user, authLoading, router]);
 

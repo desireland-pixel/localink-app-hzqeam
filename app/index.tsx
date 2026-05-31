@@ -11,7 +11,7 @@ const PUBLIC_SEGMENTS = ['reset-password', 'auth', 'verify-otp', 'auth-popup', '
 
 // Segment names where an authenticated user is already in the right place
 // (e.g. arrived via deep link). Do not redirect away from these.
-const AUTHENTICATED_SEGMENTS = ['(tabs)', 'sublet', 'travel', 'community', 'chat'];
+const AUTHENTICATED_SEGMENTS = ['(tabs)', 'sublet', 'travel', 'community', 'chat', 'notifications'];
 
 export default function IndexScreen() {
   const router = useRouter();
