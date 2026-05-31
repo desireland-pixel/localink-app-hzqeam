@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Share, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,6 +47,13 @@ export default function TravelDetailsScreen() {
   useScreenTracking(SCREEN_NAMES.TRAVEL_DETAIL);
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const isNavigatingRef = useRef(false);
+  const safePush = React.useCallback((path: any) => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    router.push(path);
+    setTimeout(() => { isNavigatingRef.current = false; }, 500);
+  }, [router]);
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [travelPost, setTravelPost] = useState<TravelPost | null>(null);
@@ -117,7 +124,7 @@ export default function TravelDetailsScreen() {
         throw new Error('No conversation ID returned from server');
       }
       
-      router.push(`/chat/${conversationId}`);
+      safePush(`/chat/${conversationId}`);
     } catch (err) {
       console.error('[TravelDetails] Error creating conversation:', err);
       const errorMsg = err instanceof Error ? err.message : 'Failed to start conversation';
@@ -160,7 +167,7 @@ ${shareData.shareUrl}`,
   const handleEdit = () => {
     if (!travelPost) return;
     console.log('TravelDetailsScreen: Edit post', id);
-    router.push({
+    safePush({
       pathname: '/post-travel',
       params: {
         editId: id,

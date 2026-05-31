@@ -44,6 +44,13 @@ export default function SubletDetailsScreen() {
   useScreenTracking(SCREEN_NAMES.SUBLET_DETAIL);
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const isNavigatingRef = useRef(false);
+  const safePush = React.useCallback((path: any) => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    router.push(path);
+    setTimeout(() => { isNavigatingRef.current = false; }, 500);
+  }, [router]);
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
@@ -115,7 +122,7 @@ export default function SubletDetailsScreen() {
         throw new Error('No conversation ID returned from server');
       }
       
-      router.push(`/chat/${conversationId}`);
+      safePush(`/chat/${conversationId}`);
     } catch (error: any) {
       console.error('SubletDetailsScreen: Error creating conversation', error);
       const errorMsg = error.message || 'Failed to start conversation';
@@ -157,7 +164,7 @@ ${shareData.shareUrl}`,
   const handleEdit = () => {
     if (!sublet) return;
     console.log('SubletDetailsScreen: Edit post', id);
-    router.push({
+    safePush({
       pathname: '/post-sublet',
       params: {
         editId: id,

@@ -41,6 +41,13 @@ interface Conversation {
 export default function InboxScreen() {
   useScreenTracking(SCREEN_NAMES.INBOX);
   const router = useRouter();
+  const isNavigatingRef = useRef(false);
+  const safePush = React.useCallback((path: any) => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    router.push(path);
+    setTimeout(() => { isNavigatingRef.current = false; }, 500);
+  }, [router]);
   const { user, fetchUnreadCount } = useAuth();
   const wsRef = useRef<WebSocket | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -311,7 +318,7 @@ export default function InboxScreen() {
                       return;
                     }
                     console.log('[InboxScreen] Open conversation', conversation.id);
-                    router.push(`/chat/${conversation.id}`);
+                    safePush(`/chat/${conversation.id}`);
                   }}
                   onLongPress={() => handleLongPressConversation(conversation.id)}
                   delayLongPress={400}

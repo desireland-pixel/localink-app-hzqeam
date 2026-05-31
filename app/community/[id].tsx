@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Platform, TextInput, KeyboardAvoidingView, Keyboard, Pressable, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
@@ -126,6 +126,13 @@ export default function CommunityDetailsScreen() {
   useScreenTracking(SCREEN_NAMES.COMMUNITY_DETAIL);
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const isNavigatingRef = useRef(false);
+  const safePush = React.useCallback((path: any) => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    router.push(path);
+    setTimeout(() => { isNavigatingRef.current = false; }, 500);
+  }, [router]);
   const { user, fetchCommunityUnreadCount } = useAuth();
   const [topic, setTopic] = useState<CommunityTopic | null>(null);
   const [loading, setLoading] = useState(true);
@@ -332,7 +339,7 @@ export default function CommunityDetailsScreen() {
   const handleEdit = () => {
     if (!topic) return;
     console.log('CommunityDetailsScreen: Edit topic', id);
-    router.push({
+    safePush({
       pathname: '/post-community-topic',
       params: {
         editId: id,
@@ -521,7 +528,7 @@ title: shareData.title,
       console.log('handleStartChat response:', response);
       const conversationId = response.conversationId || response.id;
       console.log('CommunityDetailsScreen: Chat started, conversationId', conversationId);
-      router.push(`/chat/${conversationId}`);
+      safePush(`/chat/${conversationId}`);
     } catch (err) {
       console.error('CommunityDetailsScreen: Error starting chat', err);
       setError('Could not start chat. Please try again.');

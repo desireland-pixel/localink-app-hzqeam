@@ -64,6 +64,13 @@ function parseListResponse<T>(data: unknown): { items: T[]; hasMore: boolean } {
 export default function CommunityScreen() {
   useScreenTracking(SCREEN_NAMES.COMMUNITY);
   const router = useRouter();
+  const isNavigatingRef = useRef(false);
+  const safePush = React.useCallback((path: any) => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    router.push(path);
+    setTimeout(() => { isNavigatingRef.current = false; }, 500);
+  }, [router]);
   const params = useLocalSearchParams();
   const { user, fetchCommunityUnreadCount } = useAuth();
   const [topics, setTopics] = useState<CommunityTopic[]>([]);
@@ -441,7 +448,7 @@ export default function CommunityScreen() {
         style={[styles.card, hasUnreadReplies && styles.cardUnread]}
         onPress={() => {
           console.log('CommunityScreen: Navigate to community topic', topic.id);
-          router.push(`/community/${topic.id}`);
+          safePush(`/community/${topic.id}`);
         }}
       >
         <View style={styles.cardHeader}>
@@ -690,7 +697,7 @@ export default function CommunityScreen() {
           style={[styles.iconButton, (params.filters && params.filters.toString().length > 0) && styles.iconButtonActive]}
           onPress={() => {
             console.log('CommunityScreen: Navigate to community filters');
-            router.push({
+            safePush({
               pathname: '/community-filters',
               params: { filters: params.filters || '', city: selectedCity }
             });
@@ -707,7 +714,7 @@ export default function CommunityScreen() {
           style={styles.iconButton}
           onPress={() => {
             console.log('CommunityScreen: Navigate to post community topic');
-            router.push('/post-community-topic');
+            safePush('/post-community-topic');
           }}
         >
           <IconSymbol
@@ -747,7 +754,7 @@ export default function CommunityScreen() {
                   style={styles.requestButton}
                   onPress={() => {
                     console.log('CommunityScreen: Navigate to post community topic from empty state');
-                    router.push('/post-community-topic');
+                    safePush('/post-community-topic');
                   }}
                 >
                   <Text style={styles.requestButtonText}>Start Discussion</Text>

@@ -69,6 +69,13 @@ function parseListResponse<T>(data: unknown): { items: T[]; hasMore: boolean } {
 export default function TravelScreen() {
   useScreenTracking(SCREEN_NAMES.TRAVEL);
   const router = useRouter();
+  const isNavigatingRef = useRef(false);
+  const safePush = React.useCallback((path: any) => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    router.push(path);
+    setTimeout(() => { isNavigatingRef.current = false; }, 500);
+  }, [router]);
   const params = useLocalSearchParams();
   const { user } = useAuth();
   const [posts, setPosts] = useState<TravelPost[]>([]);
@@ -560,7 +567,7 @@ export default function TravelScreen() {
         onPress={() => {
           if (!isExpired) {
             console.log('TravelScreen: Navigate to travel detail', post.id);
-            router.push(`/travel/${post.id}`);
+            safePush(`/travel/${post.id}`);
           }
         }}
         disabled={isExpired}
@@ -875,7 +882,7 @@ export default function TravelScreen() {
           style={[styles.iconButton, hasActiveFilters && styles.iconButtonActive]}
           onPress={() => {
             console.log('TravelScreen: Navigate to travel filters');
-            router.push({
+            safePush({
               pathname: '/travel-filters',
               params: { filters: params.filters || '', fromCity: selectedFrom, toCity: selectedTo }
             });
@@ -892,7 +899,7 @@ export default function TravelScreen() {
           style={styles.iconButton}
           onPress={() => {
             console.log('TravelScreen: Navigate to post travel');
-            router.push('/post-travel');
+            safePush('/post-travel');
           }}
         >
           <IconSymbol
@@ -932,7 +939,7 @@ export default function TravelScreen() {
                   style={styles.requestButton}
                   onPress={() => {
                     console.log('TravelScreen: Navigate to post travel from empty state');
-                    router.push('/post-travel');
+                    safePush('/post-travel');
                   }}
                 >
                   <Text style={styles.requestButtonText}>Request</Text>

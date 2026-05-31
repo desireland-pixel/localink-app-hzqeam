@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -11,6 +11,13 @@ import Modal from '@/components/ui/Modal';
 export default function ProfileScreen() {
   const { user, profile, signOut } = useAuth();
   const router = useRouter();
+  const isNavigatingRef = useRef(false);
+  const safePush = React.useCallback((path: any) => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    router.push(path);
+    setTimeout(() => { isNavigatingRef.current = false; }, 500);
+  }, [router]);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   const handleSignOut = async () => {
@@ -39,7 +46,7 @@ export default function ProfileScreen() {
             <TouchableOpacity 
               style={styles.editAvatarButton}
               onPress={() => {
-                router.push('/personal-details');
+                safePush('/personal-details');
               }}
             >
               <IconSymbol 
@@ -66,7 +73,7 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              router.push('/personal-details');
+              safePush('/personal-details');
             }}
           >
             <View style={styles.menuItemLeft}>
@@ -88,7 +95,7 @@ export default function ProfileScreen() {
 
           <TouchableOpacity 
             style={styles.menuItem}
-            onPress={() => router.push('/my-posts')}
+            onPress={() => safePush('/my-posts')}
           >
             <View style={styles.menuItemLeft}>
               <IconSymbol 
@@ -110,7 +117,7 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              router.push('/favourites');
+              safePush('/favourites');
             }}
           >
             <View style={styles.menuItemLeft}>
@@ -133,7 +140,7 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              router.push('/notifications');
+              safePush('/notifications');
             }}
           >
             <View style={styles.menuItemLeft}>
@@ -156,7 +163,7 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              router.push('/faqs');
+              safePush('/faqs');
             }}
           >
             <View style={styles.menuItemLeft}>
@@ -180,7 +187,7 @@ export default function ProfileScreen() {
             style={styles.menuItem}
             onPress={() => {
               console.log('[ProfileScreen] Feedback pressed');
-              router.push('/feedback');
+              safePush('/feedback');
             }}
           >
             <View style={styles.menuItemLeft}>
@@ -203,7 +210,7 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              router.push('/data-privacy');
+              safePush('/data-privacy');
             }}
           >
             <View style={styles.menuItemLeft}>
@@ -226,7 +233,7 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              router.push('/about');
+              safePush('/about');
             }}
           >
             <View style={styles.menuItemLeft}>

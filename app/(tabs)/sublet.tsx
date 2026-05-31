@@ -61,6 +61,13 @@ function parseListResponse<T>(data: unknown): { items: T[]; hasMore: boolean } {
 export default function SubletScreen() {
   useScreenTracking(SCREEN_NAMES.SUBLET);
   const router = useRouter();
+  const isNavigatingRef = useRef(false);
+  const safePush = React.useCallback((path: any) => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    router.push(path);
+    setTimeout(() => { isNavigatingRef.current = false; }, 500);
+  }, [router]);
   const params = useLocalSearchParams();
   const { user } = useAuth();
   const [sublets, setSublets] = useState<Sublet[]>([]);
@@ -363,12 +370,12 @@ export default function SubletScreen() {
 
   const handlePostSublet = () => {
     console.log('SubletScreen: Navigate to post sublet');
-    router.push('/post-sublet');
+    safePush('/post-sublet');
   };
 
   const handleFilters = () => {
     console.log('SubletScreen: Navigate to filters');
-    router.push({
+    safePush({
       pathname: '/sublet-filters',
       params: { filters: params.filters || '', city: selectedCity }
     });
@@ -447,7 +454,7 @@ export default function SubletScreen() {
         style={styles.card}
         onPress={() => {
           console.log('SubletScreen: Navigate to sublet detail', sublet.id);
-          router.push(`/sublet/${sublet.id}`);
+          safePush(`/sublet/${sublet.id}`);
         }}
       >
         <View style={styles.cardHeader}>

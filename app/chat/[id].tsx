@@ -546,17 +546,19 @@ export default function ChatScreen() {
           </TouchableOpacity>
         )}
 
-        <FlatList
-          inverted
-          ref={flatListRef}
-          data={chatItems}
-          renderItem={renderItem}
-          keyExtractor={(item) => ('type' in item && item.type === 'date_separator' ? item.id : (item as Message).id)}
-          style={styles.messagesContainer}
-          contentContainerStyle={styles.messagesContent}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-        />
+        <Pressable style={{ flex: 1 }} onPress={() => setSelectedMessageId(null)}>
+          <FlatList
+            inverted
+            ref={flatListRef}
+            data={chatItems}
+            renderItem={renderItem}
+            keyExtractor={(item) => ('type' in item && item.type === 'date_separator' ? item.id : (item as Message).id)}
+            style={styles.messagesContainer}
+            contentContainerStyle={styles.messagesContent}
+            keyboardShouldPersistTaps="always"
+            keyboardDismissMode="on-drag"
+          />
+        </Pressable>
 
         <View style={[styles.inputContainer, { paddingBottom: Platform.OS === 'android' ? 0 : 0 }]}>
           <TextInput
@@ -732,6 +734,7 @@ const styles = StyleSheet.create({
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'flex-end',
   },
   deleteMessageButton: {
     padding: spacing.xs,
