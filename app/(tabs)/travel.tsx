@@ -210,9 +210,9 @@ export default function TravelScreen() {
     if (sortOption === 'Newest') {
       qp.append('sort', 'newest');
     } else if (sortOption === 'Earliest departure') {
-      qp.append('sort', 'earliest');
+      qp.append('sort', 'earliest-departure');
     } else if (sortOption === 'Latest departure') {
-      qp.append('sort', 'latest_journey');
+      qp.append('sort', 'latest-departure');
     }
 
     if (selectedFrom) {
@@ -280,8 +280,8 @@ export default function TravelScreen() {
       qp.append('page', '1');
       qp.append('limit', '1');
       if (sortOption === 'Newest') qp.append('sort', 'newest');
-      else if (sortOption === 'Earliest departure') qp.append('sort', 'earliest');
-      else if (sortOption === 'Latest departure') qp.append('sort', 'latest_journey');
+      else if (sortOption === 'Earliest departure') qp.append('sort', 'earliest-departure');
+      else if (sortOption === 'Latest departure') qp.append('sort', 'latest-departure');
       if (selectedFrom) qp.append('fromCity', selectedFrom);
       if (selectedTo) qp.append('toCity', selectedTo);
       if (params.filters) {
