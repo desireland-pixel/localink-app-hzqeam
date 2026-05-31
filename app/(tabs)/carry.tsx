@@ -208,6 +208,7 @@ export default function CommunityScreen() {
   }, []);
 
   const checkForNewPosts = useCallback(async () => {
+    if (sortOption !== 'Newest') return;
     if (topics.length === 0) return;
     if (isFetchingPage1.current) return;
     try {

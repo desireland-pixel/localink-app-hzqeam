@@ -246,6 +246,7 @@ export default function SubletScreen() {
   }, []);
 
   const checkForNewPosts = useCallback(async () => {
+    if (sortOption !== 'Newest') return;
     if (sublets.length === 0) return;
     if (isFetchingPage1.current) return;
     try {

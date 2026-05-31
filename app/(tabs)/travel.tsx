@@ -273,6 +273,7 @@ export default function TravelScreen() {
   }, []);
 
   const checkForNewPosts = useCallback(async () => {
+    if (sortOption !== 'Newest') return;
     if (posts.length === 0) return;
     if (isFetchingPage1.current) return;
     try {
