@@ -7,12 +7,11 @@ import {
   TouchableOpacity,
   TextInput,
   Modal as RNModal,
-  KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from 'react-native';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { authenticatedPost } from '@/utils/api';
-import { IconSymbol } from '@/components/IconSymbol';
 
 interface PostOutcomeModalProps {
   visible: boolean;
@@ -34,6 +33,7 @@ export default function PostOutcomeModal({
   const [selected, setSelected] = useState<'yes' | 'no' | null>(null);
   const [comment, setComment] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState<number>(0);
 
   // Reset state whenever modal closes
   useEffect(() => {
@@ -43,6 +43,22 @@ export default function PostOutcomeModal({
       setSubmitted(false);
     }
   }, [visible]);
+
+  // Keyboard listener — lift card instead of pushing it down
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardOffset(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardOffset(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const getQuestion = (): string => {
     if (postType === 'sublet') {
@@ -105,10 +121,7 @@ export default function PostOutcomeModal({
         activeOpacity={1}
         onPress={handleDismiss}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}
-        >
+        <View style={[styles.cardWrapper, { marginBottom: keyboardOffset }]}>
           <TouchableOpacity activeOpacity={1} onPress={() => {}}>
             <View style={styles.card}>
               {submitted ? (
@@ -118,16 +131,6 @@ export default function PostOutcomeModal({
                 </View>
               ) : (
                 <>
-                  {/* Top-right X button — dismisses without submitting */}
-                  <TouchableOpacity style={styles.closeX} onPress={handleDismiss} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <IconSymbol
-                      ios_icon_name="xmark"
-                      android_material_icon_name="close"
-                      size={18}
-                      color={colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-
                   {/* Question */}
                   <Text style={styles.question}>{questionText}</Text>
 
@@ -138,12 +141,6 @@ export default function PostOutcomeModal({
                       onPress={() => handleSelect('yes')}
                       activeOpacity={0.8}
                     >
-                      <IconSymbol
-                        ios_icon_name="checkmark"
-                        android_material_icon_name="check"
-                        size={16}
-                        color={selected === 'yes' ? colors.primary : colors.textSecondary}
-                      />
                       <Text style={[styles.yesNoText, selected === 'yes' && styles.yesNoTextSelected]}>
                         Yes
                       </Text>
@@ -154,12 +151,6 @@ export default function PostOutcomeModal({
                       onPress={() => handleSelect('no')}
                       activeOpacity={0.8}
                     >
-                      <IconSymbol
-                        ios_icon_name="xmark"
-                        android_material_icon_name="close"
-                        size={16}
-                        color={selected === 'no' ? colors.primary : colors.textSecondary}
-                      />
                       <Text style={[styles.yesNoText, selected === 'no' && styles.yesNoTextSelected]}>
                         No
                       </Text>
@@ -179,20 +170,20 @@ export default function PostOutcomeModal({
                   />
                   <Text style={styles.charCounter}>{commentLength}/{COMMENT_MAX_LENGTH}</Text>
 
-                  {/* Close / submit button */}
+                  {/* Submit button */}
                   <TouchableOpacity
                     style={[styles.closeButton, !isCloseEnabled && styles.closeButtonDisabled]}
                     onPress={handleClose}
                     disabled={!isCloseEnabled}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.closeButtonText}>Close</Text>
+                    <Text style={styles.closeButtonText}>Submit</Text>
                   </TouchableOpacity>
                 </>
               )}
             </View>
           </TouchableOpacity>
-        </KeyboardAvoidingView>
+        </View>
       </TouchableOpacity>
     </RNModal>
   );
@@ -206,7 +197,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
   },
-  keyboardView: {
+  cardWrapper: {
     width: '100%',
     alignItems: 'center',
   },
@@ -217,13 +208,11 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     position: 'relative',
-  },
-  closeX: {
-    position: 'absolute',
-    top: spacing.md,
-    right: spacing.md,
-    zIndex: 1,
-    padding: spacing.xs,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   question: {
     ...typography.h3,
@@ -232,7 +221,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
     marginTop: spacing.sm,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
     paddingHorizontal: spacing.lg,
   },
   yesNoRow: {
@@ -245,8 +234,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
+    height: 44,
     borderRadius: borderRadius.md,
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -266,7 +254,9 @@ const styles = StyleSheet.create({
   },
   thanksContainer: {
     alignItems: 'center',
-    paddingVertical: spacing.xl,
+    justifyContent: 'center',
+    minHeight: 120,
+    paddingVertical: spacing.md,
   },
   thanksTitle: {
     ...typography.h3,
@@ -302,8 +292,9 @@ const styles = StyleSheet.create({
   closeButton: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.sm,
+    height: 44,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   closeButtonDisabled: {
     opacity: 0.4,
