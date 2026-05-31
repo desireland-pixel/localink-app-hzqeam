@@ -124,7 +124,7 @@ export default function PostOutcomeModal({
         activeOpacity={1}
         onPress={handleDismiss}
       >
-        <TouchableOpacity activeOpacity={1} onPress={() => {}} style={[styles.card, { marginBottom: keyboardOffset }]}>
+        <TouchableOpacity activeOpacity={1} onPress={() => {}} style={[styles.card, submitted && styles.cardThanks, { marginBottom: keyboardOffset }]}>
           {submitted ? (
             <View style={styles.thanksContainer}>
               <Text style={styles.thanksTitle}>Thanks for letting us know! 🙌</Text>
@@ -203,16 +203,20 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     width: '100%',
     maxWidth: 400,
-    height: SCREEN_HEIGHT * 0.52,
+    minHeight: SCREEN_HEIGHT * 0.38,
+    maxHeight: SCREEN_HEIGHT * 0.52,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
   },
+  cardThanks: {
+    minHeight: 0,
+  },
   question: {
     ...typography.h3,
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '700',
     color: colors.text,
     textAlign: 'center',
@@ -249,9 +253,9 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   thanksContainer: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: spacing.xl,
   },
   thanksTitle: {
     ...typography.h3,
