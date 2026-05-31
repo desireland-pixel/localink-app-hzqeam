@@ -187,9 +187,7 @@ function buildDigestHtml(
           <a href="https://lokalinc.de" style="color: #10B981; text-decoration: none;">Visit Website</a>
         </p>
         <p>
-          <a href="lokalinc://notifications" style="color: #9CA3AF; text-decoration: underline; font-size: 11px;">
-            Don't want these emails? Unsubscribe here
-          </a>
+          Don't want these emails? <a href="lokalinc://notifications" style="color: #9CA3AF; text-decoration: underline; font-size: 11px;">Unsubscribe</a>
         </p>
       </div>
 
