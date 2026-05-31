@@ -27,6 +27,7 @@ export default function CommunityFiltersScreen() {
   const [category, setCategory] = useState<string | null>(null);
   const [status, setStatus] = useState<'open' | 'closed' | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [resetPressed, setResetPressed] = useState(false);
 
   console.log('[CommunityFiltersScreen] Rendering', { category, status, hydrated });
 
@@ -90,6 +91,10 @@ export default function CommunityFiltersScreen() {
     console.log('[CommunityFiltersScreen] Resetting filters');
     setCategory(null);
     setStatus(null);
+    router.back();
+    setTimeout(() => {
+      router.setParams({ filters: '', city: preservedCity });
+    }, 100);
   };
 
   // Don't render inputs until hydration is complete
@@ -141,7 +146,11 @@ export default function CommunityFiltersScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
+        <TouchableOpacity
+          style={[styles.resetButton, resetPressed && styles.resetButtonPressed]}
+          onPressIn={() => setResetPressed(true)}
+          onPress={handleReset}
+        >
           <Text style={styles.resetButtonText}>Reset</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
@@ -251,6 +260,9 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     marginTop: Platform.OS === 'ios' ? 4 : 0,
+  },
+  resetButtonPressed: {
+    borderColor: colors.primary,
   },
   resetButtonText: {
     ...typography.button,

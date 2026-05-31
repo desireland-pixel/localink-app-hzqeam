@@ -24,6 +24,7 @@ export default function TravelFiltersScreen() {
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [incentive, setIncentive] = useState<boolean | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [resetPressed, setResetPressed] = useState(false);
 
   // Use useFocusEffect to reinitialize filter state every time screen gains focus
   useFocusEffect(
@@ -117,11 +118,16 @@ export default function TravelFiltersScreen() {
   };
 
   const handleReset = () => {
+    console.log('[TravelFiltersScreen] Resetting filters');
     setRole(null);
     setTypes(new Set());
     setDateStart(null);
     setDateEnd(null);
     setIncentive(null);
+    router.replace({
+      pathname: '/(tabs)/travel',
+      params: { filters: '', fromCity: preservedFromCity, toCity: preservedToCity }
+    });
   };
 
   const dateStartDisplay = dateStart ? formatDateToDDMMYYYY(dateStart) : '';
@@ -259,7 +265,11 @@ export default function TravelFiltersScreen() {
       </KeyboardAvoidingView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
+        <TouchableOpacity
+          style={[styles.resetButton, resetPressed && styles.resetButtonPressed]}
+          onPressIn={() => setResetPressed(true)}
+          onPress={handleReset}
+        >
           <Text style={styles.resetButtonText}>Reset</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
@@ -377,6 +387,9 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     marginTop: Platform.OS === 'ios' ? 4 : 0,
+  },
+  resetButtonPressed: {
+    borderColor: colors.primary,
   },
   resetButtonText: {
     ...typography.button,
