@@ -108,6 +108,7 @@ export default function TravelScreen() {
   const flatListRef = useRef<FlatList>(null);
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFetchingPage1 = useRef(false);
 
   // Cleanup banner timer on unmount
   useEffect(() => {
@@ -236,6 +237,7 @@ export default function TravelScreen() {
 
   // Initial / refresh fetch (page 1)
   const fetchPage1 = useCallback(async (isRefresh = false) => {
+    isFetchingPage1.current = true;
     console.log('TravelScreen: Fetching travel posts page 1, sort:', sortOption, 'from:', selectedFrom, 'to:', selectedTo);
     if (!isRefresh) {
       setLoading(true);
@@ -253,6 +255,7 @@ export default function TravelScreen() {
       console.error('TravelScreen: Error fetching travel posts', error);
       setPosts([]);
     } finally {
+      isFetchingPage1.current = false;
       setLoading(false);
       setRefreshing(false);
     }
@@ -271,6 +274,7 @@ export default function TravelScreen() {
 
   const checkForNewPosts = useCallback(async () => {
     if (posts.length === 0) return;
+    if (isFetchingPage1.current) return;
     try {
       const qp = new URLSearchParams();
       qp.append('page', '1');
@@ -653,41 +657,43 @@ export default function TravelScreen() {
   const renderHeader = () => {
     if (!newPostsAvailable) return null;
     return (
-      <TouchableOpacity
-        style={styles.newPostsBanner}
-        activeOpacity={0.8}
-        onPress={() => {
-          console.log('TravelScreen: New posts banner tapped — loading fresh posts');
-          dismissBanner();
-          fetchPage1();
-          flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-        }}
-      >
-        <View style={styles.newPostsBannerLeft}>
-          <IconSymbol
-            ios_icon_name="arrow.up"
-            android_material_icon_name="arrow-upward"
-            size={13}
-            color={colors.primary}
-          />
-          <Text style={styles.newPostsBannerText}>New posts available</Text>
-        </View>
+      <View style={styles.newPostsBannerOverlay}>
         <TouchableOpacity
-          onPress={(e) => {
-            e.stopPropagation();
-            console.log('TravelScreen: New posts banner dismissed');
+          style={styles.newPostsBanner}
+          activeOpacity={0.8}
+          onPress={() => {
+            console.log('TravelScreen: New posts banner tapped — loading fresh posts');
             dismissBanner();
+            fetchPage1();
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
           }}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <IconSymbol
-            ios_icon_name="xmark"
-            android_material_icon_name="close"
-            size={12}
-            color={colors.primary}
-          />
+          <View style={styles.newPostsBannerLeft}>
+            <IconSymbol
+              ios_icon_name="arrow.up"
+              android_material_icon_name="arrow-upward"
+              size={13}
+              color={colors.primary}
+            />
+            <Text style={styles.newPostsBannerText}>New posts available</Text>
+          </View>
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              console.log('TravelScreen: New posts banner dismissed');
+              dismissBanner();
+            }}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <IconSymbol
+              ios_icon_name="xmark"
+              android_material_icon_name="close"
+              size={12}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
         </TouchableOpacity>
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -891,36 +897,38 @@ export default function TravelScreen() {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        <FlatList
-          ref={flatListRef}
-          data={visibleItems}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
-          }
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          ListHeaderComponent={renderHeader}
-          ListFooterComponent={renderFooter}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyEmoji}>✈️</Text>
-              <Text style={styles.emptyTitle}>No travel buddy matches found</Text>
-              <Text style={styles.emptySubtitle}>Post a request to connect with others!</Text>
-              <TouchableOpacity
-                style={styles.requestButton}
-                onPress={() => {
-                  console.log('TravelScreen: Navigate to post travel from empty state');
-                  router.push('/post-travel');
-                }}
-              >
-                <Text style={styles.requestButtonText}>Request</Text>
-              </TouchableOpacity>
-            </View>
-          }
-          contentContainerStyle={visibleItems.length === 0 ? styles.flatListEmpty : styles.flatListContent}
-        />
+        <View style={{ flex: 1 }}>
+          <FlatList
+            ref={flatListRef}
+            data={visibleItems}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+            }
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyEmoji}>✈️</Text>
+                <Text style={styles.emptyTitle}>No travel buddy matches found</Text>
+                <Text style={styles.emptySubtitle}>Post a request to connect with others!</Text>
+                <TouchableOpacity
+                  style={styles.requestButton}
+                  onPress={() => {
+                    console.log('TravelScreen: Navigate to post travel from empty state');
+                    router.push('/post-travel');
+                  }}
+                >
+                  <Text style={styles.requestButtonText}>Request</Text>
+                </TouchableOpacity>
+              </View>
+            }
+            contentContainerStyle={visibleItems.length === 0 ? styles.flatListEmpty : styles.flatListContent}
+          />
+          {newPostsAvailable && renderHeader()}
+        </View>
       )}
 
       {/* Sort Modal */}
@@ -1405,5 +1413,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.primary,
+  },
+  newPostsBannerOverlay: {
+    position: 'absolute',
+    top: 8,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+    pointerEvents: 'box-none',
   },
 });
