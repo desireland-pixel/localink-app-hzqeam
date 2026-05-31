@@ -1114,12 +1114,12 @@ const styles = StyleSheet.create({
   },
   replyTopRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     marginBottom: 4,
   },
   replyTopAction: {
     padding: 6,
-    marginLeft: 4,
+    marginLeft: 2,
   },
   replyAuthor: {
     ...typography.bodySmall,

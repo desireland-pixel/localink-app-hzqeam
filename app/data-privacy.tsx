@@ -7,7 +7,7 @@ import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles
 export default function DataPrivacyScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 20 }}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>1. Controller</Text>
           <Text style={styles.paragraph}>
