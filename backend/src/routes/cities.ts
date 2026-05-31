@@ -43,9 +43,23 @@ export function registerCityRoutes(app: App) {
     const limitVal = parseInt(limit || '8') || 8;
     const cityList = type === 'travel' ? TRAVEL_CITIES : GERMAN_CITIES;
 
-    const results = query
-      ? cityList.filter(city => city.toLowerCase().includes(query)).slice(0, limitVal)
-      : [];
+    let results: string[] = [];
+
+    if (query) {
+      const bucket1: string[] = [];
+      const bucket2: string[] = [];
+
+      for (const city of cityList) {
+        const cityLower = city.toLowerCase();
+        if (cityLower.startsWith(query)) {
+          bucket1.push(city);
+        } else if (cityLower.includes(query)) {
+          bucket2.push(city);
+        }
+      }
+
+      results = bucket1.concat(bucket2).slice(0, limitVal);
+    }
 
     app.logger.info({ query, resultsCount: results.length }, 'City search completed');
 
