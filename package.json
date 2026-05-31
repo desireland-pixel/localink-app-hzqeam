@@ -1,5 +1,5 @@
 {
-  "name": "lokalinc-app",
+  "name": "lokalinc",
   "version": "1.0.3",
   "main": "index.ts",
   "scripts": {
