@@ -119,7 +119,10 @@ export const apiCall = async <T = any>(
     if (error?.name === 'AbortError') {
       throw new Error('Request timed out. Please check your connection and try again.');
     }
-    console.error("[API] Request failed:", error);
+    // Suppress expected offline errors — the OfflineModal already informs the user.
+    if (!(error instanceof ApiError && error.code === 'network')) {
+      console.error("[API] Request failed:", error);
+    }
     throw error;
   } finally {
     clearTimeout(timeoutId);

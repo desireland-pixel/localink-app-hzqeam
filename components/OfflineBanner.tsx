@@ -1,9 +1,8 @@
 import NetInfo from '@react-native-community/netinfo';
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Platform, StyleSheet, Text } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '@/styles/commonStyles';
+import { AppState, Modal, Platform, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { setIsOnline } from '@/utils/networkState';
+import { colors, borderRadius, spacing, typography } from '@/styles/commonStyles';
 
 // Slow to show (avoid flicker on brief drops), fast to hide.
 const SHOW_DEBOUNCE_MS = 3000;
@@ -11,8 +10,10 @@ const SHOW_DEBOUNCE_MS = 3000;
 export default function OfflineBanner() {
   const [isOffline, setIsOffline] = useState(false);
   const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Mirrors committed banner state so callbacks can read it without re-subscribing.
+  // Mirrors committed modal state so callbacks can read it without re-subscribing.
   const isOfflineRef = useRef(false);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   useEffect(() => {
     let cancelled = false;
@@ -24,7 +25,7 @@ export default function OfflineBanner() {
       console.log('[OfflineBanner] network state updated — offline:', offline);
     };
 
-    // Debounced, idempotent state transition for the BANNER UI only.
+    // Debounced, idempotent state transition for the MODAL UI only.
     const setBannerOffline = (offline: boolean) => {
       if (cancelled) return;
 
@@ -35,7 +36,7 @@ export default function OfflineBanner() {
           showTimerRef.current = null;
           isOfflineRef.current = true;
           setIsOffline(true);
-          console.log('[OfflineBanner] offline confirmed — showing banner');
+          console.log('[OfflineBanner] offline confirmed — showing modal');
         }, SHOW_DEBOUNCE_MS);
       } else {
         if (showTimerRef.current) {
@@ -45,7 +46,7 @@ export default function OfflineBanner() {
         if (isOfflineRef.current) {
           isOfflineRef.current = false;
           setIsOffline(false);
-          console.log('[OfflineBanner] back online — hiding banner');
+          console.log('[OfflineBanner] back online — hiding modal');
         }
       }
     };
@@ -112,29 +113,69 @@ export default function OfflineBanner() {
     };
   }, []);
 
-  if (!isOffline) {
-    return null;
-  }
+  const cardBg = isDark ? colors.cardDark : colors.background;
+  const titleColor = isDark ? colors.textDark : colors.text;
+  const subtitleColor = isDark ? colors.textSecondaryDark : colors.textSecondary;
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <Text style={styles.text}>No internet connection</Text>
-    </SafeAreaView>
+    <Modal
+      visible={isOffline}
+      transparent={true}
+      animationType="fade"
+      statusBarTranslucent={true}
+      presentationStyle="overFullScreen"
+      onRequestClose={() => {/* no-op — user must restore connectivity */}}
+    >
+      <View style={styles.backdrop}>
+        <View style={[styles.card, { backgroundColor: cardBg }]}>
+          <Text style={styles.icon}>
+            {'\u{1F6AB}'}
+          </Text>
+          <Text style={[styles.title, { color: titleColor }]}>
+            No internet connection
+          </Text>
+          <Text style={[styles.subtitle, { color: subtitleColor }]}>
+            Check your Wi-Fi or mobile data and try again. The app will reconnect automatically.
+          </Text>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: colors.error,
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 9,
-    zIndex: 9999,
+    paddingHorizontal: spacing.lg,
   },
-  text: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '500',
+  card: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: borderRadius.xl,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  icon: {
+    fontSize: 48,
+    marginBottom: spacing.md,
+  },
+  title: {
+    ...typography.h3,
     textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  subtitle: {
+    ...typography.body,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
