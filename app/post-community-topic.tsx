@@ -115,7 +115,7 @@ export default function PostCommunityTopicScreen() {
         await authenticatedPost('/api/community/topics', postData);
         console.log('PostCommunityTopicScreen: Topic created successfully');
       }
-      router.back();
+      router.replace('/(tabs)/carry');
     } catch (error: any) {
       console.error('PostCommunityTopicScreen: Error creating topic', error);
       setError(error.message || 'Failed to create discussion topic. Please try again.');

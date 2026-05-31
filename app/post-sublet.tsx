@@ -279,7 +279,7 @@ export default function PostSubletScreen() {
         console.log('PostSubletScreen: Creating sublet with data:', postData);
         await authenticatedPost('/api/sublets', postData);
         console.log('PostSubletScreen: Sublet created successfully');
-        router.back();
+        router.replace('/(tabs)/sublet');
       }
     } catch (error: any) {
       console.error('PostSubletScreen: Error saving sublet', error);

@@ -734,13 +734,15 @@ const styles = StyleSheet.create({
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    alignSelf: 'flex-end',
   },
   deleteMessageButton: {
     padding: spacing.xs,
     borderRadius: borderRadius.sm,
     backgroundColor: '#F3F4F6',
-    marginHorizontal: spacing.xs,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteMessageButtonOwn: {
     marginRight: 0,
