@@ -211,8 +211,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   card: {
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.md + 4,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
     padding: spacing.lg,
     width: '100%',
     maxWidth: 400,
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: borderRadius.md,
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -302,15 +302,15 @@ const styles = StyleSheet.create({
   closeButton: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
   },
   closeButtonDisabled: {
     opacity: 0.4,
   },
   closeButtonText: {
-    ...typography.button,
-    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

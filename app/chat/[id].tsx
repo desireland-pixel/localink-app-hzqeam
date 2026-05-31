@@ -728,6 +728,10 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
     borderRadius: borderRadius.sm,
     backgroundColor: '#F3F4F6',
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteMessageButton: {
     padding: spacing.xs,
