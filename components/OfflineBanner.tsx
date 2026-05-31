@@ -1,30 +1,27 @@
+import NetInfo from '@react-native-community/netinfo';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Platform, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
 import { setIsOnline } from '@/utils/networkState';
 
-// A tiny, well-known endpoint that returns HTTP 204 with an empty body.
-// This is the same captive-portal / reachability check Android itself uses.
-const REACHABILITY_URL = 'https://www.gstatic.com/generate_204';
-const PROBE_TIMEOUT_MS = 5000; // give up on a single probe after 5s
-const POLL_INTERVAL_MS = 8000; // re-check reachability on this cadence
-const SHOW_DEBOUNCE_MS = 3000; // slow to show (avoid flicker), fast to hide
+// Slow to show (avoid flicker on brief drops), fast to hide.
+const SHOW_DEBOUNCE_MS = 3000;
 
 export default function OfflineBanner() {
   const [isOffline, setIsOffline] = useState(false);
   const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Mirrors the committed banner state so callbacks can read it without
-  // re-subscribing, and so we never reset an in-flight "show" timer.
+  // Mirrors committed banner state so callbacks can read it without re-subscribing.
   const isOfflineRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
 
-    // Update the singleton immediately — no debounce — so apiCall is blocked
+    // Update the singleton IMMEDIATELY — no debounce — so apiCall is blocked
     // as soon as we know the device is offline.
     const updateNetworkState = (offline: boolean) => {
       setIsOnline(!offline);
+      console.log('[OfflineBanner] network state updated — offline:', offline);
     };
 
     // Debounced, idempotent state transition for the BANNER UI only.
@@ -79,70 +76,35 @@ export default function OfflineBanner() {
       };
     }
 
-    // --- Native: active reachability probe ---
-    let pollTimer: ReturnType<typeof setInterval> | null = null;
-    let netSub: { remove: () => void } | null = null;
-    let appStateSub: { remove: () => void } | null = null;
-
-    const probe = async () => {
-      if (cancelled) return;
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
-        const res = await fetch(`${REACHABILITY_URL}?_=${Date.now()}`, {
-          method: 'GET',
-          cache: 'no-store',
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-        const offline = !res.ok; // 204/200 => reachable
-        updateNetworkState(offline);
-        setBannerOffline(offline);
-      } catch {
-        // Network error or timeout => no real internet
-        updateNetworkState(true);
-        setBannerOffline(true);
-      }
+    // --- Native: event-driven NetInfo subscription ---
+    // isConnected === false  → no interface at all (airplane mode, etc.)
+    // isInternetReachable === false → interface present but no real internet
+    // isInternetReachable === null  → not yet determined; treat as online
+    const handleNetInfoState = (state: import('@react-native-community/netinfo').NetInfoState) => {
+      const offline = state.isConnected === false || state.isInternetReachable === false;
+      console.log('[OfflineBanner] NetInfo event — isConnected:', state.isConnected, 'isInternetReachable:', state.isInternetReachable, '→ offline:', offline);
+      updateNetworkState(offline);
+      setBannerOffline(offline);
     };
 
-    // expo-network listener: only used to react instantly to interface changes.
-    // We never trust `isConnected: true` to mean "online" — we re-probe instead.
-    (async () => {
-      try {
-        const Network = await import('expo-network');
-        if (typeof Network.addNetworkStateListener === 'function') {
-          netSub = Network.addNetworkStateListener((state) => {
-            if (state.isConnected === false) {
-              // No interface at all — definitely offline. Update state immediately.
-              updateNetworkState(true);
-              setBannerOffline(true);
-            } else {
-              probe(); // interface present — verify real reachability
-            }
-          });
-        }
-      } catch {
-        // expo-network unavailable — the poll below still covers us.
-      }
-    })();
+    // Subscribe to connectivity changes.
+    const unsubscribe = NetInfo.addEventListener(handleNetInfoState);
 
-    // Re-probe when the app returns to the foreground.
-    appStateSub = AppState.addEventListener('change', (next) => {
-      if (next === 'active') probe();
+    // Re-query when the app returns to the foreground (state may have gone stale).
+    const appStateSub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') {
+        console.log('[OfflineBanner] app foregrounded — re-querying NetInfo');
+        NetInfo.fetch().then(handleNetInfoState).catch(() => {/* ignore */});
+      }
     });
 
-    probe(); // initial check
-    pollTimer = setInterval(probe, POLL_INTERVAL_MS);
+    // Initial fetch so we don't wait for the first event.
+    NetInfo.fetch().then(handleNetInfoState).catch(() => {/* ignore */});
 
     return () => {
       cancelled = true;
-      if (pollTimer) clearInterval(pollTimer);
-      try {
-        netSub?.remove();
-      } catch {/* ignore */}
-      try {
-        appStateSub?.remove();
-      } catch {/* ignore */}
+      unsubscribe();
+      appStateSub.remove();
       if (showTimerRef.current) {
         clearTimeout(showTimerRef.current);
         showTimerRef.current = null;
