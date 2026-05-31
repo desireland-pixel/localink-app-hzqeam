@@ -733,6 +733,7 @@ title: shareData.title,
                       )}
                       <Text style={styles.replyDateSeparator}> • </Text>
                       <Text style={styles.replyDate}>{replyDate}</Text>
+                      <View style={{ flex: 1 }} />
                       {selectedReplyId === reply.id && (
                         <TouchableOpacity
                           onPress={async () => {
