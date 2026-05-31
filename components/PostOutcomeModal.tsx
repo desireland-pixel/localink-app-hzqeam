@@ -9,9 +9,12 @@ import {
   Modal as RNModal,
   Platform,
   Keyboard,
+  Dimensions,
 } from 'react-native';
 import { colors, spacing, borderRadius, typography } from '@/styles/commonStyles';
 import { authenticatedPost } from '@/utils/api';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface PostOutcomeModalProps {
   visible: boolean;
@@ -121,69 +124,66 @@ export default function PostOutcomeModal({
         activeOpacity={1}
         onPress={handleDismiss}
       >
-        <View style={[styles.cardWrapper, { marginBottom: keyboardOffset }]}>
-          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-            <View style={styles.card}>
-              {submitted ? (
-                <View style={styles.thanksContainer}>
-                  <Text style={styles.thanksTitle}>Thanks for letting us know! 🙌</Text>
-                  <Text style={styles.thanksSubtitle}>Your feedback helps us improve.</Text>
-                </View>
-              ) : (
-                <>
-                  {/* Question */}
-                  <Text style={styles.question}>{questionText}</Text>
-
-                  {/* Yes / No buttons */}
-                  <View style={styles.yesNoRow}>
-                    <TouchableOpacity
-                      style={[styles.yesNoButton, selected === 'yes' && styles.yesNoButtonSelected]}
-                      onPress={() => handleSelect('yes')}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.yesNoText, selected === 'yes' && styles.yesNoTextSelected]}>
-                        Yes
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.yesNoButton, selected === 'no' && styles.yesNoButtonSelected]}
-                      onPress={() => handleSelect('no')}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.yesNoText, selected === 'no' && styles.yesNoTextSelected]}>
-                        No
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Optional comment */}
-                  <TextInput
-                    style={styles.commentInput}
-                    placeholder="Add a comment (optional)"
-                    placeholderTextColor={colors.textLight}
-                    value={comment}
-                    onChangeText={setComment}
-                    maxLength={COMMENT_MAX_LENGTH}
-                    multiline
-                    numberOfLines={3}
-                  />
-                  <Text style={styles.charCounter}>{commentLength}/{COMMENT_MAX_LENGTH}</Text>
-
-                  {/* Submit button */}
-                  <TouchableOpacity
-                    style={[styles.closeButton, !isCloseEnabled && styles.closeButtonDisabled]}
-                    onPress={handleClose}
-                    disabled={!isCloseEnabled}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.closeButtonText}>Submit</Text>
-                  </TouchableOpacity>
-                </>
-              )}
+        <TouchableOpacity activeOpacity={1} onPress={() => {}} style={[styles.card, { marginBottom: keyboardOffset }]}>
+          {submitted ? (
+            <View style={styles.thanksContainer}>
+              <Text style={styles.thanksTitle}>Thanks for letting us know! 🙌</Text>
+              <Text style={styles.thanksSubtitle}>Your feedback helps us improve.</Text>
             </View>
-          </TouchableOpacity>
-        </View>
+          ) : (
+            <>
+              {/* Question */}
+              <Text style={styles.question}>{questionText}</Text>
+
+              {/* Yes / No buttons */}
+              <View style={styles.yesNoRow}>
+                <TouchableOpacity
+                  style={[styles.yesNoButton, selected === 'yes' && styles.yesNoButtonSelected]}
+                  onPress={() => handleSelect('yes')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.yesNoText, selected === 'yes' && styles.yesNoTextSelected]}>
+                    Yes
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.yesNoButton, selected === 'no' && styles.yesNoButtonSelected]}
+                  onPress={() => handleSelect('no')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.yesNoText, selected === 'no' && styles.yesNoTextSelected]}>
+                    No
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Optional comment */}
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Add a comment (optional)"
+                placeholderTextColor={colors.textLight}
+                value={comment}
+                onChangeText={setComment}
+                maxLength={COMMENT_MAX_LENGTH}
+                multiline
+                numberOfLines={3}
+                scrollEnabled={true}
+              />
+              <Text style={styles.charCounter}>{commentLength}/{COMMENT_MAX_LENGTH}</Text>
+
+              {/* Submit button */}
+              <TouchableOpacity
+                style={[styles.closeButton, !isCloseEnabled && styles.closeButtonDisabled]}
+                onPress={handleClose}
+                disabled={!isCloseEnabled}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.closeButtonText}>Submit</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </TouchableOpacity>
       </TouchableOpacity>
     </RNModal>
   );
@@ -195,11 +195,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  cardWrapper: {
-    width: '100%',
-    alignItems: 'center',
+    padding: spacing.lg,
   },
   card: {
     backgroundColor: colors.card,
@@ -207,7 +203,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     width: '100%',
     maxWidth: 400,
-    position: 'relative',
+    height: SCREEN_HEIGHT * 0.52,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -253,10 +249,9 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   thanksContainer: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 120,
-    paddingVertical: spacing.md,
   },
   thanksTitle: {
     ...typography.h3,
@@ -278,7 +273,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     ...typography.body,
     color: colors.text,
-    minHeight: 72,
+    height: 80,
     textAlignVertical: 'top',
     marginBottom: spacing.xs,
   },
