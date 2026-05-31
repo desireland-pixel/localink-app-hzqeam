@@ -2,6 +2,23 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { BEARER_TOKEN_KEY } from "@/lib/auth";
+import { getIsOnline } from "@/utils/networkState";
+
+/**
+ * Structured API error that carries a machine-readable `code` so callers can
+ * distinguish offline errors from server errors without string-matching.
+ */
+export class ApiError extends Error {
+  code: string;
+  status?: number;
+
+  constructor(message: string, code: string, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.status = status;
+  }
+}
 
 /**
  * Backend URL is configured in app.json under expo.extra.backendUrl
@@ -48,6 +65,14 @@ export const apiCall = async <T = any>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> => {
+  if (!getIsOnline()) {
+    console.log(`[API] Blocked offline request: ${options?.method ?? 'GET'} ${endpoint}`);
+    throw new ApiError(
+      'No internet connection. Please check your connection and try again.',
+      'network'
+    );
+  }
+
   if (!isBackendConfigured()) {
     throw new Error("Backend URL not configured. Please rebuild the app.");
   }

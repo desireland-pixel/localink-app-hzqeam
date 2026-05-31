@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, Platform, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
+import { setIsOnline } from '@/utils/networkState';
 
 // A tiny, well-known endpoint that returns HTTP 204 with an empty body.
 // This is the same captive-portal / reachability check Android itself uses.
@@ -20,8 +21,14 @@ export default function OfflineBanner() {
   useEffect(() => {
     let cancelled = false;
 
-    // Debounced, idempotent state transition.
-    const setOffline = (offline: boolean) => {
+    // Update the singleton immediately — no debounce — so apiCall is blocked
+    // as soon as we know the device is offline.
+    const updateNetworkState = (offline: boolean) => {
+      setIsOnline(!offline);
+    };
+
+    // Debounced, idempotent state transition for the BANNER UI only.
+    const setBannerOffline = (offline: boolean) => {
       if (cancelled) return;
 
       if (offline) {
@@ -48,9 +55,17 @@ export default function OfflineBanner() {
 
     // --- Web: navigator.onLine is reliable and event-driven ---
     if (Platform.OS === 'web') {
-      const handleOnline = () => setOffline(false);
-      const handleOffline = () => setOffline(true);
-      setOffline(!navigator.onLine);
+      const handleOnline = () => {
+        updateNetworkState(false);
+        setBannerOffline(false);
+      };
+      const handleOffline = () => {
+        updateNetworkState(true);
+        setBannerOffline(true);
+      };
+      const initialOffline = !navigator.onLine;
+      updateNetworkState(initialOffline);
+      setBannerOffline(initialOffline);
       window.addEventListener('online', handleOnline);
       window.addEventListener('offline', handleOffline);
       return () => {
@@ -80,10 +95,13 @@ export default function OfflineBanner() {
           signal: controller.signal,
         });
         clearTimeout(timeout);
-        setOffline(!res.ok); // 204/200 => reachable
+        const offline = !res.ok; // 204/200 => reachable
+        updateNetworkState(offline);
+        setBannerOffline(offline);
       } catch {
         // Network error or timeout => no real internet
-        setOffline(true);
+        updateNetworkState(true);
+        setBannerOffline(true);
       }
     };
 
@@ -95,7 +113,9 @@ export default function OfflineBanner() {
         if (typeof Network.addNetworkStateListener === 'function') {
           netSub = Network.addNetworkStateListener((state) => {
             if (state.isConnected === false) {
-              setOffline(true); // no interface at all — definitely offline
+              // No interface at all — definitely offline. Update state immediately.
+              updateNetworkState(true);
+              setBannerOffline(true);
             } else {
               probe(); // interface present — verify real reachability
             }

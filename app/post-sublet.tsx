@@ -5,6 +5,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '@/styles/commonStyles';
 import { authenticatedPost, authenticatedPut, BACKEND_URL, getBearerToken } from '@/utils/api';
+import { getIsOnline } from '@/utils/networkState';
 import Modal from '@/components/ui/Modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { CitySearchInput } from '@/components/CitySearchInput';
@@ -137,6 +138,9 @@ export default function PostSubletScreen() {
 
           // Upload images to backend with authentication
           console.log('PostSubletScreen: Uploading images to backend');
+          if (!getIsOnline()) {
+            throw new Error('No internet connection. Please check your connection and try again.');
+          }
           const response = await fetch(`${BACKEND_URL}/api/upload/images`, {
             method: 'POST',
             body: formData,
