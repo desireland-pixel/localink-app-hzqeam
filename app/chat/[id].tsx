@@ -546,19 +546,20 @@ export default function ChatScreen() {
           </TouchableOpacity>
         )}
 
-        <Pressable style={{ flex: 1 }} onPress={() => setSelectedMessageId(null)}>
-          <FlatList
-            inverted
-            ref={flatListRef}
-            data={chatItems}
-            renderItem={renderItem}
-            keyExtractor={(item) => ('type' in item && item.type === 'date_separator' ? item.id : (item as Message).id)}
-            style={styles.messagesContainer}
-            contentContainerStyle={styles.messagesContent}
-            keyboardShouldPersistTaps="always"
-            keyboardDismissMode="on-drag"
-          />
-        </Pressable>
+        <FlatList
+          inverted
+          ref={flatListRef}
+          data={chatItems}
+          renderItem={renderItem}
+          keyExtractor={(item) => ('type' in item && item.type === 'date_separator' ? item.id : (item as Message).id)}
+          style={styles.messagesContainer}
+          contentContainerStyle={styles.messagesContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          onScrollBeginDrag={() => {
+            if (selectedMessageId) setSelectedMessageId(null);
+          }}
+        />
 
         <View style={[styles.inputContainer, { paddingBottom: Platform.OS === 'android' ? 0 : 0 }]}>
           <TextInput

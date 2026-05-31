@@ -160,7 +160,7 @@ export default function MyPostsScreen() {
     } else if (selectedTab === 'travel') {
       router.push(`/travel/${postId}`);
     } else if (selectedTab === 'community') {
-      router.push(`/carry/${postId}`);
+      router.push(`/community/${postId}`);
     }
   };
 
