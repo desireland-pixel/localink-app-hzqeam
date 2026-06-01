@@ -11,6 +11,7 @@ import { HeaderRightButton, HeaderLeftButton } from '@/components/HeaderButtons'
 import { NotificationBell } from "@/components/NotificationBell";
 import { useScreenTracking } from '@/utils/useScreenTracking';
 import { SCREEN_NAMES } from '@/utils/analytics';
+import { getIsOnline } from '@/utils/networkState';
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
@@ -67,6 +68,7 @@ export default function CommunityScreen() {
   console.log('CommunityScreen: Rendering', { topicsCount: topics.length, selectedCategory, selectedStatus });
 
   const fetchTopics = React.useCallback(async () => {
+    if (!getIsOnline()) return;
     console.log('CommunityScreen: Fetching topics');
     try {
       let endpoint = '/api/community/topics?limit=100';
@@ -161,6 +163,7 @@ export default function CommunityScreen() {
   }, [fetchTopics]);
 
   const onRefresh = () => {
+    if (!getIsOnline()) return;
     console.log('CommunityScreen: Refreshing topics');
     setRefreshing(true);
     fetchTopics();

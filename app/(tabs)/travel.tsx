@@ -12,6 +12,7 @@ import Modal from '@/components/ui/Modal';
 import { StatusBar } from 'expo-status-bar';
 import { useScreenTracking } from '@/utils/useScreenTracking';
 import { SCREEN_NAMES } from '@/utils/analytics';
+import { getIsOnline } from '@/utils/networkState';
 
 // Country-to-cities mapping for expanded country filtering (static, defined outside component)
 const COUNTRY_CITIES: { [country: string]: string[] } = {
@@ -256,6 +257,7 @@ export default function TravelScreen() {
 
   // Initial / refresh fetch (page 1)
   const fetchPage1 = useCallback(async (isRefresh = false) => {
+    if (!getIsOnline()) return;
     isFetchingPage1.current = true;
     console.log('TravelScreen: Fetching travel posts page 1, sort:', sortOption, 'from:', selectedFrom, 'to:', selectedTo);
     if (!isRefresh) {
@@ -287,6 +289,7 @@ export default function TravelScreen() {
   }, [buildQueryString, sortOption, selectedFrom, selectedTo]);
 
   const fetchFavorites = useCallback(async () => {
+    if (!getIsOnline()) return;
     try {
       console.log('TravelScreen: Fetching favorites');
       const data = await authenticatedGet<{ postId: string; postType: string }[]>('/api/favorites');
@@ -425,6 +428,7 @@ export default function TravelScreen() {
   };
 
   const onRefresh = () => {
+    if (!getIsOnline()) return;
     dismissBanner();
     console.log('TravelScreen: Pull-to-refresh');
     setRefreshing(true);

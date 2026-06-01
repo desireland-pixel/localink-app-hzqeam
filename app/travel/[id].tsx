@@ -125,13 +125,20 @@ export default function TravelDetailsScreen() {
       }
       
       safePush(`/chat/${conversationId}`);
-    } catch (err) {
-      console.error('[TravelDetails] Error creating conversation:', err);
-      const errorMsg = err instanceof Error ? err.message : 'Failed to start conversation';
-      if (errorMsg.includes('uuid') || errorMsg.includes('UUID')) {
-        setError('Unable to start conversation. Please try again later.');
-      } else {
-        setError(errorMsg);
+    } catch (err: any) {
+      const isNetworkError =
+        err?.code === 'network' ||
+        err?.message?.includes('Network request failed') ||
+        err?.message?.includes('Failed to fetch') ||
+        err?.message?.includes('No internet');
+      if (!isNetworkError) {
+        console.error('[TravelDetails] Error creating conversation:', err);
+        const errorMsg = err instanceof Error ? err.message : 'Failed to start conversation';
+        if (errorMsg.includes('uuid') || errorMsg.includes('UUID')) {
+          setError('Unable to start conversation. Please try again later.');
+        } else {
+          setError(errorMsg);
+        }
       }
     } finally {
       setContacting(false);

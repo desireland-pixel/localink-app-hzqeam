@@ -13,6 +13,7 @@ import Modal from '@/components/ui/Modal';
 import { StatusBar } from 'expo-status-bar';
 import { useScreenTracking } from '@/utils/useScreenTracking';
 import { SCREEN_NAMES } from '@/utils/analytics';
+import { getIsOnline } from '@/utils/networkState';
 
 interface Sublet {
   id: string;
@@ -229,6 +230,7 @@ export default function SubletScreen() {
 
   // Initial / refresh fetch (page 1)
   const fetchPage1 = useCallback(async (isRefresh = false) => {
+    if (!getIsOnline()) return;
     isFetchingPage1.current = true;
     console.log('SubletScreen: Fetching sublets page 1, sort:', sortOption, 'city:', selectedCity);
     if (!isRefresh) {
@@ -260,6 +262,7 @@ export default function SubletScreen() {
   }, [buildQueryString, sortOption, selectedCity]);
 
   const fetchFavorites = useCallback(async () => {
+    if (!getIsOnline()) return;
     try {
       console.log('SubletScreen: Fetching favorites');
       const data = await authenticatedGet<{ postId: string; postType: string }[]>('/api/favorites');
@@ -397,6 +400,7 @@ export default function SubletScreen() {
   };
 
   const onRefresh = () => {
+    if (!getIsOnline()) return;
     dismissBanner();
     console.log('SubletScreen: Pull-to-refresh');
     setRefreshing(true);

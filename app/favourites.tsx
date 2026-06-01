@@ -9,6 +9,7 @@ import { formatDateToDDMMYYYY } from '@/utils/cities';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useScreenTracking } from '@/utils/useScreenTracking';
 import { SCREEN_NAMES } from '@/utils/analytics';
+import { getIsOnline } from '@/utils/networkState';
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
@@ -73,6 +74,7 @@ export default function FavouritesScreen() {
   }, []);
 
   const fetchFavorites = async () => {
+    if (!getIsOnline()) return;
     console.log('FavouritesScreen: Fetching favorites');
     setLoading(true);
     try {
@@ -129,6 +131,7 @@ export default function FavouritesScreen() {
   };
 
   const onRefresh = async () => {
+    if (!getIsOnline()) return;
     console.log('FavouritesScreen: Refreshing favorites');
     setRefreshing(true);
     await fetchFavorites();

@@ -10,6 +10,7 @@ import Modal from '@/components/ui/Modal';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useScreenTracking } from '@/utils/useScreenTracking';
 import { SCREEN_NAMES } from '@/utils/analytics';
+import { getIsOnline } from '@/utils/networkState';
 
 const CATEGORY_COLORS: { [key: string]: { background: string; text: string } } = {
   'Visa': { background: '#DBEAFE', text: '#1E40AF' },
@@ -70,6 +71,7 @@ export default function MyPostsScreen() {
   }, [params.tab]);
 
   const fetchPosts = React.useCallback(async () => {
+    if (!getIsOnline()) return;
     console.log('MyPostsScreen: Fetching posts', { selectedTab });
     setLoading(true);
     try {
@@ -107,6 +109,7 @@ export default function MyPostsScreen() {
   }, [fetchPosts]);
 
   const onRefresh = async () => {
+    if (!getIsOnline()) return;
     console.log('MyPostsScreen: Refreshing posts', { selectedTab });
     setRefreshing(true);
     await fetchPosts();

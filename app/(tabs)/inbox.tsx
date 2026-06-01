@@ -11,6 +11,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { StatusBar } from 'expo-status-bar';
 import { useScreenTracking } from '@/utils/useScreenTracking';
 import { SCREEN_NAMES } from '@/utils/analytics';
+import { getIsOnline } from '@/utils/networkState';
 
 interface Conversation {
   id: string;
@@ -61,6 +62,7 @@ export default function InboxScreen() {
   const [deletingConversation, setDeletingConversation] = useState(false);
 
   const fetchConversations = React.useCallback(async () => {
+    if (!getIsOnline()) return;
     console.log('[InboxScreen] Fetching conversations');
     
     // Only show full loading spinner on initial load
@@ -180,6 +182,7 @@ export default function InboxScreen() {
   }, [fetchConversations, setupWebSocket]);
 
   const onRefresh = () => {
+    if (!getIsOnline()) return;
     setRefreshing(true);
     fetchConversations();
   };

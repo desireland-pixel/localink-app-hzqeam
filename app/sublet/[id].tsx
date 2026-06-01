@@ -124,12 +124,19 @@ export default function SubletDetailsScreen() {
       
       safePush(`/chat/${conversationId}`);
     } catch (error: any) {
-      console.error('SubletDetailsScreen: Error creating conversation', error);
-      const errorMsg = error.message || 'Failed to start conversation';
-      if (errorMsg.includes('uuid') || errorMsg.includes('UUID')) {
-        setError('Unable to start conversation. Please try again later.');
-      } else {
-        setError(errorMsg);
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch') ||
+        error?.message?.includes('No internet');
+      if (!isNetworkError) {
+        console.error('SubletDetailsScreen: Error creating conversation', error);
+        const errorMsg = error.message || 'Failed to start conversation';
+        if (errorMsg.includes('uuid') || errorMsg.includes('UUID')) {
+          setError('Unable to start conversation. Please try again later.');
+        } else {
+          setError(errorMsg);
+        }
       }
     }
   };

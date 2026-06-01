@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { StatusBar } from 'expo-status-bar';
 import { useScreenTracking } from '@/utils/useScreenTracking';
 import { SCREEN_NAMES } from '@/utils/analytics';
+import { getIsOnline } from '@/utils/networkState';
 
 interface CommunityTopic {
   id: string;
@@ -162,6 +163,7 @@ export default function CommunityScreen() {
 
   // Initial / refresh fetch (page 1)
   const fetchPage1 = useCallback(async (isRefresh = false) => {
+    if (!getIsOnline()) return;
     isFetchingPage1.current = true;
     console.log('CommunityScreen: Fetching community topics page 1, sort:', sortOption, 'city:', selectedCity);
     if (!isRefresh) {
@@ -210,6 +212,7 @@ export default function CommunityScreen() {
   }, [buildQueryString, sortOption, selectedCity, user?.id]);
 
   const fetchFavorites = useCallback(async () => {
+    if (!getIsOnline()) return;
     try {
       console.log('CommunityScreen: Fetching favorites');
       const data = await authenticatedGet<{ postId: string; postType: string }[]>('/api/favorites');
@@ -381,6 +384,7 @@ export default function CommunityScreen() {
   };
 
   const onRefresh = () => {
+    if (!getIsOnline()) return;
     dismissBanner();
     console.log('CommunityScreen: Pull-to-refresh');
     setRefreshing(true);
