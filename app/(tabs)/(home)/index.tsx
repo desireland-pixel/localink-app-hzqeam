@@ -111,7 +111,13 @@ export default function CommunityScreen() {
       
       setTopics(sortedTopics);
     } catch (error: any) {
-      console.error('CommunityScreen: Error fetching topics', error);
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('CommunityScreen: Error fetching topics', error);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -176,7 +182,13 @@ export default function CommunityScreen() {
       await authenticatedPost('/api/favorites', { postId: topicId, postType: 'community' });
       console.log('CommunityScreen: Favorited topic', topicId);
     } catch (error: any) {
-      console.error('CommunityScreen: Error favoriting topic', error);
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('CommunityScreen: Error favoriting topic', error);
+      }
     }
   };
 
@@ -188,8 +200,14 @@ export default function CommunityScreen() {
         const response = await apiGet<{ cities: string[] }>(`/api/cities/search?q=${encodeURIComponent(text)}&limit=8`);
         setCitySuggestions(response.cities);
         setShowCitySuggestions(response.cities.length > 0);
-      } catch (error) {
-        console.error('CommunityScreen: Error searching cities:', error);
+      } catch (error: any) {
+        const isNetworkError =
+          error?.code === 'network' ||
+          error?.message?.includes('Network request failed') ||
+          error?.message?.includes('Failed to fetch');
+        if (!isNetworkError) {
+          console.error('CommunityScreen: Error searching cities:', error);
+        }
         setCitySuggestions([]);
         setShowCitySuggestions(false);
       }

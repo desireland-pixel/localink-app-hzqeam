@@ -89,7 +89,13 @@ export default function MyPostsScreen() {
       const sortedData = filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setPosts(sortedData);
     } catch (error: any) {
-      console.error('MyPostsScreen: Error fetching posts', error);
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('MyPostsScreen: Error fetching posts', error);
+      }
       setError(error.message || 'Failed to load posts');
     } finally {
       setLoading(false);
@@ -121,7 +127,13 @@ export default function MyPostsScreen() {
       setPostToClose(null);
       await fetchPosts();
     } catch (error: any) {
-      console.error('MyPostsScreen: Error closing post', error);
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('MyPostsScreen: Error closing post', error);
+      }
       setError(error.message || 'Failed to close post');
     } finally {
       setClosingPostId(null);
@@ -146,7 +158,13 @@ export default function MyPostsScreen() {
       setPostToDelete(null);
       await fetchPosts();
     } catch (error: any) {
-      console.error('MyPostsScreen: Error deleting post', error);
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('MyPostsScreen: Error deleting post', error);
+      }
       setError(error.message || 'Failed to delete post');
     } finally {
       setDeletingPostId(null);

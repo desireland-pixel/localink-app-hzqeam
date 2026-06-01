@@ -93,7 +93,13 @@ export default function InboxScreen() {
         setInitialLoadComplete(true);
       }
     } catch (error: any) {
-      console.error('[InboxScreen] Error fetching conversations', error);
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('[InboxScreen] Error fetching conversations', error);
+      }
       setConversations([]);
       setError(error.message || 'Failed to load conversations');
     } finally {
@@ -196,7 +202,13 @@ export default function InboxScreen() {
       setConversations(prev => prev.filter(c => c.id !== conversationToDelete));
       await fetchUnreadCount();
     } catch (error: any) {
-      console.error('[InboxScreen] Error deleting conversation', error);
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('[InboxScreen] Error deleting conversation', error);
+      }
       setShowDeleteModal(false);
       setConversationToDelete(null);
       setSelectedConversationId(null);

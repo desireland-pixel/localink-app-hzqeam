@@ -115,7 +115,13 @@ export default function FavouritesScreen() {
       });
       setFavorites(sortedFavorites);
     } catch (error: any) {
-      console.error('FavouritesScreen: Error fetching favorites', error);
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('FavouritesScreen: Error fetching favorites', error);
+      }
       setError(error.message || 'Failed to load favorites');
     } finally {
       setLoading(false);
@@ -137,7 +143,13 @@ export default function FavouritesScreen() {
     try {
       await authenticatedDelete(`/api/favorites/${postId}?postType=${postType}`, {});
     } catch (error: any) {
-      console.error('FavouritesScreen: Error removing favorite', error);
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('FavouritesScreen: Error removing favorite', error);
+      }
       await fetchFavorites();
     }
   };

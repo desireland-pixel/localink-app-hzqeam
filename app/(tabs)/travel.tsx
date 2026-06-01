@@ -164,8 +164,14 @@ export default function TravelScreen() {
           setShowDisclaimerModal(true);
         }
         setDisclaimerAccepted(response.travelDisclaimerAccepted);
-      } catch (error) {
-        console.error('TravelScreen: Error checking disclaimer:', error);
+      } catch (error: any) {
+        const isNetworkError =
+          error?.code === 'network' ||
+          error?.message?.includes('Network request failed') ||
+          error?.message?.includes('Failed to fetch');
+        if (!isNetworkError) {
+          console.error('TravelScreen: Error checking disclaimer:', error);
+        }
         setShowDisclaimerModal(true);
       } finally {
         setDisclaimerCheckLoading(false);
@@ -182,8 +188,14 @@ export default function TravelScreen() {
       console.log('TravelScreen: Travel disclaimer accepted');
       setDisclaimerAccepted(true);
       setShowDisclaimerModal(false);
-    } catch (error) {
-      console.error('TravelScreen: Error accepting travel disclaimer:', error);
+    } catch (error: any) {
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('TravelScreen: Error accepting travel disclaimer:', error);
+      }
     }
   };
 
@@ -258,8 +270,14 @@ export default function TravelScreen() {
       setPosts(items);
       setPage(1);
       setHasMore(more);
-    } catch (error) {
-      console.error('TravelScreen: Error fetching travel posts', error);
+    } catch (error: any) {
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('TravelScreen: Error fetching travel posts', error);
+      }
       setPosts([]);
     } finally {
       isFetchingPage1.current = false;
@@ -274,8 +292,14 @@ export default function TravelScreen() {
       const data = await authenticatedGet<{ postId: string; postType: string }[]>('/api/favorites');
       const travelFavorites = data.filter(f => f.postType === 'travel').map(f => f.postId);
       setFavorites(new Set(travelFavorites));
-    } catch (error) {
-      console.error('TravelScreen: Error fetching favorites', error);
+    } catch (error: any) {
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('TravelScreen: Error fetching favorites', error);
+      }
     }
   }, []);
 
@@ -327,8 +351,14 @@ export default function TravelScreen() {
       });
       setPage(nextPage);
       setHasMore(more);
-    } catch (error) {
-      console.error('TravelScreen: Error loading more travel posts', error);
+    } catch (error: any) {
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('TravelScreen: Error loading more travel posts', error);
+      }
     } finally {
       setLoadingMore(false);
     }
@@ -382,8 +412,14 @@ export default function TravelScreen() {
       } else {
         await authenticatedPost('/api/favorites', { postId, postType: 'travel' });
       }
-    } catch (error) {
-      console.error('TravelScreen: Error toggling favorite', error);
+    } catch (error: any) {
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('TravelScreen: Error toggling favorite', error);
+      }
       setFavorites(favorites);
     }
   };
@@ -404,8 +440,14 @@ export default function TravelScreen() {
         const response = await apiGet<{ cities: string[] }>(`/api/cities/search?q=${encodeURIComponent(text)}&limit=8&type=travel`);
         setFromSuggestions(response.cities);
         setShowFromSuggestions(response.cities.length > 0);
-      } catch (error) {
-        console.error('TravelScreen: Error searching from cities:', error);
+      } catch (error: any) {
+        const isNetworkError =
+          error?.code === 'network' ||
+          error?.message?.includes('Network request failed') ||
+          error?.message?.includes('Failed to fetch');
+        if (!isNetworkError) {
+          console.error('TravelScreen: Error searching from cities:', error);
+        }
         setFromSuggestions([]);
         setShowFromSuggestions(false);
       }
@@ -423,8 +465,14 @@ export default function TravelScreen() {
         const response = await apiGet<{ cities: string[] }>(`/api/cities/search?q=${encodeURIComponent(text)}&limit=8&type=travel`);
         setToSuggestions(response.cities);
         setShowToSuggestions(response.cities.length > 0);
-      } catch (error) {
-        console.error('TravelScreen: Error searching to cities:', error);
+      } catch (error: any) {
+        const isNetworkError =
+          error?.code === 'network' ||
+          error?.message?.includes('Network request failed') ||
+          error?.message?.includes('Failed to fetch');
+        if (!isNetworkError) {
+          console.error('TravelScreen: Error searching to cities:', error);
+        }
         setToSuggestions([]);
         setShowToSuggestions(false);
       }

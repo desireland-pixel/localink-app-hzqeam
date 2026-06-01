@@ -193,8 +193,14 @@ export default function CommunityScreen() {
       setTopics(items);
       setPage(1);
       setHasMore(more);
-    } catch (error) {
-      console.error('CommunityScreen: Error fetching community topics', error);
+    } catch (error: any) {
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('CommunityScreen: Error fetching community topics', error);
+      }
       setTopics([]);
     } finally {
       isFetchingPage1.current = false;
@@ -209,8 +215,14 @@ export default function CommunityScreen() {
       const data = await authenticatedGet<{ postId: string; postType: string }[]>('/api/favorites');
       const communityFavorites = data.filter(f => f.postType === 'community').map(f => f.postId);
       setFavorites(new Set(communityFavorites));
-    } catch (error) {
-      console.error('CommunityScreen: Error fetching favorites', error);
+    } catch (error: any) {
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('CommunityScreen: Error fetching favorites', error);
+      }
     }
   }, []);
 
@@ -274,8 +286,14 @@ export default function CommunityScreen() {
       });
       setPage(nextPage);
       setHasMore(more);
-    } catch (error) {
-      console.error('CommunityScreen: Error loading more community topics', error);
+    } catch (error: any) {
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('CommunityScreen: Error loading more community topics', error);
+      }
     } finally {
       setLoadingMore(false);
     }
@@ -350,8 +368,14 @@ export default function CommunityScreen() {
       } else {
         await authenticatedPost('/api/favorites', { postId, postType: 'community' });
       }
-    } catch (error) {
-      console.error('CommunityScreen: Error toggling favorite', error);
+    } catch (error: any) {
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('CommunityScreen: Error toggling favorite', error);
+      }
       setFavorites(favorites);
     }
   };
@@ -379,8 +403,14 @@ export default function CommunityScreen() {
         
         setCitySuggestions(suggestions);
         setShowCitySuggestions(suggestions.length > 0);
-      } catch (error) {
-        console.error('CommunityScreen: Error searching cities:', error);
+      } catch (error: any) {
+        const isNetworkError =
+          error?.code === 'network' ||
+          error?.message?.includes('Network request failed') ||
+          error?.message?.includes('Failed to fetch');
+        if (!isNetworkError) {
+          console.error('CommunityScreen: Error searching cities:', error);
+        }
         setCitySuggestions([]);
         setShowCitySuggestions(false);
       }

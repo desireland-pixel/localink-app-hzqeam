@@ -140,8 +140,14 @@ export default function SubletScreen() {
           setShowDisclaimerModal(true);
         }
         setDisclaimerAccepted(response.subletDisclaimerAccepted);
-      } catch (error) {
-        console.error('SubletScreen: Error checking disclaimer:', error);
+      } catch (error: any) {
+        const isNetworkError =
+          error?.code === 'network' ||
+          error?.message?.includes('Network request failed') ||
+          error?.message?.includes('Failed to fetch');
+        if (!isNetworkError) {
+          console.error('SubletScreen: Error checking disclaimer:', error);
+        }
         setShowDisclaimerModal(true);
       } finally {
         setDisclaimerCheckLoading(false);
@@ -158,8 +164,14 @@ export default function SubletScreen() {
       console.log('SubletScreen: Disclaimer accepted');
       setDisclaimerAccepted(true);
       setShowDisclaimerModal(false);
-    } catch (error) {
-      console.error('SubletScreen: Error accepting disclaimer:', error);
+    } catch (error: any) {
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('SubletScreen: Error accepting disclaimer:', error);
+      }
     }
   };
 
@@ -231,8 +243,14 @@ export default function SubletScreen() {
       setSublets(items);
       setPage(1);
       setHasMore(more);
-    } catch (error) {
-      console.error('SubletScreen: Error fetching sublets', error);
+    } catch (error: any) {
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('SubletScreen: Error fetching sublets', error);
+      }
       setSublets([]);
     } finally {
       isFetchingPage1.current = false;
@@ -247,8 +265,14 @@ export default function SubletScreen() {
       const data = await authenticatedGet<{ postId: string; postType: string }[]>('/api/favorites');
       const subletFavorites = data.filter(f => f.postType === 'sublet').map(f => f.postId);
       setFavorites(new Set(subletFavorites));
-    } catch (error) {
-      console.error('SubletScreen: Error fetching favorites', error);
+    } catch (error: any) {
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('SubletScreen: Error fetching favorites', error);
+      }
     }
   }, []);
 
@@ -299,8 +323,14 @@ export default function SubletScreen() {
       });
       setPage(nextPage);
       setHasMore(more);
-    } catch (error) {
-      console.error('SubletScreen: Error loading more sublets', error);
+    } catch (error: any) {
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('SubletScreen: Error loading more sublets', error);
+      }
     } finally {
       setLoadingMore(false);
     }
@@ -354,8 +384,14 @@ export default function SubletScreen() {
       } else {
         await authenticatedPost('/api/favorites', { postId, postType: 'sublet' });
       }
-    } catch (error) {
-      console.error('SubletScreen: Error toggling favorite', error);
+    } catch (error: any) {
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('SubletScreen: Error toggling favorite', error);
+      }
       setFavorites(favorites);
     }
   };
@@ -389,8 +425,14 @@ export default function SubletScreen() {
         const response = await apiGet<{ cities: string[] }>(`/api/cities/search?q=${encodeURIComponent(text)}&limit=8`);
         setCitySuggestions(response.cities);
         setShowCitySuggestions(response.cities.length > 0);
-      } catch (error) {
-        console.error('SubletScreen: Error searching cities:', error);
+      } catch (error: any) {
+        const isNetworkError =
+          error?.code === 'network' ||
+          error?.message?.includes('Network request failed') ||
+          error?.message?.includes('Failed to fetch');
+        if (!isNetworkError) {
+          console.error('SubletScreen: Error searching cities:', error);
+        }
         setCitySuggestions([]);
         setShowCitySuggestions(false);
       }
