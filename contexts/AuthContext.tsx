@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 import * as Linking from "expo-linking";
 import { authClient, setBearerToken, clearAuthTokens } from "@/lib/auth";
 import { authenticatedGet, getBearerToken, BACKEND_URL } from "@/utils/api";
+import { getIsOnline } from "@/utils/networkState";
 import { identify, capture, getPostHog } from "@/utils/analytics";
 
 
@@ -217,7 +218,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authenticatedGet<{ unreadConversationCount: number }>('/api/conversations/unread-count');
       setUnreadCount(response.unreadConversationCount || 0);
     } catch (error: any) {
-      console.error('[AuthContext] Failed to fetch unread count:', error);
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('[AuthContext] Failed to fetch unread count:', error);
+      }
       setUnreadCount(0);
     }
   }, []);
@@ -227,7 +234,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authenticatedGet<{ unreadTopicsCount: number }>('/api/community/unread-count');
       setCommunityUnreadCount(response.unreadTopicsCount || 0);
     } catch (error: any) {
-      console.error('[AuthContext] Failed to fetch community unread count:', error);
+      const isNetworkError =
+        error?.code === 'network' ||
+        error?.message?.includes('Network request failed') ||
+        error?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('[AuthContext] Failed to fetch community unread count:', error);
+      }
       setCommunityUnreadCount(0);
     }
   }, []);
@@ -271,8 +284,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       fetchUnreadCountInternal();
       fetchCommunityUnreadCountInternal();
       const unreadInterval = setInterval(() => {
-        fetchUnreadCountInternal();
-        fetchCommunityUnreadCountInternal();
+        if (getIsOnline()) {
+          fetchUnreadCountInternal();
+          fetchCommunityUnreadCountInternal();
+        }
       }, 30000);
 
       return () => {
