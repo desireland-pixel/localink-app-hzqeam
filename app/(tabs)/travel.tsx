@@ -372,6 +372,7 @@ export default function TravelScreen() {
   // Trigger fresh page-1 load when sort or city filters change
   useEffect(() => {
     hasLoadedOnce.current = false;
+    setPosts([]);
     fetchPage1();
     fetchFavorites();
   // eslint-disable-next-line react-hooks/exhaustive-deps

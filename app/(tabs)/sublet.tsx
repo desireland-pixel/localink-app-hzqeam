@@ -344,6 +344,7 @@ export default function SubletScreen() {
   // Trigger fresh page-1 load when sort or city changes
   useEffect(() => {
     hasLoadedOnce.current = false;
+    setSublets([]);
     fetchPage1();
     fetchFavorites();
   // eslint-disable-next-line react-hooks/exhaustive-deps

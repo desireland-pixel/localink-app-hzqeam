@@ -307,6 +307,7 @@ export default function CommunityScreen() {
   // Trigger fresh page-1 load when sort or city changes
   useEffect(() => {
     hasLoadedOnce.current = false;
+    setTopics([]);
     fetchPage1();
     fetchFavorites();
   // eslint-disable-next-line react-hooks/exhaustive-deps
