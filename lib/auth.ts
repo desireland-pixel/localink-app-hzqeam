@@ -3,6 +3,7 @@ import { expoClient } from "@better-auth/expo/client";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
+import { invalidateTokenCache } from "@/utils/api";
 
 const API_URL = Constants.expoConfig?.extra?.backendUrl || "";
 
@@ -44,6 +45,7 @@ export async function setBearerToken(token: string) {
   } else {
     await SecureStore.setItemAsync(BEARER_TOKEN_KEY, token);
   }
+  invalidateTokenCache();
 }
 
 export async function clearAuthTokens() {
@@ -52,6 +54,7 @@ export async function clearAuthTokens() {
   } else {
     await SecureStore.deleteItemAsync(BEARER_TOKEN_KEY);
   }
+  invalidateTokenCache();
 }
 
 export { API_URL };

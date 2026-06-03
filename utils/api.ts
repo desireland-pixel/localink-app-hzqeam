@@ -20,6 +20,22 @@ export class ApiError extends Error {
   }
 }
 
+// ---------------------------------------------------------------------------
+// In-memory token cache
+// ---------------------------------------------------------------------------
+// We keep the bearer token in module memory for a short window so that bursts
+// of API calls (e.g. parallel list + favorites fetch on a screen) don't each
+// hit SecureStore / localStorage. The cache is invalidated whenever the token
+// is written or cleared via lib/auth.ts, and whenever the server returns 401.
+const TOKEN_CACHE_TTL_MS = 60_000; // 1 minute
+let _cachedToken: string | null = null;
+let _cachedTokenAt = 0;
+
+export const invalidateTokenCache = (): void => {
+  _cachedToken = null;
+  _cachedTokenAt = 0;
+};
+
 /**
  * Backend URL is configured in app.json under expo.extra.backendUrl
  * It is set automatically when the backend is deployed
@@ -41,12 +57,20 @@ export const isBackendConfigured = (): boolean => {
  * @returns Bearer token or null if not found
  */
 export const getBearerToken = async (): Promise<string | null> => {
+  // Serve from memory cache when fresh.
+  if (_cachedToken && Date.now() - _cachedTokenAt < TOKEN_CACHE_TTL_MS) {
+    return _cachedToken;
+  }
   try {
+    let token: string | null;
     if (Platform.OS === "web") {
-      return localStorage.getItem(BEARER_TOKEN_KEY);
+      token = localStorage.getItem(BEARER_TOKEN_KEY);
     } else {
-      return await SecureStore.getItemAsync(BEARER_TOKEN_KEY);
+      token = await SecureStore.getItemAsync(BEARER_TOKEN_KEY);
     }
+    _cachedToken = token;
+    _cachedTokenAt = Date.now();
+    return token;
   } catch (error) {
     console.error("[API] Error retrieving bearer token:", error);
     return null;
@@ -99,6 +123,11 @@ export const apiCall = async <T = any>(
     if (!response.ok) {
       const text = await response.text();
       console.error(`API ← ${response.status} ERROR`, text);
+      // If the server rejected our credentials, drop the cached token so the
+      // next call re-reads from storage (where the real token may have rotated).
+      if (response.status === 401) {
+        invalidateTokenCache();
+      }
       throw new Error(`API error: ${response.status} - ${text}`);
     }
 
