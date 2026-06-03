@@ -536,7 +536,7 @@ export default function TravelScreen() {
     if (loadingMore) {
       return <ActivityIndicator style={{ paddingVertical: 24 }} color={colors.primary} />;
     }
-    if (!hasMore && posts.length > 0) {
+    if (!hasMore && visibleItems.length > 0) {
       return <Text style={styles.endOfListText}>You've seen all posts</Text>;
     }
     return null;
@@ -976,7 +976,7 @@ export default function TravelScreen() {
         <View style={{ flex: 1 }}>
           <FlatList
             ref={flatListRef}
-            key={`travel-${selectedFrom}-${selectedTo}-${params.filters || ''}`}
+            key={`travel-${selectedFrom}-${selectedTo}-${params.filters || ''}-${searchQuery}`}
             data={visibleItems}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
