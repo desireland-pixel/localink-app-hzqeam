@@ -128,8 +128,8 @@ export function registerSubletRoutes(app: App) {
       // Determine sort order
       let orderByClause: any;
       if (filters.sort === 'earliest') {
-        // Earliest: sort by availableFrom DESC (reversed logic - latest dates first)
-        orderByClause = desc(schema.sublets.availableFrom);
+        // Earliest: sort by availableFrom ASC (earliest dates first)
+        orderByClause = asc(schema.sublets.availableFrom);
       } else if (filters.sort === 'cheapest') {
         // Cheapest: sort by rent ASC
         orderByClause = asc(schema.sublets.rent);
