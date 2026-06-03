@@ -151,9 +151,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
-        setUserRef.current(null);
-        setProfileRef.current(null);
-        await clearAuthTokens();
+        console.log('[AuthContext] Session check returned non-OK status, attempting silent recovery via authClient.getSession()');
+        // Safety-net: try a silent refresh via Better Auth before logging out.
+        // This recovers edge cases where the cached bearer token is stale but
+        // Better Auth still has valid underlying credentials.
+        let recovered = false;
+        try {
+          const sessionResult = await authClient.getSession();
+          if (sessionResult?.data?.session?.token && sessionResult?.data?.user) {
+            console.log('[AuthContext] Silent recovery succeeded — saving new token and restoring session');
+            await setBearerToken(sessionResult.data.session.token);
+            const recoveredUser = sessionResult.data.user as User;
+            setUserRef.current(recoveredUser);
+            identify(recoveredUser.id, { email: recoveredUser.email, name: recoveredUser.name });
+            if (!appOpenFiredRef.current) {
+              appOpenFiredRef.current = true;
+              try {
+                capture('app_open');
+              } catch (e) {
+                // fire-and-forget
+              }
+            }
+            await fetchProfileStandalone();
+            recovered = true;
+          } else {
+            console.log('[AuthContext] Silent recovery returned no valid session — proceeding to logout');
+          }
+        } catch (recoveryError) {
+          console.log('[AuthContext] Silent recovery threw an error — proceeding to logout:', recoveryError);
+        }
+        if (!recovered) {
+          setUserRef.current(null);
+          setProfileRef.current(null);
+          await clearAuthTokens();
+        }
         return;
       }
 
