@@ -343,6 +343,7 @@ export default function SubletScreen() {
 
   // Trigger fresh page-1 load when sort or city changes
   useEffect(() => {
+    hasLoadedOnce.current = false;
     fetchPage1();
     fetchFavorites();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -785,6 +786,7 @@ export default function SubletScreen() {
             data={visibleItems}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
+            style={styles.flatList}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
             }
@@ -1048,7 +1050,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl * 3,
   },
   emptyEmoji: {
     fontSize: 64,
@@ -1075,6 +1076,9 @@ const styles = StyleSheet.create({
   requestButtonText: {
     ...typography.button,
     color: '#FFFFFF',
+  },
+  flatList: {
+    flex: 1,
   },
   flatListContent: {
     paddingHorizontal: spacing.md,

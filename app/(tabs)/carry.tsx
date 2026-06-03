@@ -100,6 +100,7 @@ export default function CommunityScreen() {
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFetchingPage1 = useRef(false);
+  const hasLoadedOnce = useRef(false);
 
   // Cleanup banner timer on unmount
   useEffect(() => {
@@ -193,6 +194,7 @@ export default function CommunityScreen() {
       }
 
       setTopics(items);
+      hasLoadedOnce.current = true;
       setPage(1);
       setHasMore(more);
     } catch (error: any) {
@@ -304,6 +306,7 @@ export default function CommunityScreen() {
 
   // Trigger fresh page-1 load when sort or city changes
   useEffect(() => {
+    hasLoadedOnce.current = false;
     fetchPage1();
     fetchFavorites();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -312,14 +315,14 @@ export default function CommunityScreen() {
   useFocusEffect(
     useCallback(() => {
       console.log('CommunityScreen: Screen focused');
-      if (topics.length === 0) {
+      if (!hasLoadedOnce.current) {
         fetchPage1();
       } else {
         checkForNewPosts();
       }
       fetchFavorites();
       fetchCommunityUnreadCount();
-    }, [topics.length, fetchPage1, fetchFavorites, fetchCommunityUnreadCount, checkForNewPosts])
+    }, [fetchPage1, fetchFavorites, fetchCommunityUnreadCount, checkForNewPosts])
   );
 
   // Client-side filter: category/status from filter page + search query
@@ -773,6 +776,7 @@ export default function CommunityScreen() {
             data={filteredTopics}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
+            style={styles.flatList}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
             }
@@ -1031,7 +1035,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl * 3,
   },
   emptyEmoji: {
     fontSize: 64,
@@ -1058,6 +1061,9 @@ const styles = StyleSheet.create({
   requestButtonText: {
     ...typography.button,
     color: '#FFFFFF',
+  },
+  flatList: {
+    flex: 1,
   },
   flatListContent: {
     paddingHorizontal: spacing.md,
