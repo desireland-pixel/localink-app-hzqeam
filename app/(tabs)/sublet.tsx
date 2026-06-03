@@ -481,7 +481,7 @@ export default function SubletScreen() {
     if (loadingMore) {
       return <ActivityIndicator style={{ paddingVertical: 24 }} color={colors.primary} />;
     }
-    if (!hasMore && sublets.length > 0) {
+    if (!hasMore && visibleItems.length > 0) {
       return <Text style={styles.endOfListText}>You've seen all posts</Text>;
     }
     return null;
@@ -783,7 +783,7 @@ export default function SubletScreen() {
         <View style={{ flex: 1 }}>
           <FlatList
             ref={flatListRef}
-            key={`sublet-${selectedCity}-${params.filters || ''}`}
+            key={`sublet-${selectedCity}-${params.filters || ''}-${searchQuery}`}
             data={visibleItems}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}

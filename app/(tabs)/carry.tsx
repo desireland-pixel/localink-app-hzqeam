@@ -459,7 +459,7 @@ export default function CommunityScreen() {
     if (loadingMore) {
       return <ActivityIndicator style={{ paddingVertical: 24 }} color={colors.primary} />;
     }
-    if (!hasMore && topics.length > 0) {
+    if (!hasMore && filteredTopics.length > 0) {
       return <Text style={styles.endOfListText}>You've seen all posts</Text>;
     }
     return null;
