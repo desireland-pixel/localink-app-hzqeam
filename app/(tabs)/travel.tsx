@@ -976,6 +976,7 @@ export default function TravelScreen() {
         <View style={{ flex: 1 }}>
           <FlatList
             ref={flatListRef}
+            key={`travel-${selectedFrom}-${selectedTo}-${params.filters || ''}`}
             data={visibleItems}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}

@@ -783,6 +783,7 @@ export default function SubletScreen() {
         <View style={{ flex: 1 }}>
           <FlatList
             ref={flatListRef}
+            key={`sublet-${selectedCity}-${params.filters || ''}`}
             data={visibleItems}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}

@@ -773,6 +773,7 @@ export default function CommunityScreen() {
         <View style={{ flex: 1 }}>
           <FlatList
             ref={flatListRef}
+            key={`community-${selectedCity}-${params.filters || ''}-${searchQuery}`}
             data={filteredTopics}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
