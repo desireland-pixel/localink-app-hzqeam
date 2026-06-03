@@ -161,7 +161,7 @@ export default function RatingPrompt() {
         <View style={styles.card}>
           <Text style={styles.title}>Enjoying LokaLinc?</Text>
           <Text style={styles.body}>
-            Do you find the app useful? Please rate us on the App Store / Play Store.
+            Do you find the app useful? Please rate the app.
           </Text>
 
           <View style={styles.spacerLg} />
