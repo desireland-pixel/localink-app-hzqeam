@@ -236,7 +236,10 @@ export default function CommunityDetailsScreen() {
   const fetchTopic = React.useCallback(async () => {
     try {
       console.log('CommunityDetailsScreen: Fetching topic', id);
-      const data = await authenticatedGet<CommunityTopic>(`/api/community/topics/${id}`);
+      const [data, favoriteCheck] = await Promise.all([
+        authenticatedGet<CommunityTopic>(`/api/community/topics/${id}`),
+        authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=community`),
+      ]);
       
       const isOwner = data.userId === user?.id;
       
@@ -281,7 +284,6 @@ export default function CommunityDetailsScreen() {
         }
       }
       
-      const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=community`);
       setIsFavorited(favoriteCheck.isFavorited);
       
       if (isOwner) {

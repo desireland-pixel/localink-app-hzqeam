@@ -102,6 +102,7 @@ export default function SubletScreen() {
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFetchingPage1 = useRef(false);
+  const hasLoadedOnce = useRef(false);
 
   // Cleanup banner timer on unmount
   useEffect(() => {
@@ -245,6 +246,7 @@ export default function SubletScreen() {
       setSublets(items);
       setPage(1);
       setHasMore(more);
+      hasLoadedOnce.current = true;
     } catch (error: any) {
       const isNetworkError =
         error?.code === 'network' ||
@@ -349,13 +351,13 @@ export default function SubletScreen() {
   useFocusEffect(
     useCallback(() => {
       console.log('SubletScreen: Screen focused');
-      if (sublets.length === 0) {
+      if (!hasLoadedOnce.current) {
         fetchPage1();
       } else {
         checkForNewPosts();
       }
       fetchFavorites();
-    }, [sublets.length, fetchPage1, fetchFavorites, checkForNewPosts])
+    }, [fetchPage1, fetchFavorites, checkForNewPosts])
   );
 
   // Client-side search filter only (sort/city handled by backend)

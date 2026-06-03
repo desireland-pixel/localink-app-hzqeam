@@ -133,7 +133,8 @@ export default function CommunityScreen() {
     React.useCallback(() => {
       console.log('CommunityScreen: Screen focused, refreshing topics');
       fetchTopics();
-    }, [fetchTopics])
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
   );
 
   // Auto-scroll to unread post when topics are loaded
@@ -160,7 +161,8 @@ export default function CommunityScreen() {
 
   useEffect(() => {
     fetchTopics();
-  }, [fetchTopics]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory, selectedStatus, sortOption, selectedCity]);
 
   const onRefresh = () => {
     if (!getIsOnline()) return;

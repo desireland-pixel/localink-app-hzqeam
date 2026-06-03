@@ -74,13 +74,13 @@ export default function TravelDetailsScreen() {
     
     try {
       console.log('[TravelDetails] Fetching travel post:', id);
-      const data = await authenticatedGet<TravelPost>(`/api/travel-posts/${id}`);
+      const [data, favoriteCheck] = await Promise.all([
+        authenticatedGet<TravelPost>(`/api/travel-posts/${id}`),
+        authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=travel`),
+      ]);
       setTravelPost(data);
       console.log('TravelDetailsScreen: Fetched travel post', data?.id);
       capture('view_post', { post_type: 'travel', post_id: id });
-      
-      // Check if favorited
-      const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=travel`);
       setIsFavorited(favoriteCheck.isFavorited);
       
       if (!initialLoadComplete) {

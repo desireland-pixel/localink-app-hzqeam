@@ -94,15 +94,6 @@ export const apiCall = async <T = any>(
       signal: controller.signal,
     };
 
-    // Always send the token if we have it (needed for cross-domain/iframe support)
-    const token = await getBearerToken();
-    if (token) {
-      fetchOptions.headers = {
-        ...fetchOptions.headers,
-        Authorization: `Bearer ${token}`,
-      };
-    }
-
     const response = await fetch(url, fetchOptions);
 
     if (!response.ok) {

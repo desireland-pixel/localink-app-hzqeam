@@ -72,13 +72,13 @@ export default function SubletDetailsScreen() {
     }
     
     try {
-      const data = await authenticatedGet<Sublet>(`/api/sublets/${id}`);
+      const [data, favoriteCheck] = await Promise.all([
+        authenticatedGet<Sublet>(`/api/sublets/${id}`),
+        authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=sublet`),
+      ]);
       setSublet(data);
       console.log('SubletDetailsScreen: Fetching sublet', data?.id);
       capture('view_post', { post_type: 'sublet', post_id: id });
-      
-      // Check if favorited
-      const favoriteCheck = await authenticatedGet<{ isFavorited: boolean }>(`/api/favorites/check/${id}?postType=sublet`);
       setIsFavorited(favoriteCheck.isFavorited);
       
       if (!initialLoadComplete) {
