@@ -1285,7 +1285,6 @@ const styles = StyleSheet.create({
   flatListEmpty: {
     flex: 1,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
   },
   endOfListText: {
     textAlign: 'center',
