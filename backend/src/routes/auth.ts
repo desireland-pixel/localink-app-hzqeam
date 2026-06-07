@@ -546,7 +546,7 @@ export function registerAuthRoutes(app: App) {
 
       // Send password reset email
       const { resend } = await import('@specific-dev/framework');
-      const resetLink = `https://vcs2njfzx2xybxusabbwqxgt4dssp356.app.specular.dev/api/auth/reset-redirect?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
+      const resetLink = `https://p4t7z7vvqezta76k2rfz5t4kn9gytc5z.app.specular.dev/api/auth/reset-redirect?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
 
       resend.emails.send({
         from: 'LokaLinc <noreply@lokalinc.de>',
