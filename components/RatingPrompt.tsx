@@ -16,8 +16,8 @@ const STORAGE_STATUS = "@lokalinc/rating_status";
 const STORAGE_SNOOZE_AT = "@lokalinc/rating_snooze_at";
 
 const BUNDLE_ID = "com.lokalinc.parth";
-const IOS_STORE_URL = `itms-apps://itunes.apple.com/app/bundleId/${BUNDLE_ID}`;
-const IOS_STORE_FALLBACK = `https://apps.apple.com/app/bundleId/${BUNDLE_ID}`;
+const IOS_STORE_URL = `itms-apps://apps.apple.com/app/id6761270364`;
+const IOS_STORE_FALLBACK = `https://apps.apple.com/app/id6761270364`;
 const ANDROID_STORE_URL = `market://details?id=${BUNDLE_ID}`;
 const ANDROID_STORE_FALLBACK = `https://play.google.com/store/apps/details?id=${BUNDLE_ID}`;
 
