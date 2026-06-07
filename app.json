@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "LokaLinc",
-    "slug": "lokalinc-app",
+    "slug": "lokalinc",
     "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -63,7 +63,7 @@
       "router": {
         "origin": "https://8ktzqvc7jybkjvj4cr9gwmp8qp4v5q3y.app.specular.dev"
       },
-      "backendUrl": "https://prod-proj-dpluqp3d5nexthtfrcpmq-liwg5h36mq-ey.a.run.app",
+      "backendUrl": "https://3jpfvvh9fx3h3a7fx3g8p92545drvb2k.app.specular.dev",
       "oneSignalAppId": "cb93c36b-43e2-4a76-9575-6ad75bf14a75"
     },
     "notification": {
