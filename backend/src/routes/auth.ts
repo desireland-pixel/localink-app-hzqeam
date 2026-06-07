@@ -546,7 +546,7 @@ export function registerAuthRoutes(app: App) {
 
       // Send password reset email
       const { resend } = await import('@specific-dev/framework');
-      const baseUrl = process.env.APP_URL || 'https://prod-proj-dpluqp3d5nexthtfrcpmq-liwg5h36mq-ey.a.run.app';
+      const baseUrl = process.env.APP_URL || 'https://3jpfvvh9fx3h3a7fx3g8p92545drvb2k.app.specular.dev';
       const resetLink = `${baseUrl}/api/auth/reset-redirect?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
 
       resend.emails.send({
