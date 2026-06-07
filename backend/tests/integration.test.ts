@@ -21,6 +21,67 @@ describe("API Integration Tests", () => {
     expect(user.id).toBeDefined();
   });
 
+  test("Login with invalid email format returns 400", async () => {
+    const res = await api("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "not-an-email",
+        password: "SomePassword123!",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Login with non-existent email returns 401 or 404", async () => {
+    const res = await api("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "nonexistent@example.com",
+        password: "SomePassword123!",
+      }),
+    });
+    await expectStatus(res, 401, 404);
+  });
+
+  test("Login with missing email returns 400", async () => {
+    const res = await api("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        password: "SomePassword123!",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Login with missing password returns 400", async () => {
+    const res = await api("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "test@example.com",
+      }),
+    });
+    await expectStatus(res, 400);
+  });
+
+  test("Login with rememberMe flag", async () => {
+    // Test that rememberMe parameter is accepted (may fail on auth if password wrong, but tests endpoint exists)
+    const res = await api("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "test@example.com",
+        password: "TestPassword123!",
+        rememberMe: true,
+      }),
+    });
+    // Status could be 401 if credentials wrong, 200 if successful
+    await expectStatus(res, 200, 401, 404);
+  });
+
   test("Get current user profile", async () => {
     const res = await authenticatedApi("/api/profile", authToken);
     await expectStatus(res, 200);

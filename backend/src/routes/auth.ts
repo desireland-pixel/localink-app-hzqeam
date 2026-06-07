@@ -21,6 +21,19 @@ function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// Helper function to derive base URL from request headers
+function getBaseUrl(request: FastifyRequest, logger: any): string {
+  const proto = request.headers['x-forwarded-proto'] || request.protocol || 'https';
+  const host = request.headers['x-forwarded-host'] || request.headers['host'];
+
+  if (!host) {
+    logger.warn({}, 'No host header found in request, falling back to production host');
+    return 'https://prod-proj-dpluqp3d5nexthtfrcpmq-liwg5h36mq-ey.a.run.app';
+  }
+
+  return `${proto}://${host}`;
+}
+
 interface LoginBody {
   email: string;
   password: string;
@@ -546,7 +559,8 @@ export function registerAuthRoutes(app: App) {
 
       // Send password reset email
       const { resend } = await import('@specific-dev/framework');
-      const resetLink = `https://prod-proj-dpluqp3d5nexthtfrcpmq-liwg5h36mq-ey.a.run.app/api/auth/reset-redirect?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
+      const baseUrl = getBaseUrl(request, app.logger);
+      const resetLink = `${baseUrl}/api/auth/reset-redirect?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
 
       resend.emails.send({
         from: 'LokaLinc <noreply@lokalinc.de>',
