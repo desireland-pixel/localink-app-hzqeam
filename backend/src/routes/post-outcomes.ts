@@ -9,7 +9,7 @@ interface PostOutcomeBody {
   comment?: string;
 }
 
-const VALID_POST_TYPES = ['sublet', 'travel', 'community'];
+const VALID_POST_TYPES = ['sublet', 'travel', 'carry', 'community'];
 const VALID_OUTCOMES = ['yes', 'no'];
 const MAX_COMMENT_LENGTH = 300;
 
@@ -26,16 +26,16 @@ export function registerPostOutcomesRoutes(app: App) {
         required: ['postId', 'postType', 'outcome'],
         properties: {
           postId: { type: 'string' },
-          postType: { type: 'string', enum: ['sublet', 'travel', 'community'] },
+          postType: { type: 'string', enum: ['sublet', 'travel', 'carry', 'community'] },
           outcome: { type: 'string', enum: ['yes', 'no'] },
           comment: { type: 'string' },
         },
       },
       response: {
-        200: {
+        201: {
           type: 'object',
           properties: {
-            success: { type: 'boolean' },
+            ok: { type: 'boolean' },
           },
         },
         400: {
@@ -78,7 +78,7 @@ export function registerPostOutcomesRoutes(app: App) {
       // Validate postType
       if (!body.postType || !VALID_POST_TYPES.includes(body.postType)) {
         app.logger.warn({ userId: session.user.id, postType: body.postType }, 'Invalid postType');
-        return reply.status(400).send({ error: 'postType must be one of: sublet, travel, community' });
+        return reply.status(400).send({ error: 'postType must be one of: sublet, travel, carry, community' });
       }
 
       // Validate outcome
@@ -114,7 +114,8 @@ export function registerPostOutcomesRoutes(app: App) {
         'Post outcome submitted successfully'
       );
 
-      return { success: true };
+      reply.status(201);
+      return { ok: true };
     } catch (error) {
       app.logger.error(
         { err: error, userId: session.user.id, postId: body.postId },

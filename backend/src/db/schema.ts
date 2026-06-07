@@ -319,7 +319,7 @@ export const matchNotificationsRelations = relations(matchNotifications, ({ one 
 // User feedback
 export const feedback = pgTable('feedback', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
   category: text('category').notNull(),
   message: text('message').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -337,8 +337,8 @@ export const postOutcomes = pgTable('post_outcomes', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   postId: text('post_id').notNull(),
-  postType: text('post_type').notNull(),
-  outcome: text('outcome').notNull(),
+  postType: text('post_type', { enum: ['sublet', 'travel', 'carry', 'community'] }).notNull(),
+  outcome: text('outcome', { enum: ['yes', 'no'] }).notNull(),
   comment: text('comment'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

@@ -10,12 +10,10 @@ interface FeedbackBody {
 const VALID_CATEGORIES = ['general', 'bug', 'feature'];
 
 export function registerFeedbackRoutes(app: App) {
-  const requireAuth = app.requireAuth();
-
-  // Submit feedback
+  // Submit feedback (unauthenticated)
   app.fastify.post('/api/feedback', {
     schema: {
-      description: 'Submit user feedback',
+      description: 'Submit user feedback (unauthenticated)',
       tags: ['feedback'],
       body: {
         type: 'object',
@@ -29,17 +27,10 @@ export function registerFeedbackRoutes(app: App) {
         201: {
           type: 'object',
           properties: {
-            id: { type: 'string', format: 'uuid' },
-            created_at: { type: 'string', format: 'date-time' },
+            ok: { type: 'boolean' },
           },
         },
         400: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' },
-          },
-        },
-        401: {
           type: 'object',
           properties: {
             error: { type: 'string' },
@@ -54,14 +45,11 @@ export function registerFeedbackRoutes(app: App) {
       },
     },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const session = await requireAuth(request, reply);
-    if (!session) return;
-
     const body = request.body as FeedbackBody;
-    app.logger.info({ userId: session.user.id, category: body.category }, 'Submitting feedback');
+    app.logger.info({ category: body.category }, 'Submitting feedback');
 
     try {
-      // Validate that required fields are present (schema should catch this, but validate to be safe)
+      // Validate that required fields are present
       if (!body.category || !body.message) {
         app.logger.warn({ hasCat: !!body.category, hasMsg: !!body.message }, 'Missing required fields');
         return reply.status(400).send({ error: 'Missing required fields' });
@@ -73,32 +61,38 @@ export function registerFeedbackRoutes(app: App) {
         return reply.status(400).send({ error: 'Invalid category' });
       }
 
-      // Validate and trim message
-      const trimmedMessage = body.message.trim();
-      if (trimmedMessage.length < 10 || trimmedMessage.length > 500) {
-        app.logger.warn({ messageLength: trimmedMessage.length }, 'Message length out of range');
-        return reply.status(400).send({ error: 'Message must be between 10 and 500 characters' });
+      // Try to get session (optional for this endpoint)
+      let userId: string | null = null;
+      try {
+        const headers = new Headers();
+        Object.entries(request.headers).forEach(([key, value]) => {
+          if (value) {
+            headers.append(key, Array.isArray(value) ? value[0] : value);
+          }
+        });
+        const session = await app.auth.api.getSession({ headers });
+        if (session) {
+          userId = session.user.id;
+        }
+      } catch {
+        // No valid session, userId remains null
       }
 
       // Insert feedback
-      const [feedbackRecord] = await app.db
+      await app.db
         .insert(schema.feedback)
         .values({
-          userId: session.user.id,
+          userId,
           category: body.category,
-          message: trimmedMessage,
-        })
-        .returning();
+          message: body.message,
+        });
 
-      app.logger.info({ userId: session.user.id, feedbackId: feedbackRecord.id }, 'Feedback submitted successfully');
+      app.logger.info({ userId, category: body.category }, 'Feedback submitted successfully');
 
       reply.status(201);
-      return {
-        id: feedbackRecord.id,
-        created_at: feedbackRecord.createdAt.toISOString(),
-      };
+      return { ok: true };
     } catch (error) {
-      app.logger.error({ err: error, userId: session.user.id }, 'Failed to submit feedback');
+      app.logger.error({ err: error }, 'Failed to submit feedback');
       return reply.status(500).send({ error: 'Failed to submit feedback' });
     }
   });

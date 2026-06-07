@@ -169,6 +169,13 @@
       "when": 1780072822860,
       "tag": "20260529164022_lovely_war_machine",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1780850407285,
+      "tag": "20260607164007_blue_amphibian",
+      "breakpoints": true
     }
   ]
 }
