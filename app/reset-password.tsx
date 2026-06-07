@@ -60,7 +60,7 @@ export default function ResetPasswordScreen() {
 
     try {
       const response = await fetch(
-        'https://p4t7z7vvqezta76k2rfz5t4kn9gytc5z.app.specular.dev/api/auth/do-reset-password',
+        'https://vwxpuxkywfbaqdymrzb8a7r7y5zc5dy3.app.specular.dev/api/auth/do-reset-password',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
