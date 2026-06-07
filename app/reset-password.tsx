@@ -13,6 +13,7 @@ import {
   Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { BACKEND_URL } from "@/utils/api";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, typography, spacing, borderRadius } from "@/styles/commonStyles";
 import { IconSymbol } from "@/components/IconSymbol";
@@ -60,7 +61,7 @@ export default function ResetPasswordScreen() {
 
     try {
       const response = await fetch(
-        'https://vwxpuxkywfbaqdymrzb8a7r7y5zc5dy3.app.specular.dev/api/auth/do-reset-password',
+        `${BACKEND_URL}/api/auth/do-reset-password`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
