@@ -568,7 +568,27 @@ export function registerTravelPostRoutes(app: App) {
         201: {
           type: 'object',
           properties: {
-            travelPostId: { type: 'string' },
+            id: { type: 'string', format: 'uuid' },
+            userId: { type: 'string' },
+            type: { type: 'string', enum: ['offering', 'seeking', 'seeking-ally'] },
+            description: { type: 'string', nullable: true },
+            fromCity: { type: 'string' },
+            toCity: { type: 'string' },
+            travelDate: { type: 'string' },
+            companionshipFor: { type: 'string', nullable: true },
+            travelDateTo: { type: 'string', nullable: true },
+            item: { type: 'string', nullable: true },
+            canOfferCompanionship: { type: 'boolean', nullable: true },
+            canCarryItems: { type: 'boolean', nullable: true },
+            incentiveAmount: { type: 'string', nullable: true },
+            companionshipConsent: { type: 'boolean' },
+            allyConsent: { type: 'boolean' },
+            seekingConsent: { type: 'boolean' },
+            status: { type: 'string', enum: ['active', 'closed', 'deleted'] },
+            deletedAt: { type: 'string', nullable: true },
+            closedAt: { type: 'string', nullable: true },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
           },
         },
       },
@@ -682,10 +702,22 @@ export function registerTravelPostRoutes(app: App) {
         category: 'travel',
       });
 
-      reply.status(201);
-      return {
-        travelPostId: post.id,
+      // Format dates in response
+      const formattedTravelDate = formatDateToDDMMYYYY(post.travelDate as unknown as string);
+      let formattedTravelDateTo: string | null = null;
+      if (post.travelDateTo) {
+        formattedTravelDateTo = formatDateToDDMMYYYY(post.travelDateTo as unknown as string);
+      }
+
+      const responseBody = {
+        ...post,
+        travelDate: formattedTravelDate,
+        travelDateTo: formattedTravelDateTo,
       };
+
+      app.logger.info({ postId: post.id, responseHasId: !!responseBody.id }, 'Travel post created with id');
+
+      return reply.code(201).send(responseBody);
     } catch (error) {
       app.logger.error({ err: error, userId: session.user.id }, 'Failed to create travel post');
       return reply.status(500).send({ error: 'Failed to create travel post' });

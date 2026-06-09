@@ -52,6 +52,9 @@ export function registerCommunityRoutes(app: App) {
       const conditions: any[] = [isNull(schema.discussionTopics.deletedAt)];
 
       if (filters.category) {
+        if (filters.category === 'Jobs') {
+          filters.category = 'Job';
+        }
         conditions.push(eq(schema.discussionTopics.category, filters.category));
       }
 
