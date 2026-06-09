@@ -49,13 +49,16 @@ export function registerCommunityRoutes(app: App) {
     app.logger.info({ filters }, 'Listing discussion topics');
 
     try {
+      const CATEGORY_ALIASES: Record<string, string> = {
+        Jobs: "Job",
+      };
+
       const conditions: any[] = [isNull(schema.discussionTopics.deletedAt)];
 
       if (filters.category) {
-        if (filters.category === 'Jobs') {
-          filters.category = 'Job';
-        }
-        conditions.push(eq(schema.discussionTopics.category, filters.category));
+        const requestedCategory = filters.category;
+        const category = requestedCategory ? (CATEGORY_ALIASES[requestedCategory] ?? requestedCategory) : requestedCategory;
+        conditions.push(eq(schema.discussionTopics.category, category));
       }
 
       if (filters.status) {

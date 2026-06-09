@@ -40,13 +40,37 @@ export function registerProfileRoutes(app: App) {
 
     app.logger.info({ userId: session.user.id }, 'Fetching user profile');
 
-    const profile = await app.db.query.profiles.findFirst({
+    let profile = await app.db.query.profiles.findFirst({
       where: eq(schema.profiles.userId, session.user.id),
     });
 
     if (!profile) {
-      app.logger.warn({ userId: session.user.id }, 'Profile not found');
-      return reply.status(404).send({ error: 'Profile not found' });
+      app.logger.info({ userId: session.user.id }, 'Profile not found, creating default profile');
+      // Create a default profile if it doesn't exist
+      const now = new Date();
+      await app.db
+        .insert(schema.profiles)
+        .values({
+          userId: session.user.id,
+          name: session.user.name || 'User',
+          username: null,
+          city: 'Germany',
+          gdprConsentAccepted: false,
+          gdprConsentAcceptedAt: null,
+          subletDisclaimerAccepted: false,
+          travelDisclaimerAccepted: false,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+      profile = await app.db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, session.user.id),
+      });
+
+      if (!profile) {
+        app.logger.error({ userId: session.user.id }, 'Failed to create default profile');
+        return reply.status(500).send({ error: 'Failed to create profile' });
+      }
     }
 
     app.logger.info({ userId: session.user.id }, 'Profile fetched successfully');

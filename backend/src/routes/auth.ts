@@ -897,4 +897,40 @@ export function registerAuthRoutes(app: App) {
       return reply.status(500).send({ error: 'Failed to check username availability' });
     }
   });
+
+  // Delete test user (for test cleanup)
+  app.fastify.post('/api/auth/delete-user', {
+    schema: {
+      description: 'Delete the authenticated user account (for testing)',
+      tags: ['auth'],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+          },
+        },
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = await app.requireAuth()(request, reply);
+    if (!session) return;
+
+    app.logger.info({ userId: session.user.id }, 'Deleting user account');
+
+    try {
+      const userId = session.user.id;
+
+      // Delete user's profile
+      await app.db
+        .delete(schema.profiles)
+        .where(eq(schema.profiles.userId, userId));
+
+      app.logger.info({ userId }, 'User account deleted successfully');
+      return { success: true };
+    } catch (error) {
+      app.logger.error({ err: error, userId: session.user.id }, 'Failed to delete user account');
+      return reply.status(500).send({ error: 'Failed to delete user account' });
+    }
+  });
 }
