@@ -412,7 +412,8 @@ export function registerSubletRoutes(app: App) {
       // Validate that availableFrom is not in the past
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const fromDate = new Date(dbAvailableFrom);
+      const [fromYear, fromMonth, fromDay] = dbAvailableFrom.split('-');
+      const fromDate = new Date(Number(fromYear), Number(fromMonth) - 1, Number(fromDay));
       if (fromDate < today) {
         app.logger.warn({ availableFrom: dbAvailableFrom }, 'Start date cannot be in the past');
         return reply.status(400).send({ error: 'Start date cannot be in the past' });

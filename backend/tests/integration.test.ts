@@ -358,8 +358,8 @@ describe("API Integration Tests", () => {
         type: "offering",
         title: "Cozy apartment in Munich",
         city: "Munich",
-        availableFrom: "2026-06-15",
-        availableTo: "2026-08-31",
+        availableFrom: "2027-06-15",
+        availableTo: "2027-08-31",
         rent: "1500",
         description: "Beautiful 2-bedroom apartment with city views",
         address: "123 Main St, Munich",
@@ -382,8 +382,8 @@ describe("API Integration Tests", () => {
         type: "seeking",
         title: "Looking for apartment in Berlin",
         city: "Berlin",
-        availableFrom: "2026-06-15",
-        availableTo: "2026-09-30",
+        availableFrom: "2027-06-15",
+        availableTo: "2027-09-30",
         rent: "1200",
         independentArrangementConsent: true,
       }),
@@ -414,7 +414,7 @@ describe("API Integration Tests", () => {
   });
 
   test("Get sublets with date range filter", async () => {
-    const res = await api("/api/sublets?availableFrom=2026-06-01&availableTo=2026-08-31");
+    const res = await api("/api/sublets?availableFrom=2027-06-01&availableTo=2027-08-31");
     await expectStatus(res, 200);
   });
 
@@ -579,7 +579,7 @@ describe("API Integration Tests", () => {
         type: "offering",
         fromCity: "Berlin",
         toCity: "Munich",
-        travelDate: "2026-07-15",
+        travelDate: "2027-07-15",
         description: "Looking for travel companion for trip within Germany",
         companionshipConsent: true,
       }),
@@ -598,7 +598,7 @@ describe("API Integration Tests", () => {
         type: "seeking",
         fromCity: "Hamburg",
         toCity: "Berlin",
-        travelDate: "2026-08-01",
+        travelDate: "2027-08-01",
         seekingConsent: true,
       }),
     });
@@ -615,7 +615,7 @@ describe("API Integration Tests", () => {
         type: "seeking",
         fromCity: "Munich",
         toCity: "Hamburg",
-        travelDate: "2026-08-15",
+        travelDate: "2027-08-15",
         companionshipFor: "Mother",
         canOfferCompanionship: true,
         seekingConsent: true,
@@ -634,7 +634,7 @@ describe("API Integration Tests", () => {
         type: "offering",
         fromCity: "Berlin",
         toCity: "Hamburg",
-        travelDate: "2026-09-01",
+        travelDate: "2027-09-01",
         canCarryItems: true,
         item: "Laptop and documents",
         companionshipConsent: true,
@@ -653,7 +653,7 @@ describe("API Integration Tests", () => {
         type: "seeking",
         fromCity: "Munich",
         toCity: "Berlin",
-        travelDate: "2026-09-10",
+        travelDate: "2027-09-10",
         incentiveAmount: 50.00,
         seekingConsent: true,
       }),
@@ -682,12 +682,12 @@ describe("API Integration Tests", () => {
   });
 
   test("Get travel posts filtered by date range", async () => {
-    const res = await api("/api/travel-posts?travelDateFrom=2026-06-01&travelDateTo=2026-08-31");
+    const res = await api("/api/travel-posts?travelDateFrom=2027-06-01&travelDateTo=2027-08-31");
     await expectStatus(res, 200);
   });
 
   test("Get travel posts filtered by travel date", async () => {
-    const res = await api("/api/travel-posts?travelDate=2026-07-15");
+    const res = await api("/api/travel-posts?travelDate=2027-07-15");
     await expectStatus(res, 200);
   });
 
@@ -840,7 +840,7 @@ describe("API Integration Tests", () => {
         type: "seeking-ally",
         fromCity: "Berlin",
         toCity: "Munich",
-        travelDate: "2026-08-20",
+        travelDate: "2027-08-20",
         item: "Laptop",
         allyConsent: true,
       }),
@@ -858,7 +858,7 @@ describe("API Integration Tests", () => {
         type: "offering",
         fromCity: "Berlin",
         toCity: "Munich",
-        travelDate: "2026-09-01",
+        travelDate: "2027-09-01",
         incentiveAmount: 150.00, // Exceeds max of 99.99
         companionshipConsent: true,
       }),
@@ -874,7 +874,7 @@ describe("API Integration Tests", () => {
         type: "offering",
         fromCity: "Berlin",
         toCity: "Munich",
-        travelDate: "2026-09-01",
+        travelDate: "2027-09-01",
         incentiveAmount: 0,
         companionshipConsent: true,
       }),
@@ -892,7 +892,7 @@ describe("API Integration Tests", () => {
         type: "seeking",
         fromCity: "Berlin",
         toCity: "Hamburg",
-        travelDate: "2026-06-15",
+        travelDate: "2027-06-15",
         seekingConsent: true,
       }),
     });
@@ -921,7 +921,7 @@ describe("API Integration Tests", () => {
         type: "seeking",
         fromCity: "Berlin",
         toCity: "Hamburg",
-        travelDate: "2026-06-15",
+        travelDate: "2027-06-15",
         seekingConsent: true,
       }),
     });
@@ -968,7 +968,7 @@ describe("API Integration Tests", () => {
         type: "seeking",
         fromCity: "Munich",
         toCity: "Frankfurt",
-        travelDate: "2026-07-01",
+        travelDate: "2027-07-01",
         seekingConsent: true,
       }),
     });
@@ -1004,7 +1004,7 @@ describe("API Integration Tests", () => {
         type: "seeking",
         fromCity: "Hamburg",
         toCity: "Cologne",
-        travelDate: "2026-08-01",
+        travelDate: "2027-08-01",
         seekingConsent: true,
       }),
     });
@@ -1050,8 +1050,8 @@ describe("API Integration Tests", () => {
         type: "offering",
         title: "Favorite test sublet",
         city: "Vienna",
-        availableFrom: "2026-06-15",
-        availableTo: "2026-07-31",
+        availableFrom: "2027-06-15",
+        availableTo: "2027-07-31",
         rent: "1000",
         independentArrangementConsent: true,
       }),
@@ -1081,8 +1081,8 @@ describe("API Integration Tests", () => {
         type: "offering",
         title: "Check favorite test sublet",
         city: "Prague",
-        availableFrom: "2026-06-15",
-        availableTo: "2026-07-30",
+        availableFrom: "2027-06-15",
+        availableTo: "2027-07-30",
         rent: "900",
         independentArrangementConsent: true,
       }),
@@ -1104,8 +1104,8 @@ describe("API Integration Tests", () => {
         type: "offering",
         title: "Delete favorite test sublet",
         city: "Munich",
-        availableFrom: "2026-06-15",
-        availableTo: "2026-07-30",
+        availableFrom: "2027-06-15",
+        availableTo: "2027-07-30",
         rent: "1200",
         independentArrangementConsent: true,
       }),
@@ -1733,7 +1733,7 @@ describe("API Integration Tests", () => {
         type: "offering",
         fromCity: "Berlin",
         toCity: "Munich",
-        travelDate: "2026-10-15",
+        travelDate: "2027-10-15",
         companionshipConsent: true,
       }),
     });
@@ -1763,8 +1763,8 @@ describe("API Integration Tests", () => {
         type: "offering",
         title: "Conversation test sublet",
         city: "Hamburg",
-        availableFrom: "2026-06-15",
-        availableTo: "2026-08-31",
+        availableFrom: "2027-06-15",
+        availableTo: "2027-08-31",
         rent: "1500",
         independentArrangementConsent: true,
       }),
@@ -1835,7 +1835,7 @@ describe("API Integration Tests", () => {
           type: "offering",
           fromCity: "Leipzig",
           toCity: "Cologne",
-          travelDate: "2026-09-10",
+          travelDate: "2027-09-10",
           companionshipConsent: true,
         }),
       });
@@ -1881,7 +1881,7 @@ describe("API Integration Tests", () => {
           type: "seeking",
           fromCity: "Berlin",
           toCity: "Hamburg",
-          travelDate: "2026-11-01",
+          travelDate: "2027-11-01",
           seekingConsent: true,
         }),
       });
@@ -1923,7 +1923,7 @@ describe("API Integration Tests", () => {
           type: "seeking",
           fromCity: "Dresden",
           toCity: "Leipzig",
-          travelDate: "2026-10-05",
+          travelDate: "2027-10-05",
           seekingConsent: true,
         }),
       });
@@ -1962,7 +1962,7 @@ describe("API Integration Tests", () => {
           type: "offering",
           fromCity: "Munich",
           toCity: "Frankfurt am Main",
-          travelDate: "2026-12-01",
+          travelDate: "2027-12-01",
           companionshipConsent: true,
         }),
       });
@@ -1995,7 +1995,7 @@ describe("API Integration Tests", () => {
           type: "offering",
           fromCity: "Munich",
           toCity: "Stuttgart",
-          travelDate: "2026-12-10",
+          travelDate: "2027-12-10",
           companionshipConsent: true,
         }),
       });
@@ -2302,8 +2302,8 @@ describe("API Integration Tests", () => {
         type: "offering",
         title: "Share test sublet",
         city: "Hamburg",
-        availableFrom: "2026-09-01",
-        availableTo: "2026-11-30",
+        availableFrom: "2027-09-01",
+        availableTo: "2027-11-30",
         rent: "1200",
         independentArrangementConsent: true,
       }),
@@ -2326,7 +2326,7 @@ describe("API Integration Tests", () => {
         type: "offering",
         fromCity: "Stuttgart",
         toCity: "Frankfurt",
-        travelDate: "2026-09-15",
+        travelDate: "2027-09-15",
         companionshipConsent: true,
       }),
     });
@@ -2537,8 +2537,8 @@ describe("API Integration Tests", () => {
         type: "offering",
         title: "Match trigger test sublet",
         city: "Berlin",
-        availableFrom: "2026-06-15",
-        availableTo: "2026-08-31",
+        availableFrom: "2027-06-15",
+        availableTo: "2027-08-31",
         rent: "1500",
         independentArrangementConsent: true,
       }),
@@ -2570,7 +2570,7 @@ describe("API Integration Tests", () => {
         type: "offering",
         fromCity: "Stuttgart",
         toCity: "Frankfurt",
-        travelDate: "2026-07-15",
+        travelDate: "2027-07-15",
         companionshipConsent: true,
       }),
     });
@@ -2599,8 +2599,8 @@ describe("API Integration Tests", () => {
         type: "offering",
         title: "Trigger match test",
         city: "Munich",
-        availableFrom: "2026-07-01",
-        availableTo: "2026-08-30",
+        availableFrom: "2027-07-01",
+        availableTo: "2027-08-30",
         rent: "1500",
         independentArrangementConsent: true,
       }),
@@ -2668,8 +2668,8 @@ describe("API Integration Tests", () => {
         type: "offering",
         title: "Outcome test sublet",
         city: "Berlin",
-        availableFrom: "2026-06-15",
-        availableTo: "2026-08-31",
+        availableFrom: "2027-06-15",
+        availableTo: "2027-08-31",
         rent: "1500",
         independentArrangementConsent: true,
       }),
@@ -2701,7 +2701,7 @@ describe("API Integration Tests", () => {
         type: "offering",
         fromCity: "Stuttgart",
         toCity: "Frankfurt",
-        travelDate: "2026-09-15",
+        travelDate: "2027-09-15",
         companionshipConsent: true,
       }),
     });
